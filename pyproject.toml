@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "interview-сorvus"
+version = "0.1.0"
+description = ""
+authors = ["npavlin <afaneor@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.14"
+pydantic-settings = "^2.8.1"
+llama-index = "^0.12.26"
+keyring = "^25.6.0"
+pyqt6 = "^6.8.1"
+pyobjc-core = "^11.0"
+pyobjc-framework-cocoa = "^11.0"
+pyobjc-framework-quartz = "^11.0"
+llama-index-llms-anthropic = "^0.6.10"
+loguru = "^0.7.3"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.11.2"
+pyinstaller = "^6.12.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
