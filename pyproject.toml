@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "interview-сorvus"
+name = "interview-corvus"
 version = "0.1.0"
 description = ""
 authors = ["npavlin <afaneor@gmail.com>"]
@@ -16,6 +16,7 @@ pyobjc-framework-cocoa = "^11.0"
 pyobjc-framework-quartz = "^11.0"
 llama-index-llms-anthropic = "^0.6.10"
 loguru = "^0.7.3"
+pynput = "^1.8.1"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.11.2"
