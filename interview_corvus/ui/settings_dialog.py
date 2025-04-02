@@ -188,7 +188,6 @@ class SettingsDialog(QDialog):
         # LLM settings
         self.model_combo.setCurrentText(settings.llm.model)
         self.temperature_input.setValue(settings.llm.temperature)
-        self.streaming_checkbox.setChecked(settings.llm.streaming)
 
         # Get API key if it exists
         try:
