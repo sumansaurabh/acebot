@@ -879,22 +879,6 @@ class MainWindow(QMainWindow):
                 display_name += " (Основной)"
             self.screen_combo.addItem(display_name, screen["index"])
 
-    @pyqtSlot(str)
-    def on_token_received(self, token: str):
-        """
-        Handle token updates during streaming.
-
-        Args:
-            token: The newest token received from the LLM
-        """
-        # Append token to solution text and update display
-        self.solution_text += token
-        self.code_editor.setPlainText(self.solution_text)
-
-        # Scroll to the bottom
-        scrollbar = self.code_editor.verticalScrollBar()
-        scrollbar.setValue(scrollbar.maximum())
-
     @pyqtSlot(object)
     def on_solution_ready(self, solution):
         """
@@ -1157,7 +1141,6 @@ class MainWindow(QMainWindow):
             self.llm_service = LLMService()
 
             # Reconnect signals
-            self.llm_service.token_received.connect(self.on_token_received)
             self.llm_service.completion_finished.connect(self.on_solution_ready)
             self.llm_service.error_occurred.connect(self.on_processing_error)
 
