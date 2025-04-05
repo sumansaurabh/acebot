@@ -209,14 +209,11 @@ class InvisibilityManager(QObject):
             # Use a new method in InvisibilityManager that doesn't activate the window
             self.set_visibility_without_activation(True)
         else:
-            # For Windows/Linux we can use different flags or techniques
-            self.window_handle.setWindowFlag(
-                Qt.WindowType.WindowDoesNotAcceptFocus, True
-            )
             self.window_handle.show()
             self.window_handle.setWindowFlag(
                 Qt.WindowType.WindowDoesNotAcceptFocus, False
             )
+        self.is_visible = True
 
     def _macos_activate_window(self, attempt):
         """Многократная попытка активации окна для macOS"""
