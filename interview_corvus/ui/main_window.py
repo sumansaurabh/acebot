@@ -1,5 +1,3 @@
-import sys
-
 from loguru import logger
 from PyQt6.QtCore import QEvent, QSize, Qt, QThread, QTimer, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QAction, QFont, QIcon, QKeySequence
@@ -21,7 +19,8 @@ from PyQt6.QtWidgets import (
     QSystemTrayIcon,
     QTextEdit,
     QVBoxLayout,
-    QWidget, QDialog,
+    QWidget,
+    QDialog,
 )
 
 from interview_corvus.config import settings
@@ -671,17 +670,18 @@ class MainWindow(QMainWindow):
         self.status_bar.showMessage("Taking screenshot...")
         logger.info("Taking screenshot...")
 
-        # Получаем индекс выбранного монитора
+        # Get the index of the selected monitor
         selected_index = self.screen_combo.currentData()
-        logger.info(f"Taking screenshot from screen {selected_index}")
+
+        # Save the currently active window handle before taking screenshot
+        # This can be done with platform-specific code
 
         # Temporarily hide the window if visible
         was_visible = self.invisibility_manager.is_visible
         if was_visible:
-            logger.info("Window was visible, hiding for screenshot")
             self.invisibility_manager.set_visibility(False)
 
-        # Wait a moment for the window to hide
+        # Wait for the window to hide
         import time
 
         time.sleep(0.1)
@@ -689,23 +689,18 @@ class MainWindow(QMainWindow):
         # Take the screenshot
         screenshot = self.screenshot_manager.take_screenshot(selected_index)
 
-        # Restore visibility if needed
+        # Restore visibility if needed, but don't activate the window
         if was_visible:
-            logger.info("Restoring window visibility after screenshot")
             QTimer.singleShot(
-                200, lambda: self.invisibility_manager.set_visibility(True)
+                200,
+                lambda: self.invisibility_manager.restore_visibility_without_focus(),
             )
 
+        # Update UI elements
         self.status_bar.showMessage(
-            f"Screenshot captured: {screenshot['width']}x{screenshot['height']} (монитор {selected_index + 1})"
+            f"Screenshot captured: {screenshot['width']}x{screenshot['height']}"
         )
-        logger.info(
-            f"Screenshot captured: {screenshot['width']}x{screenshot['height']} from screen {selected_index}"
-        )
-
-        # Update thumbnails and select the new screenshot
         self.update_thumbnails()
-        # Select the most recently taken screenshot
         self.select_screenshot(len(self.screenshot_manager.get_all_screenshots()) - 1)
 
     @pyqtSlot()
@@ -736,8 +731,7 @@ class MainWindow(QMainWindow):
         """Generate a solution based on all available screenshots."""
         # Check if processing is already in progress
         if self.processing_screenshot:
-            self.status_bar.showMessage(
-                "Already processing screenshot, please wait...")
+            self.status_bar.showMessage("Already processing screenshot, please wait...")
             return
 
         # Get all screenshots
@@ -750,9 +744,9 @@ class MainWindow(QMainWindow):
             return
 
         self.status_bar.showMessage(
-            f"Generating solution from {len(screenshots)} screenshots...")
-        logger.info(
-            f"Generating solution from {len(screenshots)} screenshots...")
+            f"Generating solution from {len(screenshots)} screenshots..."
+        )
+        logger.info(f"Generating solution from {len(screenshots)} screenshots...")
 
         # Set processing flag
         self.processing_screenshot = True
@@ -769,8 +763,7 @@ class MainWindow(QMainWindow):
         logger.info(f"Using language: {selected_language}")
 
         # Get all screenshot paths
-        screenshot_paths = [screenshot["file_path"] for screenshot in
-                            screenshots]
+        screenshot_paths = [screenshot["file_path"] for screenshot in screenshots]
 
         class ScreenshotProcessingThread(QThread):
             solution_ready = pyqtSignal(object)
@@ -785,7 +778,8 @@ class MainWindow(QMainWindow):
             def run(self):
                 try:
                     logger.info(
-                        f"Processing {len(self.screenshot_paths)} screenshots in thread")
+                        f"Processing {len(self.screenshot_paths)} screenshots in thread"
+                    )
                     solution = self.llm_service.get_solution_from_screenshots(
                         self.screenshot_paths, self.language
                     )
@@ -854,7 +848,7 @@ class MainWindow(QMainWindow):
 
             def run(self):
                 try:
-                    logger.info(f"Optimizing code in thread")
+                    logger.info("Optimizing code in thread")
                     solution = self.llm_service.get_code_optimization(
                         self.code, self.language
                     )
@@ -1168,7 +1162,7 @@ class MainWindow(QMainWindow):
         Args:
             event: Close event
         """
-        if hasattr(self, 'hotkey_manager'):
+        if hasattr(self, "hotkey_manager"):
             self.hotkey_manager.stop_global_listener()
 
         event.accept()
@@ -1201,17 +1195,22 @@ class MainWindow(QMainWindow):
     def update_button_texts(self):
         """Update button texts to reflect current hotkey settings."""
         self.screenshot_button.setText(
-            f"Take Screenshot ({settings.hotkeys.screenshot_key})")
+            f"Take Screenshot ({settings.hotkeys.screenshot_key})"
+        )
         self.generate_button.setText(
-            f"Generate Solution ({settings.hotkeys.generate_solution_key})")
+            f"Generate Solution ({settings.hotkeys.generate_solution_key})"
+        )
         self.optimize_button.setText(
-            f"Optimize Solution ({settings.hotkeys.optimize_solution_key})")
+            f"Optimize Solution ({settings.hotkeys.optimize_solution_key})"
+        )
         self.reset_history_button.setText(
-            f"Reset All ({settings.hotkeys.reset_history_key})")
+            f"Reset All ({settings.hotkeys.reset_history_key})"
+        )
 
         # Update visibility button tooltip
         self.visibility_button.setToolTip(
-            f"Shortcut: {settings.hotkeys.toggle_visibility_key}")
+            f"Shortcut: {settings.hotkeys.toggle_visibility_key}"
+        )
 
         # Update button tooltips
         self.screenshot_button.setToolTip(
@@ -1230,30 +1229,40 @@ class MainWindow(QMainWindow):
         # Also update menu actions if they exist
         if hasattr(self, "take_screenshot_action"):
             self.take_screenshot_action.setText(
-                f"Take Screenshot ({settings.hotkeys.screenshot_key})")
+                f"Take Screenshot ({settings.hotkeys.screenshot_key})"
+            )
             self.take_screenshot_action.setShortcut(
-                QKeySequence(settings.hotkeys.screenshot_key))
+                QKeySequence(settings.hotkeys.screenshot_key)
+            )
 
         if hasattr(self, "generate_solution_action"):
             self.generate_solution_action.setText(
-                f"Generate Solution ({settings.hotkeys.generate_solution_key})")
+                f"Generate Solution ({settings.hotkeys.generate_solution_key})"
+            )
             self.generate_solution_action.setShortcut(
-                QKeySequence(settings.hotkeys.generate_solution_key))
+                QKeySequence(settings.hotkeys.generate_solution_key)
+            )
 
         if hasattr(self, "toggle_visibility_action"):
             self.toggle_visibility_action.setText(
-                f"Toggle Visibility ({settings.hotkeys.toggle_visibility_key})")
+                f"Toggle Visibility ({settings.hotkeys.toggle_visibility_key})"
+            )
             self.toggle_visibility_action.setShortcut(
-                QKeySequence(settings.hotkeys.toggle_visibility_key))
+                QKeySequence(settings.hotkeys.toggle_visibility_key)
+            )
 
         if hasattr(self, "optimize_solution_action"):
             self.optimize_solution_action.setText(
-                f"Optimize Solution ({settings.hotkeys.optimize_solution_key})")
+                f"Optimize Solution ({settings.hotkeys.optimize_solution_key})"
+            )
             self.optimize_solution_action.setShortcut(
-                QKeySequence(settings.hotkeys.optimize_solution_key))
+                QKeySequence(settings.hotkeys.optimize_solution_key)
+            )
 
         if hasattr(self, "reset_history_action"):
             self.reset_history_action.setText(
-                f"Reset All ({settings.hotkeys.reset_history_key})")
+                f"Reset All ({settings.hotkeys.reset_history_key})"
+            )
             self.reset_history_action.setShortcut(
-                QKeySequence(settings.hotkeys.reset_history_key))
+                QKeySequence(settings.hotkeys.reset_history_key)
+            )

@@ -77,7 +77,7 @@ poetry run python build.py
 ### LLM Settings
 
 - **API Provider** - Choose between OpenAI and Anthropic
-- **Model Selection** - Select from GPT-4o, GPT-4-turbo, GPT-3.5-turbo, or Claude models
+- **Model Selection** - Select from o3-mini, GPT-4o or Claude models
 - **Temperature** - Adjust creativity vs. determinism of responses (0.0-2.0)
 - **API Key Management** - Securely store your API keys
 

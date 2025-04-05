@@ -1,5 +1,3 @@
-import sys
-
 from loguru import logger
 from pynput import keyboard
 from PyQt6.QtCore import QEvent, QObject, pyqtBoundSignal, pyqtSignal
@@ -145,8 +143,9 @@ class HotkeyManager(QObject):
 
         # Add move window keys
         for direction, key in settings.hotkeys.move_window_keys.items():
-            self.hotkeys[key] = lambda \
-                dir=direction: self.move_window_triggered.emit(dir)
+            self.hotkeys[key] = lambda dir=direction: self.move_window_triggered.emit(
+                dir
+            )
 
         # Register local shortcuts through PyQt
         self.shortcuts.clear()
@@ -155,8 +154,7 @@ class HotkeyManager(QObject):
             shortcut = QShortcut(QKeySequence(key_sequence), window)
 
             def create_callback(sig):
-                return lambda: sig.emit() if isinstance(sig,
-                                                        pyqtBoundSignal) else sig()
+                return lambda: sig.emit() if isinstance(sig, pyqtBoundSignal) else sig()
 
             callback = create_callback(signal)
             shortcut.activated.connect(callback)

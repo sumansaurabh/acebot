@@ -12,7 +12,17 @@ class APIKeyManager:
 
     def __init__(self):
         """Initialize the API key manager."""
-        self.env_var_name = settings.llm.api_key_env_var
+        self.env_var_name = self._get_env_var_name()
+
+    def _get_env_var_name(self):
+        """Get the appropriate environment variable name based on the model."""
+        if any(
+            model_prefix in settings.llm.model
+            for model_prefix in ["claude", "anthropic"]
+        ):
+            return "ANTHROPIC_API_KEY"
+        else:
+            return "OPENAI_API_KEY"
 
     def get_api_key(self) -> str:
         """

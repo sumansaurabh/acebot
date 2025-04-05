@@ -90,7 +90,15 @@ class SettingsDialog(QDialog):
         # Model selection
         self.model_combo = QComboBox()
         # OpenAI models by default
-        self.model_combo.addItems(["gpt-4o", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"])
+        self.model_combo.addItems(
+            [
+                "gpt-4o",
+                "o3-mini",
+                "gpt-4o-mini",
+                "o1",
+                "o1-mini",
+            ]
+        )
         llm_form_layout.addRow("Model:", self.model_combo)
 
         # API Key
@@ -189,25 +197,24 @@ class SettingsDialog(QDialog):
 
         # Generate solution hotkey
         self.generate_solution_hotkey = HotkeyEdit(
-            settings.hotkeys.generate_solution_key)
-        main_hotkeys_layout.addRow("Generate Solution:",
-                                   self.generate_solution_hotkey)
+            settings.hotkeys.generate_solution_key
+        )
+        main_hotkeys_layout.addRow("Generate Solution:", self.generate_solution_hotkey)
 
         # Toggle visibility hotkey
         self.toggle_visibility_hotkey = HotkeyEdit(
-            settings.hotkeys.toggle_visibility_key)
-        main_hotkeys_layout.addRow("Toggle Visibility:",
-                                   self.toggle_visibility_hotkey)
+            settings.hotkeys.toggle_visibility_key
+        )
+        main_hotkeys_layout.addRow("Toggle Visibility:", self.toggle_visibility_hotkey)
 
         # Optimize solution hotkey
         self.optimize_solution_hotkey = HotkeyEdit(
-            settings.hotkeys.optimize_solution_key)
-        main_hotkeys_layout.addRow("Optimize Solution:",
-                                   self.optimize_solution_hotkey)
+            settings.hotkeys.optimize_solution_key
+        )
+        main_hotkeys_layout.addRow("Optimize Solution:", self.optimize_solution_hotkey)
 
         # Reset history hotkey
-        self.reset_history_hotkey = HotkeyEdit(
-            settings.hotkeys.reset_history_key)
+        self.reset_history_hotkey = HotkeyEdit(settings.hotkeys.reset_history_key)
         main_hotkeys_layout.addRow("Reset History:", self.reset_history_hotkey)
 
         # Panic hotkey
@@ -222,23 +229,19 @@ class SettingsDialog(QDialog):
         move_hotkeys_layout = QFormLayout()
 
         # Move window up hotkey
-        self.move_up_hotkey = HotkeyEdit(
-            settings.hotkeys.move_window_keys["up"])
+        self.move_up_hotkey = HotkeyEdit(settings.hotkeys.move_window_keys["up"])
         move_hotkeys_layout.addRow("Move Window Up:", self.move_up_hotkey)
 
         # Move window down hotkey
-        self.move_down_hotkey = HotkeyEdit(
-            settings.hotkeys.move_window_keys["down"])
+        self.move_down_hotkey = HotkeyEdit(settings.hotkeys.move_window_keys["down"])
         move_hotkeys_layout.addRow("Move Window Down:", self.move_down_hotkey)
 
         # Move window left hotkey
-        self.move_left_hotkey = HotkeyEdit(
-            settings.hotkeys.move_window_keys["left"])
+        self.move_left_hotkey = HotkeyEdit(settings.hotkeys.move_window_keys["left"])
         move_hotkeys_layout.addRow("Move Window Left:", self.move_left_hotkey)
 
         # Move window right hotkey
-        self.move_right_hotkey = HotkeyEdit(
-            settings.hotkeys.move_window_keys["right"])
+        self.move_right_hotkey = HotkeyEdit(settings.hotkeys.move_window_keys["right"])
         move_hotkeys_layout.addRow("Move Window Right:", self.move_right_hotkey)
 
         move_hotkeys_group.setLayout(move_hotkeys_layout)
@@ -299,11 +302,17 @@ class SettingsDialog(QDialog):
         if self.screenshot_hotkey.text():
             settings.hotkeys.screenshot_key = self.screenshot_hotkey.text()
         if self.generate_solution_hotkey.text():
-            settings.hotkeys.generate_solution_key = self.generate_solution_hotkey.text()
+            settings.hotkeys.generate_solution_key = (
+                self.generate_solution_hotkey.text()
+            )
         if self.toggle_visibility_hotkey.text():
-            settings.hotkeys.toggle_visibility_key = self.toggle_visibility_hotkey.text()
+            settings.hotkeys.toggle_visibility_key = (
+                self.toggle_visibility_hotkey.text()
+            )
         if self.optimize_solution_hotkey.text():
-            settings.hotkeys.optimize_solution_key = self.optimize_solution_hotkey.text()
+            settings.hotkeys.optimize_solution_key = (
+                self.optimize_solution_hotkey.text()
+            )
         if self.reset_history_hotkey.text():
             settings.hotkeys.reset_history_key = self.reset_history_hotkey.text()
         if self.panic_hotkey.text():
@@ -348,14 +357,26 @@ class SettingsDialog(QDialog):
 
         if provider == "OpenAI":
             self.model_combo.addItems(
-                ["gpt-4o", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"]
+                [
+                    "gpt-4o",
+                    "o3-mini",
+                    "gpt-4o-mini",
+                    "o1",
+                    "o1-mini",
+                ]
             )
             self.api_key_input.setPlaceholderText("Enter OpenAI API key")
         elif provider == "Anthropic":
             self.model_combo.addItems(
-                ["claude-3-opus", "claude-3-sonnet", "claude-3-haiku"]
+                ["claude-3-7-sonnet-latest", "claude-3-5-haiku-latest"]
             )
             self.api_key_input.setPlaceholderText("Enter Anthropic API key")
+
+            # Set default model based on provider
+        if provider == "OpenAI":
+            self.model_combo.setCurrentText("gpt-4o")  # Set default to o3-mini
+        else:
+            self.model_combo.setCurrentText("claude-3-7-sonnet-latest")
 
     def toggle_api_key_visibility(self, state):
         """
@@ -364,7 +385,7 @@ class SettingsDialog(QDialog):
         Args:
             state: Checkbox state
         """
-        if state == Qt.CheckState.Checked:
+        if state == Qt.CheckState.Checked.value:
             self.api_key_input.setEchoMode(QLineEdit.EchoMode.Normal)
         else:
             self.api_key_input.setEchoMode(QLineEdit.EchoMode.Password)
@@ -393,7 +414,6 @@ class SettingsDialog(QDialog):
                 client.chat.completions.create(
                     model=self.model_combo.currentText(),
                     messages=[{"role": "user", "content": "Hello, are you working?"}],
-                    max_tokens=5,
                 )
             else:  # Anthropic
                 from anthropic import Anthropic
@@ -401,7 +421,6 @@ class SettingsDialog(QDialog):
                 client = Anthropic(api_key=api_key)
                 client.messages.create(
                     model=self.model_combo.currentText(),
-                    max_tokens=5,
                     messages=[{"role": "user", "content": "Hello, are you working?"}],
                 )
 
@@ -500,20 +519,17 @@ class SettingsDialog(QDialog):
 
         # Update UI with defaults
         self.screenshot_hotkey.setText(settings.hotkeys.screenshot_key)
-        self.generate_solution_hotkey.setText(
-            settings.hotkeys.generate_solution_key)
-        self.toggle_visibility_hotkey.setText(
-            settings.hotkeys.toggle_visibility_key)
-        self.optimize_solution_hotkey.setText(
-            settings.hotkeys.optimize_solution_key)
+        self.generate_solution_hotkey.setText(settings.hotkeys.generate_solution_key)
+        self.toggle_visibility_hotkey.setText(settings.hotkeys.toggle_visibility_key)
+        self.optimize_solution_hotkey.setText(settings.hotkeys.optimize_solution_key)
         self.reset_history_hotkey.setText(settings.hotkeys.reset_history_key)
         self.panic_hotkey.setText(settings.hotkeys.panic_key)
 
         self.move_up_hotkey.setText(settings.hotkeys.move_window_keys["up"])
         self.move_down_hotkey.setText(settings.hotkeys.move_window_keys["down"])
         self.move_left_hotkey.setText(settings.hotkeys.move_window_keys["left"])
-        self.move_right_hotkey.setText(
-            settings.hotkeys.move_window_keys["right"])
+        self.move_right_hotkey.setText(settings.hotkeys.move_window_keys["right"])
 
-        QMessageBox.information(self, "Reset Hotkeys",
-                                "Hotkeys have been reset to default values.")
+        QMessageBox.information(
+            self, "Reset Hotkeys", "Hotkeys have been reset to default values."
+        )

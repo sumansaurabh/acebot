@@ -1,8 +1,8 @@
 from typing import List, Type, TypeVar
 
-from llama_index.core.base.llms.types import ChatMessage, ImageBlock, \
-    MessageRole
+from llama_index.core.base.llms.types import ChatMessage, ImageBlock, MessageRole
 from llama_index.core.chat_engine import SimpleChatEngine
+from llama_index.llms.anthropic import Anthropic
 from llama_index.llms.openai import OpenAI
 from loguru import logger
 from pydantic import BaseModel
@@ -28,19 +28,34 @@ class LLMService(QObject):
         super().__init__()
         api_key = APIKeyManager().get_api_key()
 
-        self.llm = OpenAI(
-            model=settings.llm.model,
-            temperature=settings.llm.temperature,
-            api_key=api_key,
-            max_retries=settings.llm.max_retries,
-            timeout=settings.llm.timeout,
+        # Determine if we're using OpenAI or Anthropic based on model name
+        is_anthropic = any(
+            model_prefix in settings.llm.model
+            for model_prefix in ["claude", "anthropic"]
         )
+
+        if is_anthropic:
+            self.llm = Anthropic(
+                model=settings.llm.model,
+                temperature=settings.llm.temperature,
+                api_key=api_key,
+                max_tokens=12000,  # Set an appropriate max tokens value
+            )
+        else:
+            # Initialize OpenAI client
+            self.llm = OpenAI(
+                model=settings.llm.model,
+                temperature=settings.llm.temperature,
+                api_key=api_key,
+                max_retries=settings.llm.max_retries,
+                timeout=settings.llm.timeout,
+            )
+            logger.info(f"Initialized OpenAI LLM with model: {settings.llm.model}")
 
         # Initialize chat engine that will maintain conversation history
         self.chat_engine = SimpleChatEngine.from_defaults(
             llm=self.llm,
         )
-        logger.info(f"LLM Service initialized with model: {settings.llm.model}")
 
     def reset_chat_history(self):
         """Reset the chat history."""

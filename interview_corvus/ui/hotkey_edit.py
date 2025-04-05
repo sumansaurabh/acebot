@@ -29,7 +29,11 @@ class HotkeyEdit(QLineEdit):
 
         # Don't trigger on just modifier keys
         if key in (
-        Qt.Key.Key_Control, Qt.Key.Key_Shift, Qt.Key.Key_Alt, Qt.Key.Key_Meta):
+            Qt.Key.Key_Control,
+            Qt.Key.Key_Shift,
+            Qt.Key.Key_Alt,
+            Qt.Key.Key_Meta,
+        ):
             return
 
         # Build the key combination string

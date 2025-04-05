@@ -75,13 +75,8 @@ class ScreenshotManager:
         Args:
             screenshot_info: Dictionary with screenshot information
         """
-        # If we're at the limit, remove the oldest screenshot
         if len(self.screenshots) >= self.max_screenshots:
-            oldest = self.screenshots.pop(0)
-            # In a production app, you might want to delete the file here
-            # import os
-            # os.remove(oldest["file_path"])
-
+            self.screenshots.pop(0)
         self.screenshots.append(screenshot_info)
 
     def get_screenshot(self, index: int = -1) -> Optional[Dict[str, any]]:

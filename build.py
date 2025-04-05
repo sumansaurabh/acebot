@@ -26,6 +26,7 @@ def get_version():
     sys.path.append(os.path.abspath("."))
     try:
         from interview_corvus import __version__
+
         return __version__
     except ImportError:
         print("Не удалось импортировать версию. Используется 'dev'")
@@ -54,7 +55,7 @@ def build_macos():
         "--hidden-import=tiktoken_ext",
         "--hidden-import=keyring.backends.macOS",
         "--osx-bundle-identifier=com.interview.corvus",
-        "interview_corvus/main.py"
+        "interview_corvus/main.py",
     ]
 
     try:
@@ -68,13 +69,21 @@ def build_macos():
     dmg_name = f"Interview_Corvus-{version}-macOS.dmg"
 
     try:
-        subprocess.run([
-            "hdiutil", "create",
-            "-volname", f"Interview Corvus {version}",
-            "-srcfolder", f"dist/{app_name}",
-            "-ov", "-format", "UDZO",
-            f"dist/{dmg_name}"
-        ], check=True)
+        subprocess.run(
+            [
+                "hdiutil",
+                "create",
+                "-volname",
+                f"Interview Corvus {version}",
+                "-srcfolder",
+                f"dist/{app_name}",
+                "-ov",
+                "-format",
+                "UDZO",
+                f"dist/{dmg_name}",
+            ],
+            check=True,
+        )
         print(f"macOS сборка завершена: dist/{dmg_name}")
     except subprocess.SubprocessError as e:
         print(f"Ошибка при создании DMG: {e}")
@@ -87,7 +96,11 @@ def build_windows():
     version = get_version()
 
     # Запускаем PyInstaller с правильным разделителем для Windows
-    add_data_param = "resources;resources" if platform.system() == "Windows" else "resources:resources"
+    add_data_param = (
+        "resources;resources"
+        if platform.system() == "Windows"
+        else "resources:resources"
+    )
 
     cmd = [
         "pyinstaller",
@@ -99,7 +112,7 @@ def build_windows():
         "--hidden-import=tiktoken_ext.openai_public",
         "--hidden-import=tiktoken_ext",
         "--hidden-import=keyring.backends.Windows",
-        "interview_corvus/main.py"
+        "interview_corvus/main.py",
     ]
 
     try:
@@ -118,7 +131,7 @@ def build_windows():
             base_name=f"dist/{zip_name.replace('.zip', '')}",
             format="zip",
             root_dir="dist",
-            base_dir="Interview Corvus"
+            base_dir="Interview Corvus",
         )
         print(f"Windows сборка завершена: dist/{zip_name}")
     except Exception as e:
@@ -142,7 +155,7 @@ def build_linux():
         "--hidden-import=tiktoken_ext.openai_public",
         "--hidden-import=tiktoken_ext",
         "--hidden-import=keyring.backends.SecretService",
-        "interview_corvus/main.py"
+        "interview_corvus/main.py",
     ]
 
     try:
@@ -157,12 +170,10 @@ def build_linux():
     tgz_name = f"Interview_Corvus-{version}-Linux.tar.gz"
 
     try:
-        subprocess.run([
-            "tar", "-czvf",
-            f"dist/{tgz_name}",
-            "-C", "dist",
-            "Interview Corvus"
-        ], check=True)
+        subprocess.run(
+            ["tar", "-czvf", f"dist/{tgz_name}", "-C", "dist", "Interview Corvus"],
+            check=True,
+        )
         print(f"Linux сборка завершена: dist/{tgz_name}")
     except subprocess.SubprocessError as e:
         print(f"Ошибка при создании TGZ-архива: {e}")
@@ -175,10 +186,12 @@ def check_dependencies():
 
     # Проверка PyInstaller
     try:
-        subprocess.run(["pyinstaller", "--version"],
-                       stdout=subprocess.PIPE,
-                       stderr=subprocess.PIPE,
-                       check=False)
+        subprocess.run(
+            ["pyinstaller", "--version"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
     except FileNotFoundError:
         missing_deps.append("PyInstaller")
 
@@ -231,8 +244,7 @@ def main():
         elif current_os == "Linux":
             build_linux()
         else:
-            print(
-                f"Неподдерживаемая ОС для автоматической сборки: {current_os}")
+            print(f"Неподдерживаемая ОС для автоматической сборки: {current_os}")
             print("Пожалуйста, укажите ОС вручную: macos, windows или linux")
 
 

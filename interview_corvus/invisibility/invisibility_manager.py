@@ -4,7 +4,7 @@ import platform
 from typing import Tuple
 
 from loguru import logger
-from PyQt6.QtCore import QObject, QTimer, pyqtSignal
+from PyQt6.QtCore import QObject, QTimer, pyqtSignal, Qt
 
 
 class InvisibilityManager(QObject):
@@ -110,6 +110,7 @@ class InvisibilityManager(QObject):
             f"Setting visibility to {visible}, current state: {self.is_visible}"
         )
 
+        # Skip if state is already correct
         if visible == self.is_visible:
             logger.info(f"Visibility already set to {visible}, returning")
             return self.is_visible
@@ -119,34 +120,103 @@ class InvisibilityManager(QObject):
             logger.info("Warning: Cannot set visibility without window handle")
             return self.is_visible
 
+        # Update the internal state
         self.is_visible = visible
 
-        # Direct window visibility control - no layers of abstraction
         if visible:
-            logger.info(f"Making window visible")
-            # Для macOS используем особую последовательность вызовов
-            if self.is_macos:
-                self.window_handle.setHidden(False)
-                self.window_handle.show()
-                self.window_handle.raise_()
-
-                # Важно: на macOS нужно несколько вызовов активации с задержками
-                QTimer.singleShot(50, lambda: self._macos_activate_window(1))
-                QTimer.singleShot(150, lambda: self._macos_activate_window(2))
-                QTimer.singleShot(300, lambda: self._macos_activate_window(3))
-            else:
-                self.window_handle.show()
-                self.window_handle.raise_()
-                self.window_handle.activateWindow()
+            self._show_window()
         else:
-            logger.info(f"Hiding window")
-            self.window_handle.hide()
+            self._hide_window()
 
         # Emit signal
         self.visibility_changed.emit(visible)
         logger.info(f"Visibility changed to {visible}")
 
         return self.is_visible
+
+    def _show_window(self):
+        """Show and activate the window with platform-specific handling."""
+        logger.info("Making window visible")
+
+        if self.is_macos:
+            # macOS requires special handling for reliable window activation
+            self.window_handle.setHidden(False)
+            self.window_handle.show()
+            self.window_handle.raise_()
+
+            # Schedule multiple activation attempts with increasing delays
+            # This improves reliability on macOS which can be inconsistent
+            QTimer.singleShot(50, lambda: self._macos_activate_window(1))
+        else:
+            # Standard window showing for other platforms
+            self.window_handle.show()
+            self.window_handle.raise_()
+            self.window_handle.activateWindow()
+
+    def _hide_window(self):
+        """Hide the window."""
+        logger.info("Hiding window")
+        self.window_handle.hide()
+
+    def set_visibility_without_activation(self, visible: bool) -> bool:
+        """
+        Set visibility without activating the window (doesn't steal focus).
+
+        Args:
+            visible: True to make visible, False to make invisible
+
+        Returns:
+            The new visibility state
+        """
+        logger.info(f"Setting visibility without activation to {visible}")
+
+        if visible == self.is_visible:
+            return self.is_visible
+
+        if not self.window_handle:
+            return self.is_visible
+
+        self.is_visible = visible
+
+        if visible:
+            # Show without activating/focusing
+            if self.is_macos:
+                # macOS-specific way to show without focusing
+                self.window_handle.setHidden(False)
+                self.window_handle.show()
+                # Don't call raise_() or activateWindow()
+            else:
+                # For Windows/Linux
+                flags = self.window_handle.windowFlags()
+                self.window_handle.setWindowFlags(
+                    flags | Qt.WindowType.WindowDoesNotAcceptFocus
+                )
+                self.window_handle.show()
+                # Restore original flags
+                self.window_handle.setWindowFlags(flags)
+        else:
+            self.window_handle.hide()
+
+        # Emit signal
+        self.visibility_changed.emit(visible)
+
+        return self.is_visible
+
+    def restore_visibility_without_focus(self):
+        """Restore window visibility without stealing focus from other applications."""
+        # Make window visible but don't activate it
+        if self.is_macos:
+            # Use a new method in InvisibilityManager that doesn't activate the window
+            self.set_visibility_without_activation(True)
+        else:
+            # For Windows/Linux we can use different flags or techniques
+            self.window_handle.setWindowFlag(
+                Qt.WindowType.WindowDoesNotAcceptFocus, True
+            )
+            self.window_handle.show()
+            self.window_handle.setWindowFlag(
+                Qt.WindowType.WindowDoesNotAcceptFocus, False
+            )
 
     def _macos_activate_window(self, attempt):
         """Многократная попытка активации окна для macOS"""
