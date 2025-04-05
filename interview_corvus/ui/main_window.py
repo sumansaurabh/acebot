@@ -1,7 +1,5 @@
 import platform
 
-import Cocoa
-import HIServices
 from loguru import logger
 from PyQt6.QtCore import QEvent, QSize, Qt, QThread, QTimer, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QAction, QFont, QIcon, QKeySequence
@@ -1275,6 +1273,8 @@ class MainWindow(QMainWindow):
     def check_and_request_permissions(self):
         """Check for and request required permissions for global hotkey monitoring."""
         if platform.system() == "Darwin":
+            import Cocoa
+            import HIServices
             try:
                 # Check if we have accessibility permissions
                 trusted = HIServices.AXIsProcessTrusted()
