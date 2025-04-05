@@ -1162,18 +1162,14 @@ class MainWindow(QMainWindow):
         Args:
             event: Close event
         """
-        # Настройка скрытия в трей вместо закрытия
-        self.hide()
-        event.ignore()
-        logger.info("Window minimized to system tray")
+        if hasattr(self, 'hotkey_manager'):
+            self.hotkey_manager.stop_global_listener()
 
-        # Показать уведомление в трее
-        self.tray_icon.showMessage(
-            settings.app_name,
-            "Application is still running in the system tray.",
-            QSystemTrayIcon.MessageIcon.Information,
-            2000,
-        )
+        event.accept()
+
+        logger.info("Application closed")
+
+        QApplication.quit()
 
     def changeEvent(self, event):
         """
