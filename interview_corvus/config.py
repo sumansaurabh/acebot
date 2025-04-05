@@ -1,4 +1,5 @@
 import json
+import sys
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -39,20 +40,20 @@ class UISettings(BaseSettings):
 class HotkeySettings(BaseSettings):
     """Settings for application hotkeys."""
 
-    screenshot_key: str = "Cmd+Ctrl+1"  # macOS style
-    generate_solution_key: str = "Cmd+Ctrl+2"
-    toggle_visibility_key: str = "Cmd+Ctrl+B"
+    screenshot_key: str = "Cmd+Ctrl+1" if sys.platform == "darwin" else "Ctrl+Alt+1"
+    generate_solution_key: str = "Cmd+Ctrl+2" if sys.platform == "darwin" else "Ctrl+Alt+2"
+    toggle_visibility_key: str = "Cmd+Ctrl+B" if sys.platform == "darwin" else "Ctrl+Alt+B"
     move_window_keys: Dict[str, str] = Field(
         default_factory=lambda: {
-            "up": "Cmd+Up",
-            "down": "Cmd+Down",
-            "left": "Cmd+Left",
-            "right": "Cmd+Right",
+            "up": "Cmd+Up" if sys.platform == "darwin" else "Win+Up",
+            "down": "Cmd+Down" if sys.platform == "darwin" else "Win+Down",
+            "left": "Cmd+Left" if sys.platform == "darwin" else "Win+Left",
+            "right": "Cmd+Right" if sys.platform == "darwin" else "Win+Right",
         }
     )
-    optimize_solution_key: str = "Cmd+Ctrl+O"
-    reset_history_key: str = "Cmd+Ctrl+R"
-    panic_key: str = "Cmd+Q"
+    optimize_solution_key: str = "Cmd+Ctrl+O" if sys.platform == "darwin" else "Ctrl+Alt+O"
+    reset_history_key: str = "Cmd+Ctrl+R" if sys.platform == "darwin" else "Ctrl+Alt+R"
+    panic_key: str = "Cmd+Q" if sys.platform == "darwin" else "Alt+Q"
 
     model_config = SettingsConfigDict(env_prefix="INTERVIEW_CORVUS_HOTKEY_")
 

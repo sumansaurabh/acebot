@@ -1,3 +1,5 @@
+import sys
+
 from loguru import logger
 from PyQt6.QtCore import QEvent, QSize, Qt, QThread, QTimer, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QAction, QFont, QIcon, QKeySequence

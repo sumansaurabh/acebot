@@ -32,8 +32,27 @@ This open-source project was inspired by [interview-coder](https://github.com/ib
 
 You can get the latest version by:
 
-1. Downloading the release for your platform from the [Releases](https://github.com/afaneor/interview-corvus/releases) page (currently available only for macos)
+1. Downloading the release for your platform from the [Releases](https://github.com/afaneor/interview-corvus/releases) page
 2. Or building/using from source using the instructions below
+
+### Installation by Platform
+
+#### macOS
+
+1. Download the latest `.dmg` file from the [Releases](https://github.com/afaneor/interview-corvus/releases) page
+2. Open the `.dmg` file and drag the `Interview Corvus.app` to your Applications folder
+3. When running for the first time, you may need to right-click on the app and select "Open" to bypass Gatekeeper
+4. Grant the following permissions when prompted:
+   - Screen Recording (for taking screenshots)
+   - Accessibility (for global hotkeys)
+   - Keychain Access (for securely storing your API key)
+
+#### Windows
+
+1. Download the latest `.zip` file for Windows from the [Releases](https://github.com/afaneor/interview-corvus/releases) page
+2. Extract the contents of the `.zip` file to a location of your choice
+3. Run `Interview Corvus.exe`
+4. Note that you may need to run as administrator to enable some features
 
 ### Building from Source
 
@@ -81,21 +100,21 @@ All prompt templates can be customized to your preference:
 
 1. Launch Interview Corvus
 2. Enter your API key in the settings
-3. Take a screenshot of a coding problem using the hotkey (Cmd+Ctrl+1 on macOS by default)
-4. Generate a solution with another hotkey (Cmd+Ctrl+2 on macOS by default)
-5. Use the "Hide" button or hotkey (Cmd+Ctrl+B) to make the app invisible when needed
+3. Take a screenshot of a coding problem using the appropriate hotkey for your platform
+4. Generate a solution with another hotkey
+5. Use the "Hide" button or hotkey to make the app invisible when needed
 
 ### Keyboard Shortcuts
 
-| Function | macOS | Windows/Linux |
-|----------|-------|---------------|
+| Function | macOS | Windows |
+|----------|-------|---------|
 | Take Screenshot | Cmd+Ctrl+1 | Ctrl+Alt+1 |
 | Generate Solution | Cmd+Ctrl+2 | Ctrl+Alt+2 |
 | Toggle Visibility | Cmd+Ctrl+B | Ctrl+Alt+B |
-| Move Window Up | Cmd+Up | Ctrl+Up |
-| Move Window Down | Cmd+Down | Ctrl+Down |
-| Move Window Left | Cmd+Left | Ctrl+Left |
-| Move Window Right | Cmd+Right | Ctrl+Right |
+| Move Window Up | Cmd+Up | Win+Up |
+| Move Window Down | Cmd+Down | Win+Down |
+| Move Window Left | Cmd+Left | Win+Left |
+| Move Window Right | Cmd+Right | Win+Right |
 | Optimize Solution | Cmd+Ctrl+O | Ctrl+Alt+O |
 | Reset History | Cmd+Ctrl+R | Ctrl+Alt+R |
 | Panic (Instantly Hide) | Cmd+Q | Alt+Q |

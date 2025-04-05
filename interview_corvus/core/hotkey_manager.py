@@ -73,11 +73,7 @@ class HotkeyManager(QObject):
             for part in parts:
                 part = part.strip()
                 if part.lower() == "ctrl":
-                    # On macOS, Cmd typically corresponds to Ctrl in PyQt
-                    if sys.platform == "darwin":
-                        keys_set.add(keyboard.Key.cmd)
-                    else:
-                        keys_set.add(keyboard.Key.ctrl)
+                    keys_set.add(keyboard.Key.ctrl)
                 elif part.lower() == "cmd":
                     keys_set.add(keyboard.Key.cmd)
                 elif part.lower() == "alt":
