@@ -133,22 +133,46 @@ class HotkeyManager(QObject):
         Args:
             window: Main window of the application
         """
-        # Регистрируем локальные шорткаты через PyQt
+        # Clear existing hotkeys and rebuild with current settings
+        self.hotkeys = {
+            settings.hotkeys.screenshot_key: self.screenshot_triggered,
+            settings.hotkeys.generate_solution_key: self.solution_triggered,
+            settings.hotkeys.toggle_visibility_key: self.visibility_triggered,
+            settings.hotkeys.panic_key: self.panic_triggered,
+            settings.hotkeys.reset_history_key: self.reset_history_triggered,
+            settings.hotkeys.optimize_solution_key: self.optimize_solution_triggered,
+        }
+
+        # Add move window keys
+        for direction, key in settings.hotkeys.move_window_keys.items():
+            self.hotkeys[key] = lambda \
+                dir=direction: self.move_window_triggered.emit(dir)
+
+        # Register local shortcuts through PyQt
         self.shortcuts.clear()
 
         for key_sequence, signal in self.hotkeys.items():
             shortcut = QShortcut(QKeySequence(key_sequence), window)
 
             def create_callback(sig):
-                return lambda: sig.emit() if isinstance(sig, pyqtBoundSignal) else sig()
+                return lambda: sig.emit() if isinstance(sig,
+                                                        pyqtBoundSignal) else sig()
 
             callback = create_callback(signal)
             shortcut.activated.connect(callback)
             self.shortcuts.append(shortcut)
 
-        logger.info(f"Зарегистрировано {len(self.shortcuts)} локальных горячих клавиш")
+        logger.info(f"Registered {len(self.shortcuts)} local hotkeys")
 
-        # Запускаем глобальный обработчик pynput
+        # Reset current keys and keys of interest
+        self.current_keys = set()
+        self.keys_of_interest = set()
+        self.pynput_hotkeys = {}
+
+        # Convert hotkeys to pynput format for global detection
+        self._convert_hotkeys_to_pynput_format()
+
+        # Start global listener
         self.start_global_listener()
 
     def start_global_listener(self):

@@ -40,9 +40,47 @@ class UISettings(BaseSettings):
 class HotkeySettings(BaseSettings):
     """Settings for application hotkeys."""
 
-    screenshot_key: str = "Cmd+Ctrl+1" if sys.platform == "darwin" else "Ctrl+Alt+1"
-    generate_solution_key: str = "Cmd+Ctrl+2" if sys.platform == "darwin" else "Ctrl+Alt+2"
-    toggle_visibility_key: str = "Cmd+Ctrl+B" if sys.platform == "darwin" else "Ctrl+Alt+B"
+    # Properties for platform-specific defaults
+    @property
+    def default_screenshot_key(self):
+        return "Cmd+Ctrl+1" if sys.platform == "darwin" else "Ctrl+Alt+1"
+
+    @property
+    def default_generate_solution_key(self):
+        return "Cmd+Ctrl+2" if sys.platform == "darwin" else "Ctrl+Alt+2"
+
+    @property
+    def default_toggle_visibility_key(self):
+        return "Cmd+Ctrl+B" if sys.platform == "darwin" else "Ctrl+Alt+B"
+
+    @property
+    def default_move_window_keys(self):
+        return {
+            "up": "Cmd+Up" if sys.platform == "darwin" else "Win+Up",
+            "down": "Cmd+Down" if sys.platform == "darwin" else "Win+Down",
+            "left": "Cmd+Left" if sys.platform == "darwin" else "Win+Left",
+            "right": "Cmd+Right" if sys.platform == "darwin" else "Win+Right",
+        }
+
+    @property
+    def default_optimize_solution_key(self):
+        return "Cmd+Ctrl+O" if sys.platform == "darwin" else "Ctrl+Alt+O"
+
+    @property
+    def default_reset_history_key(self):
+        return "Cmd+Ctrl+R" if sys.platform == "darwin" else "Ctrl+Alt+R"
+
+    @property
+    def default_panic_key(self):
+        return "Cmd+Q" if sys.platform == "darwin" else "Alt+Q"
+
+    # Actual configurable values with defaults
+    screenshot_key: str = Field(
+        default_factory=lambda: "Cmd+Ctrl+1" if sys.platform == "darwin" else "Ctrl+Alt+1")
+    generate_solution_key: str = Field(
+        default_factory=lambda: "Cmd+Ctrl+2" if sys.platform == "darwin" else "Ctrl+Alt+2")
+    toggle_visibility_key: str = Field(
+        default_factory=lambda: "Cmd+Ctrl+B" if sys.platform == "darwin" else "Ctrl+Alt+B")
     move_window_keys: Dict[str, str] = Field(
         default_factory=lambda: {
             "up": "Cmd+Up" if sys.platform == "darwin" else "Win+Up",
@@ -51,12 +89,24 @@ class HotkeySettings(BaseSettings):
             "right": "Cmd+Right" if sys.platform == "darwin" else "Win+Right",
         }
     )
-    optimize_solution_key: str = "Cmd+Ctrl+O" if sys.platform == "darwin" else "Ctrl+Alt+O"
-    reset_history_key: str = "Cmd+Ctrl+R" if sys.platform == "darwin" else "Ctrl+Alt+R"
-    panic_key: str = "Cmd+Q" if sys.platform == "darwin" else "Alt+Q"
+    optimize_solution_key: str = Field(
+        default_factory=lambda: "Cmd+Ctrl+O" if sys.platform == "darwin" else "Ctrl+Alt+O")
+    reset_history_key: str = Field(
+        default_factory=lambda: "Cmd+Ctrl+R" if sys.platform == "darwin" else "Ctrl+Alt+R")
+    panic_key: str = Field(
+        default_factory=lambda: "Cmd+Q" if sys.platform == "darwin" else "Alt+Q")
+
+    def reset_to_defaults(self):
+        """Reset all hotkeys to their platform-specific defaults."""
+        self.screenshot_key = self.default_screenshot_key
+        self.generate_solution_key = self.default_generate_solution_key
+        self.toggle_visibility_key = self.default_toggle_visibility_key
+        self.move_window_keys = self.default_move_window_keys.copy()
+        self.optimize_solution_key = self.default_optimize_solution_key
+        self.reset_history_key = self.default_reset_history_key
+        self.panic_key = self.default_panic_key
 
     model_config = SettingsConfigDict(env_prefix="INTERVIEW_CORVUS_HOTKEY_")
-
 
 class PromptTemplates(BaseSettings):
     """Settings for prompt templates."""
@@ -220,6 +270,16 @@ class Settings(BaseSettings):
             "ui": {
                 "default_theme": self.ui.default_theme,
                 "default_window_opacity": self.ui.default_window_opacity,
+                "always_on_top": self.ui.always_on_top,
+            },
+            "hotkeys": {
+                "screenshot_key": self.hotkeys.screenshot_key,
+                "generate_solution_key": self.hotkeys.generate_solution_key,
+                "toggle_visibility_key": self.hotkeys.toggle_visibility_key,
+                "move_window_keys": self.hotkeys.move_window_keys,
+                "optimize_solution_key": self.hotkeys.optimize_solution_key,
+                "reset_history_key": self.hotkeys.reset_history_key,
+                "panic_key": self.hotkeys.panic_key,
             },
             "prompts": {"templates": self.prompts.templates},
         }
@@ -258,10 +318,36 @@ class Settings(BaseSettings):
                     self.ui.default_theme = ui_settings["default_theme"]
                 if "default_window_opacity" in ui_settings:
                     self.ui.default_window_opacity = ui_settings[
-                        "default_window_opacity"
-                    ]
+                        "default_window_opacity"]
+                if "always_on_top" in ui_settings:
+                    self.ui.always_on_top = ui_settings["always_on_top"]
 
-            if "prompts" in user_settings and "templates" in user_settings["prompts"]:
+            # Load hotkey settings
+            if "hotkeys" in user_settings:
+                hotkey_settings = user_settings["hotkeys"]
+                if "screenshot_key" in hotkey_settings:
+                    self.hotkeys.screenshot_key = hotkey_settings[
+                        "screenshot_key"]
+                if "generate_solution_key" in hotkey_settings:
+                    self.hotkeys.generate_solution_key = hotkey_settings[
+                        "generate_solution_key"]
+                if "toggle_visibility_key" in hotkey_settings:
+                    self.hotkeys.toggle_visibility_key = hotkey_settings[
+                        "toggle_visibility_key"]
+                if "move_window_keys" in hotkey_settings:
+                    self.hotkeys.move_window_keys = hotkey_settings[
+                        "move_window_keys"]
+                if "optimize_solution_key" in hotkey_settings:
+                    self.hotkeys.optimize_solution_key = hotkey_settings[
+                        "optimize_solution_key"]
+                if "reset_history_key" in hotkey_settings:
+                    self.hotkeys.reset_history_key = hotkey_settings[
+                        "reset_history_key"]
+                if "panic_key" in hotkey_settings:
+                    self.hotkeys.panic_key = hotkey_settings["panic_key"]
+
+            if "prompts" in user_settings and "templates" in user_settings[
+                "prompts"]:
                 self.prompts.templates = user_settings["prompts"]["templates"]
 
         except Exception as e:

@@ -21,7 +21,7 @@ from PyQt6.QtWidgets import (
     QSystemTrayIcon,
     QTextEdit,
     QVBoxLayout,
-    QWidget,
+    QWidget, QDialog,
 )
 
 from interview_corvus.config import settings
@@ -29,6 +29,7 @@ from interview_corvus.core.hotkey_manager import HotkeyManager
 from interview_corvus.core.llm_service import LLMService
 from interview_corvus.invisibility.invisibility_manager import InvisibilityManager
 from interview_corvus.screenshot.screenshot_manager import ScreenshotManager
+from interview_corvus.ui.settings_dialog import SettingsDialog
 from interview_corvus.ui.styles import Styles, Theme
 
 
@@ -341,6 +342,7 @@ class MainWindow(QMainWindow):
 
         # Update thumbnails
         self.update_thumbnails()
+        self.update_button_texts()
 
     def _create_menu_bar(self):
         """Create the application menu bar."""
@@ -1133,10 +1135,6 @@ class MainWindow(QMainWindow):
 
     def show_settings(self):
         """Show the settings dialog."""
-        from PyQt6.QtWidgets import QDialog
-
-        from interview_corvus.ui.settings_dialog import SettingsDialog
-
         dialog = SettingsDialog(self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             # Update services that depend on settings
@@ -1153,6 +1151,12 @@ class MainWindow(QMainWindow):
 
             # Update always on top setting
             self.set_always_on_top(settings.ui.always_on_top)
+
+            # Update button texts with new hotkey settings
+            self.update_button_texts()
+
+            # Re-register hotkeys with the hotkey manager
+            self.hotkey_manager.register_hotkeys(self)
 
             self.status_bar.showMessage("Settings updated")
             logger.info("Settings updated")
@@ -1193,3 +1197,63 @@ class MainWindow(QMainWindow):
 
         # Standard key press handling
         super().keyPressEvent(event)
+
+    def update_button_texts(self):
+        """Update button texts to reflect current hotkey settings."""
+        self.screenshot_button.setText(
+            f"Take Screenshot ({settings.hotkeys.screenshot_key})")
+        self.generate_button.setText(
+            f"Generate Solution ({settings.hotkeys.generate_solution_key})")
+        self.optimize_button.setText(
+            f"Optimize Solution ({settings.hotkeys.optimize_solution_key})")
+        self.reset_history_button.setText(
+            f"Reset All ({settings.hotkeys.reset_history_key})")
+
+        # Update visibility button tooltip
+        self.visibility_button.setToolTip(
+            f"Shortcut: {settings.hotkeys.toggle_visibility_key}")
+
+        # Update button tooltips
+        self.screenshot_button.setToolTip(
+            f"Take a screenshot of your screen - Shortcut: {settings.hotkeys.screenshot_key}"
+        )
+        self.generate_button.setToolTip(
+            f"Generate solution from the selected screenshot - Shortcut: {settings.hotkeys.generate_solution_key}"
+        )
+        self.optimize_button.setToolTip(
+            f"Optimize the current solution - Shortcut: {settings.hotkeys.optimize_solution_key}"
+        )
+        self.reset_history_button.setToolTip(
+            f"Reset chat history and clear screenshots - Shortcut: {settings.hotkeys.reset_history_key}"
+        )
+
+        # Also update menu actions if they exist
+        if hasattr(self, "take_screenshot_action"):
+            self.take_screenshot_action.setText(
+                f"Take Screenshot ({settings.hotkeys.screenshot_key})")
+            self.take_screenshot_action.setShortcut(
+                QKeySequence(settings.hotkeys.screenshot_key))
+
+        if hasattr(self, "generate_solution_action"):
+            self.generate_solution_action.setText(
+                f"Generate Solution ({settings.hotkeys.generate_solution_key})")
+            self.generate_solution_action.setShortcut(
+                QKeySequence(settings.hotkeys.generate_solution_key))
+
+        if hasattr(self, "toggle_visibility_action"):
+            self.toggle_visibility_action.setText(
+                f"Toggle Visibility ({settings.hotkeys.toggle_visibility_key})")
+            self.toggle_visibility_action.setShortcut(
+                QKeySequence(settings.hotkeys.toggle_visibility_key))
+
+        if hasattr(self, "optimize_solution_action"):
+            self.optimize_solution_action.setText(
+                f"Optimize Solution ({settings.hotkeys.optimize_solution_key})")
+            self.optimize_solution_action.setShortcut(
+                QKeySequence(settings.hotkeys.optimize_solution_key))
+
+        if hasattr(self, "reset_history_action"):
+            self.reset_history_action.setText(
+                f"Reset All ({settings.hotkeys.reset_history_key})")
+            self.reset_history_action.setShortcut(
+                QKeySequence(settings.hotkeys.reset_history_key))

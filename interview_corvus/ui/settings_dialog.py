@@ -24,6 +24,7 @@ from PyQt6.QtWidgets import (
 from interview_corvus.config import PromptTemplates, settings
 from interview_corvus.core.prompt_manager import PromptManager
 from interview_corvus.security.api_key_manager import APIKeyManager
+from interview_corvus.ui.hotkey_edit import HotkeyEdit
 
 
 class SettingsDialog(QDialog):
@@ -175,6 +176,94 @@ class SettingsDialog(QDialog):
         self.setMinimumWidth(500)
         self.setMinimumHeight(400)
 
+        hotkeys_tab = QWidget()
+        hotkeys_layout = QVBoxLayout(hotkeys_tab)
+
+        # Group for main hotkeys
+        main_hotkeys_group = QGroupBox("Main Hotkeys")
+        main_hotkeys_layout = QFormLayout()
+
+        # Screenshot hotkey
+        self.screenshot_hotkey = HotkeyEdit(settings.hotkeys.screenshot_key)
+        main_hotkeys_layout.addRow("Take Screenshot:", self.screenshot_hotkey)
+
+        # Generate solution hotkey
+        self.generate_solution_hotkey = HotkeyEdit(
+            settings.hotkeys.generate_solution_key)
+        main_hotkeys_layout.addRow("Generate Solution:",
+                                   self.generate_solution_hotkey)
+
+        # Toggle visibility hotkey
+        self.toggle_visibility_hotkey = HotkeyEdit(
+            settings.hotkeys.toggle_visibility_key)
+        main_hotkeys_layout.addRow("Toggle Visibility:",
+                                   self.toggle_visibility_hotkey)
+
+        # Optimize solution hotkey
+        self.optimize_solution_hotkey = HotkeyEdit(
+            settings.hotkeys.optimize_solution_key)
+        main_hotkeys_layout.addRow("Optimize Solution:",
+                                   self.optimize_solution_hotkey)
+
+        # Reset history hotkey
+        self.reset_history_hotkey = HotkeyEdit(
+            settings.hotkeys.reset_history_key)
+        main_hotkeys_layout.addRow("Reset History:", self.reset_history_hotkey)
+
+        # Panic hotkey
+        self.panic_hotkey = HotkeyEdit(settings.hotkeys.panic_key)
+        main_hotkeys_layout.addRow("Panic (Instant Hide):", self.panic_hotkey)
+
+        main_hotkeys_group.setLayout(main_hotkeys_layout)
+        hotkeys_layout.addWidget(main_hotkeys_group)
+
+        # Group for window movement hotkeys
+        move_hotkeys_group = QGroupBox("Window Movement Hotkeys")
+        move_hotkeys_layout = QFormLayout()
+
+        # Move window up hotkey
+        self.move_up_hotkey = HotkeyEdit(
+            settings.hotkeys.move_window_keys["up"])
+        move_hotkeys_layout.addRow("Move Window Up:", self.move_up_hotkey)
+
+        # Move window down hotkey
+        self.move_down_hotkey = HotkeyEdit(
+            settings.hotkeys.move_window_keys["down"])
+        move_hotkeys_layout.addRow("Move Window Down:", self.move_down_hotkey)
+
+        # Move window left hotkey
+        self.move_left_hotkey = HotkeyEdit(
+            settings.hotkeys.move_window_keys["left"])
+        move_hotkeys_layout.addRow("Move Window Left:", self.move_left_hotkey)
+
+        # Move window right hotkey
+        self.move_right_hotkey = HotkeyEdit(
+            settings.hotkeys.move_window_keys["right"])
+        move_hotkeys_layout.addRow("Move Window Right:", self.move_right_hotkey)
+
+        move_hotkeys_group.setLayout(move_hotkeys_layout)
+        hotkeys_layout.addWidget(move_hotkeys_group)
+
+        # Help text
+        help_label = QLabel(
+            "Click in the input field and press the desired key combination.\n"
+            "All hotkeys require at least one modifier key (Ctrl, Alt, Shift, Cmd/Win).\n"
+            "Changes will take effect after saving settings."
+        )
+        help_label.setWordWrap(True)
+        hotkeys_layout.addWidget(help_label)
+
+        # Reset button
+        reset_hotkeys_button = QPushButton("Reset All Hotkeys to Defaults")
+        reset_hotkeys_button.clicked.connect(self.reset_hotkeys)
+        hotkeys_layout.addWidget(reset_hotkeys_button)
+
+        # Add spacer
+        hotkeys_layout.addStretch()
+
+        # Add the hotkeys tab
+        self.tab_widget.addTab(hotkeys_tab, "Hotkeys")
+
     def load_settings(self):
         """Load current settings into the UI."""
         # Default programming language
@@ -206,6 +295,31 @@ class SettingsDialog(QDialog):
         # Save LLM settings
         settings.llm.model = self.model_combo.currentText()
         settings.llm.temperature = self.temperature_input.value()
+
+        if self.screenshot_hotkey.text():
+            settings.hotkeys.screenshot_key = self.screenshot_hotkey.text()
+        if self.generate_solution_hotkey.text():
+            settings.hotkeys.generate_solution_key = self.generate_solution_hotkey.text()
+        if self.toggle_visibility_hotkey.text():
+            settings.hotkeys.toggle_visibility_key = self.toggle_visibility_hotkey.text()
+        if self.optimize_solution_hotkey.text():
+            settings.hotkeys.optimize_solution_key = self.optimize_solution_hotkey.text()
+        if self.reset_history_hotkey.text():
+            settings.hotkeys.reset_history_key = self.reset_history_hotkey.text()
+        if self.panic_hotkey.text():
+            settings.hotkeys.panic_key = self.panic_hotkey.text()
+
+            # Save move window hotkeys
+        move_window_keys = settings.hotkeys.move_window_keys.copy()
+        if self.move_up_hotkey.text():
+            move_window_keys["up"] = self.move_up_hotkey.text()
+        if self.move_down_hotkey.text():
+            move_window_keys["down"] = self.move_down_hotkey.text()
+        if self.move_left_hotkey.text():
+            move_window_keys["left"] = self.move_left_hotkey.text()
+        if self.move_right_hotkey.text():
+            move_window_keys["right"] = self.move_right_hotkey.text()
+        settings.hotkeys.move_window_keys = move_window_keys
 
         # Save API key
         api_key = self.api_key_input.text().strip()
@@ -378,3 +492,28 @@ class SettingsDialog(QDialog):
             QMessageBox.warning(
                 self, "Error", f"No default template found for '{template_name}'"
             )
+
+    def reset_hotkeys(self):
+        """Reset hotkeys to their default values."""
+        # Reset to defaults
+        settings.hotkeys.reset_to_defaults()
+
+        # Update UI with defaults
+        self.screenshot_hotkey.setText(settings.hotkeys.screenshot_key)
+        self.generate_solution_hotkey.setText(
+            settings.hotkeys.generate_solution_key)
+        self.toggle_visibility_hotkey.setText(
+            settings.hotkeys.toggle_visibility_key)
+        self.optimize_solution_hotkey.setText(
+            settings.hotkeys.optimize_solution_key)
+        self.reset_history_hotkey.setText(settings.hotkeys.reset_history_key)
+        self.panic_hotkey.setText(settings.hotkeys.panic_key)
+
+        self.move_up_hotkey.setText(settings.hotkeys.move_window_keys["up"])
+        self.move_down_hotkey.setText(settings.hotkeys.move_window_keys["down"])
+        self.move_left_hotkey.setText(settings.hotkeys.move_window_keys["left"])
+        self.move_right_hotkey.setText(
+            settings.hotkeys.move_window_keys["right"])
+
+        QMessageBox.information(self, "Reset Hotkeys",
+                                "Hotkeys have been reset to default values.")

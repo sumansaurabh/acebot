@@ -104,7 +104,16 @@ All prompt templates can be customized to your preference:
 4. Generate a solution with another hotkey
 5. Use the "Hide" button or hotkey to make the app invisible when needed
 
-### Keyboard Shortcuts
+## Customizable Hotkeys
+
+Interview Corvus allows you to customize all keyboard shortcuts according to your preference:
+
+1. Open the application settings (click the "Settings" button or use the menu: File → Settings)
+2. Navigate to the "Hotkeys" tab
+3. Click on any hotkey field and press your desired key combination
+4. Press "OK" to save your custom hotkeys
+
+Default hotkeys by platform:
 
 | Function | macOS | Windows |
 |----------|-------|---------|
@@ -118,6 +127,10 @@ All prompt templates can be customized to your preference:
 | Optimize Solution | Cmd+Ctrl+O | Ctrl+Alt+O |
 | Reset History | Cmd+Ctrl+R | Ctrl+Alt+R |
 | Panic (Instantly Hide) | Cmd+Q | Alt+Q |
+
+> **Note for Windows users:** The "Win" key refers to the Windows key (with the Windows logo) on your keyboard. On Linux systems, this is often called the "Super" key.
+
+You can reset all hotkeys to their platform-specific defaults at any time using the "Reset All Hotkeys to Defaults" button in the settings.
 
 ## Required Permissions
 
