@@ -1,3 +1,7 @@
+import platform
+
+import Cocoa
+import HIServices
 from loguru import logger
 from PyQt6.QtCore import QEvent, QSize, Qt, QThread, QTimer, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QAction, QFont, QIcon, QKeySequence
@@ -52,6 +56,7 @@ class MainWindow(QMainWindow):
 
         self.invisibility_manager = invisibility_manager
         self.hotkey_manager = hotkey_manager
+        self.check_and_request_permissions()
 
         # Initialize other components
         self.screenshot_manager = ScreenshotManager()
@@ -1266,3 +1271,45 @@ class MainWindow(QMainWindow):
             self.reset_history_action.setShortcut(
                 QKeySequence(settings.hotkeys.reset_history_key)
             )
+
+    def check_and_request_permissions(self):
+        """Check for and request required permissions for global hotkey monitoring."""
+        if platform.system() == "Darwin":
+            try:
+                # Check if we have accessibility permissions
+                trusted = HIServices.AXIsProcessTrusted()
+                logger.info(f"Application accessibility permissions status: {trusted}")
+
+                if not trusted:
+                    # Show dialog explaining why we need permissions
+                    msg = QMessageBox()
+                    msg.setIcon(QMessageBox.Icon.Information)
+                    msg.setWindowTitle("Permissions Required")
+                    msg.setText(
+                        "Interview Corvus needs Accessibility permissions to use global hotkeys."
+                    )
+                    msg.setInformativeText(
+                        "You'll need to enable Interview Corvus in System Preferences → Security & Privacy → Privacy → Accessibility."
+                    )
+                    msg.setDetailedText(
+                        "Without these permissions, global hotkeys (like taking screenshots or toggling visibility) won't work outside the application window."
+                    )
+
+                    # Add button to open System Preferences
+                    open_prefs_btn = msg.addButton(
+                        "Open System Preferences", QMessageBox.ButtonRole.ActionRole
+                    )
+                    msg.addButton("Later", QMessageBox.ButtonRole.RejectRole)
+
+                    msg.exec()
+
+                    # If user clicked the button to open System Preferences
+                    if msg.clickedButton() == open_prefs_btn:
+                        # Open System Preferences at the Accessibility pane
+                        Cocoa.NSWorkspace.sharedWorkspace().openURL_(
+                            Cocoa.NSURL.URLWithString_(
+                                "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+                            )
+                        )
+            except Exception as e:
+                logger.error(f"Error checking accessibility permissions: {e}")
