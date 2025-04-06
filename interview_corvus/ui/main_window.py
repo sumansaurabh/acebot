@@ -681,13 +681,8 @@ class MainWindow(QMainWindow):
 
         # Temporarily hide the window if visible
         was_visible = self.invisibility_manager.is_visible
-        if was_visible:
-            self.invisibility_manager.set_visibility(False)
-
-        # Wait for the window to hide
-        import time
-
-        time.sleep(0.1)
+        self.invisibility_manager.set_visibility(False)
+        QApplication.processEvents()
 
         # Take the screenshot
         screenshot = self.screenshot_manager.take_screenshot(selected_index)
