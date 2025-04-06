@@ -65,35 +65,6 @@ class LLMService(QObject):
             llm=self.llm,
         )
 
-    def query_structured(self, prompt: str, output_cls: Type[T]) -> T:
-        """
-        Send a query to the LLM and get a structured response.
-
-        Args:
-            prompt: The prompt text to send to the LLM
-            output_cls: The Pydantic model class for structuring the response
-
-        Returns:
-            An instance of the provided Pydantic model with the structured response
-        """
-        logger.info(f"Sending structured query: {prompt[:50]}...")
-
-        response = self.chat_engine.chat(prompt)
-        response_text = response.response
-
-        # Store the assistant response
-        logger.info(f"Got response (length: {len(response_text)})")
-
-        # Parse into structured format
-        structured_llm = self.llm.as_structured_llm(output_cls=output_cls)
-        try:
-            result = structured_llm.complete(response_text)
-            return result
-        except Exception as e:
-            logger.info(f"Error parsing structured response: {e}")
-            # Create basic fallback instance
-            raise e
-
     def get_code_optimization(
         self, code: str, language: str = None
     ) -> CodeOptimization:
@@ -116,7 +87,14 @@ class LLMService(QObject):
             "code_optimization", code=code, language=language
         )
 
-        return self.query_structured(prompt, CodeOptimization)
+        message = ChatMessage(
+            role=MessageRole.USER,
+            content=prompt,
+        )
+
+        structured = self.llm.as_structured_llm(output_cls=CodeOptimization)
+        response = structured.chat([message])
+        return response.raw
 
     def get_solution_from_screenshots(
         self, screenshot_paths: List[str], language: str = None
