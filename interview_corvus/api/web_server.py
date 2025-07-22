@@ -84,6 +84,8 @@ class WebServerAPI(QObject):
     solution_requested = pyqtSignal(object, str)  # screenshot_paths, language
     optimization_requested = pyqtSignal(str, str)  # code, language
     screenshot_capture_requested = pyqtSignal()
+    screenshots_cleared = pyqtSignal()
+    chat_history_reset = pyqtSignal()
     window_show_requested = pyqtSignal()
     window_hide_requested = pyqtSignal()
     window_toggle_requested = pyqtSignal()
@@ -318,6 +320,8 @@ class WebServerAPI(QObject):
                 )
             
             self.screenshot_manager.clear_screenshots()
+            # Emit signal to update GUI
+            self.screenshots_cleared.emit()
             return JSONResponse(
                 content={"success": True, "message": "All screenshots cleared"}
             )
@@ -337,6 +341,8 @@ class WebServerAPI(QObject):
                 )
             
             self.llm_service.reset_chat_history()
+            # Emit signal to update GUI
+            self.chat_history_reset.emit()
             return JSONResponse(
                 content={"success": True, "message": "Chat history reset successfully"}
             )

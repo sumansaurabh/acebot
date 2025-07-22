@@ -84,6 +84,8 @@ class MainWindow(QMainWindow):
                 
                 # Connect web server signals immediately
                 self.web_api.screenshot_capture_requested.connect(self.take_screenshot)
+                self.web_api.screenshots_cleared.connect(self.clear_screenshots)
+                self.web_api.chat_history_reset.connect(self.reset_chat_history)
                 self.web_api.window_show_requested.connect(self.show)
                 self.web_api.window_hide_requested.connect(self.hide)
                 self.web_api.window_toggle_requested.connect(self.toggle_visibility)
@@ -708,6 +710,13 @@ class MainWindow(QMainWindow):
         self.screenshot_manager.clear_screenshots()
         self.selected_screenshot_index = -1
         self.update_thumbnails()
+        
+        # Clear solution display as well
+        self.code_editor.clear()
+        self.explanation_text.clear()
+        self.time_complexity.setText("N/A")
+        self.space_complexity.setText("N/A")
+        
         self.status_bar.showMessage("All screenshots cleared")
 
     @pyqtSlot(str)
