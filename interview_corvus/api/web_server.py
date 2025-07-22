@@ -413,14 +413,23 @@ class WebServerAPI(QObject):
             )
     
     def get_main_ui(self) -> HTMLResponse:
-        """Serve the main web UI."""
+        """Serve the main web UI with mobile-friendly design and syntax highlighting."""
         html_content = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, minimum-scale=1.0, maximum-scale=5.0">
     <title>Interview Corvus - AI Coding Assistant</title>
+    
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.css" rel="stylesheet" />
+    
+    <!-- Font Awesome for icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    
     <style>
         * {
             margin: 0;
@@ -429,77 +438,102 @@ class WebServerAPI(QObject):
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
+            padding: 10px;
+            font-size: 16px;
+            line-height: 1.6;
         }
         
         .container {
             max-width: 1200px;
             margin: 0 auto;
             background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             overflow: hidden;
         }
         
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 30px;
+            padding: 20px;
             text-align: center;
         }
         
         .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            margin-bottom: 8px;
             font-weight: 300;
         }
         
         .header p {
-            font-size: 1.2em;
+            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
             opacity: 0.9;
         }
         
         .main-content {
-            padding: 40px;
+            padding: 20px;
+        }
+        
+        .screenshots-info {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            border: 1px solid #ffeaa7;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
         .action-buttons {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 40px;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-bottom: 25px;
         }
         
         .action-btn {
-            padding: 20px;
+            padding: 16px 20px;
             border: none;
-            border-radius: 10px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            transition: all 0.2s ease;
             position: relative;
             overflow: hidden;
+            min-height: 60px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            text-decoration: none;
+            touch-action: manipulation;
         }
         
-        .action-btn:before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s;
+        .action-btn:active {
+            transform: scale(0.98);
         }
         
-        .action-btn:hover:before {
-            left: 100%;
+        .action-btn .icon {
+            font-size: 20px;
+        }
+        
+        .action-btn .label {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .action-btn .subtitle {
+            font-size: 11px;
+            opacity: 0.8;
+            font-weight: 400;
         }
         
         .capture-btn {
@@ -517,9 +551,9 @@ class WebServerAPI(QObject):
             color: white;
         }
         
-        .action-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        .action-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
         }
         
         .action-btn:disabled {
@@ -530,103 +564,35 @@ class WebServerAPI(QObject):
         
         .status-bar {
             background: #f8f9fa;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 30px;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
             border-left: 4px solid #4CAF50;
+            font-size: 14px;
+            word-wrap: break-word;
         }
         
         .status-bar.error {
             border-left-color: #f44336;
             background: #ffebee;
+            color: #d32f2f;
         }
         
         .status-bar.loading {
             border-left-color: #2196F3;
             background: #e3f2fd;
-        }
-        
-        .results-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-top: 30px;
-        }
-        
-        .result-section {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 25px;
-            border: 1px solid #e0e0e0;
-        }
-        
-        .result-section h3 {
-            color: #333;
-            margin-bottom: 20px;
-            font-size: 1.3em;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 10px;
-        }
-        
-        .code-block {
-            background: #1e1e1e;
-            color: #d4d4d4;
-            padding: 20px;
-            border-radius: 8px;
-            font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 14px;
-            line-height: 1.5;
-            overflow-x: auto;
-            margin: 15px 0;
-            white-space: pre-wrap;
-        }
-        
-        .explanation {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
-            line-height: 1.6;
-            margin: 15px 0;
-        }
-        
-        .complexity-info {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin: 15px 0;
-        }
-        
-        .complexity-item {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
-            text-align: center;
-        }
-        
-        .complexity-item strong {
-            color: #667eea;
-            font-size: 1.1em;
-        }
-        
-        .screenshots-info {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            color: #1976d2;
         }
         
         .loading-spinner {
             display: none;
-            width: 40px;
-            height: 40px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin: 20px auto;
+            margin: 15px auto;
         }
         
         @keyframes spin {
@@ -634,84 +600,347 @@ class WebServerAPI(QObject):
             100% { transform: rotate(360deg); }
         }
         
-        .hidden {
-            display: none;
+        .results-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin-top: 20px;
         }
         
+        .result-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .result-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .explanation {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+            line-height: 1.6;
+            margin: 12px 0;
+            font-size: 14px;
+        }
+        
+        .code-container {
+            position: relative;
+            margin: 12px 0;
+        }
+        
+        .code-block {
+            background: #2d3748 !important;
+            border-radius: 6px;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            overflow-x: auto;
+            margin: 0;
+            border: 1px solid #4a5568;
+        }
+        
+        .code-block code {
+            font-size: 13px !important;
+            line-height: 1.5 !important;
+        }
+        
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        
+        .copy-btn:hover {
+            opacity: 1;
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .complexity-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 12px 0;
+        }
+        
+        .complexity-item {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+            text-align: center;
+            font-size: 13px;
+        }
+        
+        .complexity-item strong {
+            color: #667eea;
+            font-size: 14px;
+            display: block;
+            margin-bottom: 4px;
+        }
+        
+        /* Mobile optimizations */
         @media (max-width: 768px) {
-            .results-container {
-                grid-template-columns: 1fr;
-            }
-            
-            .action-buttons {
-                grid-template-columns: 1fr;
+            body {
+                padding: 8px;
+                font-size: 14px;
             }
             
             .main-content {
-                padding: 20px;
+                padding: 15px;
+            }
+            
+            .header {
+                padding: 15px;
+            }
+            
+            .action-buttons {
+                gap: 10px;
+            }
+            
+            .action-btn {
+                padding: 14px 16px;
+                min-height: 55px;
+                font-size: 14px;
+            }
+            
+            .action-btn .icon {
+                font-size: 18px;
+            }
+            
+            .action-btn .label {
+                font-size: 13px;
+            }
+            
+            .action-btn .subtitle {
+                font-size: 10px;
+            }
+            
+            .result-section {
+                padding: 15px;
+            }
+            
+            .result-section h3 {
+                font-size: 1.1em;
+            }
+            
+            .explanation {
+                padding: 12px;
+                font-size: 13px;
+            }
+            
+            .code-block {
+                font-size: 12px;
+            }
+            
+            .code-block code {
+                font-size: 12px !important;
+            }
+            
+            .complexity-info {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            
+            .complexity-item {
+                padding: 10px;
+            }
+        }
+        
+        /* Small mobile devices */
+        @media (max-width: 480px) {
+            body {
+                padding: 5px;
+            }
+            
+            .main-content {
+                padding: 12px;
+            }
+            
+            .header {
+                padding: 12px;
+            }
+            
+            .action-btn {
+                padding: 12px 14px;
+                min-height: 50px;
+            }
+            
+            .screenshots-info {
+                padding: 10px 12px;
+                font-size: 13px;
+            }
+        }
+        
+        /* Larger screens */
+        @media (min-width: 768px) {
+            .action-buttons {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .results-container {
+                grid-template-columns: 1fr 1fr;
+                gap: 25px;
+            }
+            
+            .main-content {
+                padding: 30px;
+            }
+        }
+        
+        /* Touch-friendly improvements */
+        @media (hover: none) and (pointer: coarse) {
+            .action-btn:hover {
+                transform: none;
+                box-shadow: none;
+            }
+            
+            .action-btn:active {
+                transform: scale(0.95);
+                transition: transform 0.1s;
+            }
+        }
+        
+        /* Accessibility improvements */
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+        
+        .action-btn:focus {
+            outline: 2px solid #667eea;
+            outline-offset: 2px;
+        }
+        
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            .explanation {
+                background: #2d3748;
+                color: #e2e8f0;
+                border-color: #4a5568;
+            }
+            
+            .complexity-item {
+                background: #2d3748;
+                color: #e2e8f0;
+                border-color: #4a5568;
+            }
+            
+            .result-section {
+                background: #1a202c;
+                border-color: #4a5568;
+            }
+            
+            .result-section h3 {
+                color: #e2e8f0;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-robot"></i> Interview Corvus</h1>
+            <p>AI-Powered Coding Assistant</p>
+        </div>
         
         <div class="main-content">
             <div class="screenshots-info" id="screenshotInfo">
-                📸 Screenshots: <span id="screenshotCount">0</span> captured
+                <i class="fas fa-camera"></i>
+                <span>Screenshots: <strong id="screenshotCount">0</strong> captured</span>
             </div>
             
             <div class="action-buttons">
-                <button class="action-btn capture-btn" onclick="captureScreen()">
-                    📸 Capture
-                    <div style="font-size: 12px; margin-top: 5px;">Take Screenshot</div>
+                <button class="action-btn capture-btn" onclick="captureScreen()" aria-label="Capture screenshot">
+                    <div class="icon"><i class="fas fa-camera"></i></div>
+                    <div class="label">Capture</div>
+                    <div class="subtitle">Take Screenshot</div>
                 </button>
                 
-                <button class="action-btn solve-btn" onclick="solveBrute()" id="solveBtn">
-                    🧠 Solve [Brute]
-                    <div style="font-size: 12px; margin-top: 5px;">Generate Solution</div>
+                <button class="action-btn solve-btn" onclick="solveBrute()" id="solveBtn" aria-label="Generate brute force solution">
+                    <div class="icon"><i class="fas fa-brain"></i></div>
+                    <div class="label">Solve [Brute]</div>
+                    <div class="subtitle">Generate Solution</div>
                 </button>
                 
-                <button class="action-btn optimize-btn" onclick="optimizeBest()" id="optimizeBtn">
-                    ⚡ Optimize [Best]
-                    <div style="font-size: 12px; margin-top: 5px;">Optimize Solution</div>
+                <button class="action-btn optimize-btn" onclick="optimizeBest()" id="optimizeBtn" aria-label="Optimize solution">
+                    <div class="icon"><i class="fas fa-bolt"></i></div>
+                    <div class="label">Optimize [Best]</div>
+                    <div class="subtitle">Enhance Solution</div>
                 </button>
             </div>
             
-            <div class="status-bar" id="statusBar">
+            <div class="status-bar" id="statusBar" role="status" aria-live="polite">
                 Ready to assist with your coding interview
             </div>
             
-            <div class="loading-spinner" id="loadingSpinner"></div>
+            <div class="loading-spinner" id="loadingSpinner" aria-hidden="true"></div>
             
             <div class="results-container" id="resultsContainer" style="display: none;">
                 <div class="result-section" id="bruteSection" style="display: none;">
-                    <h3>🧠 Brute Force Solution</h3>
+                    <h3><i class="fas fa-brain"></i> Brute Force Solution</h3>
                     <div class="explanation" id="bruteExplanation"></div>
-                    <div class="code-block" id="bruteCode"></div>
+                    <div class="code-container">
+                        <pre class="code-block line-numbers" id="bruteCodeBlock"><code class="language-python" id="bruteCode"></code></pre>
+                        <button class="copy-btn" onclick="copyCode('bruteCode')" aria-label="Copy brute force code">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                    </div>
                     <div class="complexity-info">
                         <div class="complexity-item">
-                            <strong>Time:</strong><br>
+                            <strong><i class="fas fa-clock"></i> Time</strong>
                             <span id="bruteTimeComplexity">-</span>
                         </div>
                         <div class="complexity-item">
-                            <strong>Space:</strong><br>
+                            <strong><i class="fas fa-memory"></i> Space</strong>
                             <span id="bruteSpaceComplexity">-</span>
                         </div>
                     </div>
                 </div>
                 
                 <div class="result-section" id="optimizedSection" style="display: none;">
-                    <h3>⚡ Optimized Solution</h3>
+                    <h3><i class="fas fa-bolt"></i> Optimized Solution</h3>
                     <div class="explanation" id="optimizedExplanation"></div>
-                    <div class="code-block" id="optimizedCode"></div>
+                    <div class="code-container">
+                        <pre class="code-block line-numbers" id="optimizedCodeBlock"><code class="language-python" id="optimizedCode"></code></pre>
+                        <button class="copy-btn" onclick="copyCode('optimizedCode')" aria-label="Copy optimized code">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                    </div>
                     <div class="complexity-info">
                         <div class="complexity-item">
-                            <strong>Time:</strong><br>
+                            <strong><i class="fas fa-clock"></i> Time</strong>
                             <span id="optimizedTimeComplexity">-</span>
                         </div>
                         <div class="complexity-item">
-                            <strong>Space:</strong><br>
+                            <strong><i class="fas fa-memory"></i> Space</strong>
                             <span id="optimizedSpaceComplexity">-</span>
                         </div>
                     </div>
@@ -719,6 +948,12 @@ class WebServerAPI(QObject):
             </div>
         </div>
     </div>
+
+    <!-- Prism.js for syntax highlighting -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js"></script>
 
     <script>
         const API_BASE = '';
@@ -733,6 +968,7 @@ class WebServerAPI(QObject):
         function showLoading(show = true) {
             const spinner = document.getElementById('loadingSpinner');
             spinner.style.display = show ? 'block' : 'none';
+            spinner.setAttribute('aria-hidden', !show);
         }
         
         function updateScreenshotCount() {
@@ -745,6 +981,12 @@ class WebServerAPI(QObject):
                     // Enable/disable solve button based on screenshot availability
                     const solveBtn = document.getElementById('solveBtn');
                     solveBtn.disabled = count === 0;
+                    
+                    if (count === 0) {
+                        solveBtn.setAttribute('aria-disabled', 'true');
+                    } else {
+                        solveBtn.removeAttribute('aria-disabled');
+                    }
                 })
                 .catch(error => console.error('Error updating screenshot count:', error));
         }
@@ -796,7 +1038,9 @@ class WebServerAPI(QObject):
                     updateStatus('✅ Brute force solution generated successfully');
                     
                     // Enable optimize button
-                    document.getElementById('optimizeBtn').disabled = false;
+                    const optimizeBtn = document.getElementById('optimizeBtn');
+                    optimizeBtn.disabled = false;
+                    optimizeBtn.removeAttribute('aria-disabled');
                 } else {
                     updateStatus(`❌ Failed to generate solution: ${result.message}`, 'error');
                 }
@@ -848,7 +1092,13 @@ class WebServerAPI(QObject):
             document.getElementById('bruteSection').style.display = 'block';
             
             document.getElementById('bruteExplanation').textContent = solution.explanation || 'No explanation provided';
-            document.getElementById('bruteCode').textContent = solution.code || 'No code provided';
+            
+            const codeElement = document.getElementById('bruteCode');
+            codeElement.textContent = solution.code || 'No code provided';
+            
+            // Trigger Prism.js highlighting
+            Prism.highlightElement(codeElement);
+            
             document.getElementById('bruteTimeComplexity').textContent = solution.time_complexity || 'Not specified';
             document.getElementById('bruteSpaceComplexity').textContent = solution.space_complexity || 'Not specified';
         }
@@ -857,9 +1107,43 @@ class WebServerAPI(QObject):
             document.getElementById('optimizedSection').style.display = 'block';
             
             document.getElementById('optimizedExplanation').textContent = optimization.explanation || 'No explanation provided';
-            document.getElementById('optimizedCode').textContent = optimization.optimized_code || 'No optimized code provided';
+            
+            const codeElement = document.getElementById('optimizedCode');
+            codeElement.textContent = optimization.optimized_code || 'No optimized code provided';
+            
+            // Trigger Prism.js highlighting
+            Prism.highlightElement(codeElement);
+            
             document.getElementById('optimizedTimeComplexity').textContent = optimization.optimized_time_complexity || 'Not specified';
             document.getElementById('optimizedSpaceComplexity').textContent = optimization.optimized_space_complexity || 'Not specified';
+        }
+        
+        function copyCode(elementId) {
+            const codeElement = document.getElementById(elementId);
+            const text = codeElement.textContent;
+            
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(text).then(() => {
+                    // Find the copy button and provide feedback
+                    const copyBtn = codeElement.closest('.code-container').querySelector('.copy-btn');
+                    const originalText = copyBtn.innerHTML;
+                    copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                    copyBtn.style.background = 'rgba(76, 175, 80, 0.3)';
+                    
+                    setTimeout(() => {
+                        copyBtn.innerHTML = originalText;
+                        copyBtn.style.background = 'rgba(255,255,255,0.1)';
+                    }, 2000);
+                });
+            } else {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+            }
         }
         
         // Initialize
@@ -868,12 +1152,33 @@ class WebServerAPI(QObject):
             updateStatus('Ready to assist with your coding interview');
             
             // Initially disable solve and optimize buttons
-            document.getElementById('solveBtn').disabled = true;
-            document.getElementById('optimizeBtn').disabled = true;
+            const solveBtn = document.getElementById('solveBtn');
+            const optimizeBtn = document.getElementById('optimizeBtn');
+            
+            solveBtn.disabled = true;
+            optimizeBtn.disabled = true;
+            solveBtn.setAttribute('aria-disabled', 'true');
+            optimizeBtn.setAttribute('aria-disabled', 'true');
+            
+            // Set up Prism.js
+            Prism.plugins.autoloader.languages_path = 'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/';
         });
         
         // Auto-refresh screenshot count every 5 seconds
         setInterval(updateScreenshotCount, 5000);
+        
+        // Add touch feedback for mobile
+        if ('ontouchstart' in window) {
+            document.querySelectorAll('.action-btn').forEach(btn => {
+                btn.addEventListener('touchstart', function() {
+                    this.style.transform = 'scale(0.98)';
+                });
+                
+                btn.addEventListener('touchend', function() {
+                    this.style.transform = '';
+                });
+            });
+        }
     </script>
 </body>
 </html>
