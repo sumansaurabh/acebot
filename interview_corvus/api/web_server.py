@@ -413,777 +413,213 @@ class WebServerAPI(QObject):
             )
     
     def get_main_ui(self) -> HTMLResponse:
-        """Serve the main web UI with mobile-friendly design and syntax highlighting."""
+        """Serve a compact web UI with larger, colored buttons, a Toggle button, and screenshot count."""
         html_content = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, minimum-scale=1.0, maximum-scale=5.0">
-    <title>Interview Corvus - AI Coding Assistant</title>
-    
-    <!-- Prism.js for syntax highlighting -->
+    <title>Interview Corvus</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.css" rel="stylesheet" />
-    
-    <!-- Font Awesome for icons -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
-    
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 10px;
-            font-size: 16px;
-            line-height: 1.6;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }
-        
-        .header h1 {
-            font-size: clamp(1.8rem, 4vw, 2.5rem);
-            margin-bottom: 8px;
-            font-weight: 300;
-        }
-        
-        .header p {
-            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
-            opacity: 0.9;
-        }
-        
-        .main-content {
-            padding: 20px;
-        }
-        
-        .screenshots-info {
-            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
-            border: 1px solid #ffeaa7;
-            padding: 12px 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
+        html, body { background: #fff; margin: 0; padding: 0; }
+        body { font-family: system-ui, sans-serif; font-size: 15px; color: #222; }
+        .main-content { max-width: 600px; margin: 0 auto; padding: 12px 0 0 0; }
         .action-buttons {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 12px;
-            margin-bottom: 25px;
-        }
-        
-        .action-btn {
-            padding: 16px 20px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 15px;
-            font-weight: 600;
-            transition: all 0.2s ease;
-            position: relative;
-            overflow: hidden;
-            min-height: 60px;
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            text-decoration: none;
-            touch-action: manipulation;
+            flex-direction: row;
+            gap: 12px;
+            margin-bottom: 14px;
+            justify-content: flex-start;
         }
-        
-        .action-btn:active {
-            transform: scale(0.98);
+        .action-btn {
+            padding: 12px 22px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            min-width: 90px;
+            min-height: 40px;
+            transition: background 0.15s, box-shadow 0.15s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
-        
-        .action-btn .icon {
-            font-size: 20px;
+        .capture-btn { background: #4caf50; color: #fff; }
+        .capture-btn:hover { background: #388e3c; }
+        .solve-btn { background: #2196f3; color: #fff; }
+        .solve-btn:hover { background: #1565c0; }
+        .optimize-btn { background: #ff9800; color: #fff; }
+        .optimize-btn:hover { background: #ef6c00; }
+        .toggle-btn { background: #9c27b0; color: #fff; }
+        .toggle-btn:hover { background: #6d1b7b; }
+        .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .status-bar {
+            font-size: 13px;
+            margin-bottom: 10px;
+            color: #666;
+            min-height: 18px;
         }
-        
-        .action-btn .label {
+        .screenshot-count {
             font-size: 14px;
             font-weight: 600;
+            color: #2196f3;
+            margin-bottom: 10px;
         }
-        
-        .action-btn .subtitle {
-            font-size: 11px;
-            opacity: 0.8;
-            font-weight: 400;
-        }
-        
-        .capture-btn {
-            background: linear-gradient(135deg, #4CAF50, #45a049);
-            color: white;
-        }
-        
-        .solve-btn {
-            background: linear-gradient(135deg, #2196F3, #1976D2);
-            color: white;
-        }
-        
-        .optimize-btn {
-            background: linear-gradient(135deg, #FF9800, #F57C00);
-            color: white;
-        }
-        
-        .action-btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-        }
-        
-        .action-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .status-bar {
-            background: #f8f9fa;
-            padding: 12px 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border-left: 4px solid #4CAF50;
-            font-size: 14px;
-            word-wrap: break-word;
-        }
-        
-        .status-bar.error {
-            border-left-color: #f44336;
-            background: #ffebee;
-            color: #d32f2f;
-        }
-        
-        .status-bar.loading {
-            border-left-color: #2196F3;
-            background: #e3f2fd;
-            color: #1976d2;
-        }
-        
         .loading-spinner {
             display: none;
-            width: 30px;
-            height: 30px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
+            width: 22px;
+            height: 22px;
+            border: 3px solid #eee;
+            border-top: 3px solid #888;
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin: 15px auto;
+            margin: 10px auto;
         }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .results-container {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
-            margin-top: 20px;
-        }
-        
-        .result-section {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            border: 1px solid #e0e0e0;
-        }
-        
-        .result-section h3 {
-            color: #333;
-            margin-bottom: 15px;
-            font-size: 1.2em;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .explanation {
-            background: white;
-            padding: 15px;
-            border-radius: 6px;
-            border: 1px solid #e0e0e0;
-            line-height: 1.6;
-            margin: 12px 0;
-            font-size: 14px;
-        }
-        
-        .code-container {
-            position: relative;
-            margin: 12px 0;
-        }
-        
-        .code-block {
-            background: #2d3748 !important;
-            border-radius: 6px;
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-            font-size: 13px;
-            line-height: 1.5;
-            overflow-x: auto;
-            margin: 0;
-            border: 1px solid #4a5568;
-        }
-        
-        .code-block code {
-            font-size: 13px !important;
-            line-height: 1.5 !important;
-        }
-        
-        .copy-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
-            color: white;
-            padding: 6px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            opacity: 0.7;
-            transition: opacity 0.2s;
-        }
-        
-        .copy-btn:hover {
-            opacity: 1;
-            background: rgba(255,255,255,0.2);
-        }
-        
-        .complexity-info {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin: 12px 0;
-        }
-        
-        .complexity-item {
-            background: white;
-            padding: 12px;
-            border-radius: 6px;
-            border: 1px solid #e0e0e0;
-            text-align: center;
-            font-size: 13px;
-        }
-        
-        .complexity-item strong {
-            color: #667eea;
-            font-size: 14px;
-            display: block;
-            margin-bottom: 4px;
-        }
-        
-        /* Mobile optimizations */
-        @media (max-width: 768px) {
-            body {
-                padding: 8px;
-                font-size: 14px;
-            }
-            
-            .main-content {
-                padding: 15px;
-            }
-            
-            .header {
-                padding: 15px;
-            }
-            
-            .action-buttons {
-                gap: 10px;
-            }
-            
-            .action-btn {
-                padding: 14px 16px;
-                min-height: 55px;
-                font-size: 14px;
-            }
-            
-            .action-btn .icon {
-                font-size: 18px;
-            }
-            
-            .action-btn .label {
-                font-size: 13px;
-            }
-            
-            .action-btn .subtitle {
-                font-size: 10px;
-            }
-            
-            .result-section {
-                padding: 15px;
-            }
-            
-            .result-section h3 {
-                font-size: 1.1em;
-            }
-            
-            .explanation {
-                padding: 12px;
-                font-size: 13px;
-            }
-            
-            .code-block {
-                font-size: 12px;
-            }
-            
-            .code-block code {
-                font-size: 12px !important;
-            }
-            
-            .complexity-info {
-                grid-template-columns: 1fr;
-                gap: 8px;
-            }
-            
-            .complexity-item {
-                padding: 10px;
-            }
-        }
-        
-        /* Small mobile devices */
-        @media (max-width: 480px) {
-            body {
-                padding: 5px;
-            }
-            
-            .main-content {
-                padding: 12px;
-            }
-            
-            .header {
-                padding: 12px;
-            }
-            
-            .action-btn {
-                padding: 12px 14px;
-                min-height: 50px;
-            }
-            
-            .screenshots-info {
-                padding: 10px 12px;
-                font-size: 13px;
-            }
-        }
-        
-        /* Larger screens */
-        @media (min-width: 768px) {
-            .action-buttons {
-                grid-template-columns: repeat(3, 1fr);
-            }
-            
-            .results-container {
-                grid-template-columns: 1fr 1fr;
-                gap: 25px;
-            }
-            
-            .main-content {
-                padding: 30px;
-            }
-        }
-        
-        /* Touch-friendly improvements */
-        @media (hover: none) and (pointer: coarse) {
-            .action-btn:hover {
-                transform: none;
-                box-shadow: none;
-            }
-            
-            .action-btn:active {
-                transform: scale(0.95);
-                transition: transform 0.1s;
-            }
-        }
-        
-        /* Accessibility improvements */
-        .visually-hidden {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border: 0;
-        }
-        
-        .action-btn:focus {
-            outline: 2px solid #667eea;
-            outline-offset: 2px;
-        }
-        
-        /* Dark mode support */
-        @media (prefers-color-scheme: dark) {
-            .explanation {
-                background: #2d3748;
-                color: #e2e8f0;
-                border-color: #4a5568;
-            }
-            
-            .complexity-item {
-                background: #2d3748;
-                color: #e2e8f0;
-                border-color: #4a5568;
-            }
-            
-            .result-section {
-                background: #1a202c;
-                border-color: #4a5568;
-            }
-            
-            .result-section h3 {
-                color: #e2e8f0;
-            }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .results-container { margin-top: 12px; }
+        .result-section { background: #fafbfc; border-radius: 5px; padding: 10px; border: 1px solid #eee; margin-bottom: 10px; }
+        .code-block { background: #23272e; color: #eee; border-radius: 4px; font-size: 13px; padding: 10px; overflow-x: auto; margin: 7px 0; }
+        .explanation { font-size: 13px; margin: 5px 0 7px 0; }
+        .complexity-info { display: flex; gap: 10px; font-size: 12px; margin: 5px 0; }
+        .complexity-item { background: #fff; border: 1px solid #eee; border-radius: 4px; padding: 3px 8px; }
+        @media (max-width: 600px) {
+            .main-content { padding: 6px 0 0 0; }
+            .action-btn { font-size: 14px; min-width: 70px; min-height: 32px; padding: 7px 10px; }
+            .code-block { font-size: 12px; padding: 6px; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1><i class="fas fa-robot"></i> Interview Corvus</h1>
-            <p>AI-Powered Coding Assistant</p>
+    <div class="main-content">
+        <div class="screenshot-count">Screenshots: <span id="screenshotCount">0</span></div>
+        <div class="action-buttons">
+            <button class="action-btn capture-btn" onclick="captureScreen()" id="captureBtn">Capture</button>
+            <button class="action-btn solve-btn" onclick="solveBrute()" id="solveBtn">Solve</button>
+            <button class="action-btn optimize-btn" onclick="optimizeBest()" id="optimizeBtn">Optimize</button>
+            <button class="action-btn toggle-btn" onclick="toggleWindow()" id="toggleBtn">Toggle</button>
         </div>
-        
-        <div class="main-content">
-            <div class="screenshots-info" id="screenshotInfo">
-                <i class="fas fa-camera"></i>
-                <span>Screenshots: <strong id="screenshotCount">0</strong> captured</span>
-            </div>
-            
-            <div class="action-buttons">
-                <button class="action-btn capture-btn" onclick="captureScreen()" aria-label="Capture screenshot">
-                    <div class="icon"><i class="fas fa-camera"></i></div>
-                    <div class="label">Capture</div>
-                    <div class="subtitle">Take Screenshot</div>
-                </button>
-                
-                <button class="action-btn solve-btn" onclick="solveBrute()" id="solveBtn" aria-label="Generate brute force solution">
-                    <div class="icon"><i class="fas fa-brain"></i></div>
-                    <div class="label">Solve [Brute]</div>
-                    <div class="subtitle">Generate Solution</div>
-                </button>
-                
-                <button class="action-btn optimize-btn" onclick="optimizeBest()" id="optimizeBtn" aria-label="Optimize solution">
-                    <div class="icon"><i class="fas fa-bolt"></i></div>
-                    <div class="label">Optimize [Best]</div>
-                    <div class="subtitle">Enhance Solution</div>
-                </button>
-            </div>
-            
-            <div class="status-bar" id="statusBar" role="status" aria-live="polite">
-                Ready to assist with your coding interview
-            </div>
-            
-            <div class="loading-spinner" id="loadingSpinner" aria-hidden="true"></div>
-            
-            <div class="results-container" id="resultsContainer" style="display: none;">
-                <div class="result-section" id="bruteSection" style="display: none;">
-                    <h3><i class="fas fa-brain"></i> Brute Force Solution</h3>
-                    <div class="explanation" id="bruteExplanation"></div>
-                    <div class="code-container">
-                        <pre class="code-block line-numbers" id="bruteCodeBlock"><code class="language-python" id="bruteCode"></code></pre>
-                        <button class="copy-btn" onclick="copyCode('bruteCode')" aria-label="Copy brute force code">
-                            <i class="fas fa-copy"></i> Copy
-                        </button>
-                    </div>
-                    <div class="complexity-info">
-                        <div class="complexity-item">
-                            <strong><i class="fas fa-clock"></i> Time</strong>
-                            <span id="bruteTimeComplexity">-</span>
-                        </div>
-                        <div class="complexity-item">
-                            <strong><i class="fas fa-memory"></i> Space</strong>
-                            <span id="bruteSpaceComplexity">-</span>
-                        </div>
-                    </div>
+        <div class="status-bar" id="statusBar">Ready</div>
+        <div class="loading-spinner" id="loadingSpinner"></div>
+        <div class="results-container" id="resultsContainer" style="display: none;">
+            <div class="result-section" id="bruteSection" style="display: none;">
+                <div class="explanation" id="bruteExplanation"></div>
+                <pre class="code-block language-python" id="bruteCode"></pre>
+                <div class="complexity-info">
+                    <div class="complexity-item">Time: <span id="bruteTimeComplexity">-</span></div>
+                    <div class="complexity-item">Space: <span id="bruteSpaceComplexity">-</span></div>
                 </div>
-                
-                <div class="result-section" id="optimizedSection" style="display: none;">
-                    <h3><i class="fas fa-bolt"></i> Optimized Solution</h3>
-                    <div class="explanation" id="optimizedExplanation"></div>
-                    <div class="code-container">
-                        <pre class="code-block line-numbers" id="optimizedCodeBlock"><code class="language-python" id="optimizedCode"></code></pre>
-                        <button class="copy-btn" onclick="copyCode('optimizedCode')" aria-label="Copy optimized code">
-                            <i class="fas fa-copy"></i> Copy
-                        </button>
-                    </div>
-                    <div class="complexity-info">
-                        <div class="complexity-item">
-                            <strong><i class="fas fa-clock"></i> Time</strong>
-                            <span id="optimizedTimeComplexity">-</span>
-                        </div>
-                        <div class="complexity-item">
-                            <strong><i class="fas fa-memory"></i> Space</strong>
-                            <span id="optimizedSpaceComplexity">-</span>
-                        </div>
-                    </div>
+            </div>
+            <div class="result-section" id="optimizedSection" style="display: none;">
+                <div class="explanation" id="optimizedExplanation"></div>
+                <pre class="code-block language-python" id="optimizedCode"></pre>
+                <div class="complexity-info">
+                    <div class="complexity-item">Time: <span id="optimizedTimeComplexity">-</span></div>
+                    <div class="complexity-item">Space: <span id="optimizedSpaceComplexity">-</span></div>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Prism.js for syntax highlighting -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js"></script>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
     <script>
         const API_BASE = '';
         let bruteSolution = null;
-        
         function updateStatus(message, type = 'info') {
             const statusBar = document.getElementById('statusBar');
             statusBar.textContent = message;
-            statusBar.className = `status-bar ${type}`;
         }
-        
         function showLoading(show = true) {
             const spinner = document.getElementById('loadingSpinner');
             spinner.style.display = show ? 'block' : 'none';
-            spinner.setAttribute('aria-hidden', !show);
         }
-        
         function updateScreenshotCount() {
             fetch(`${API_BASE}/screenshots`)
                 .then(response => response.json())
                 .then(data => {
                     const count = data.screenshots ? data.screenshots.length : 0;
                     document.getElementById('screenshotCount').textContent = count;
-                    
                     // Enable/disable solve button based on screenshot availability
-                    const solveBtn = document.getElementById('solveBtn');
-                    solveBtn.disabled = count === 0;
-                    
-                    if (count === 0) {
-                        solveBtn.setAttribute('aria-disabled', 'true');
-                    } else {
-                        solveBtn.removeAttribute('aria-disabled');
-                    }
+                    document.getElementById('solveBtn').disabled = count === 0;
                 })
-                .catch(error => console.error('Error updating screenshot count:', error));
+                .catch(() => { document.getElementById('screenshotCount').textContent = '0'; });
         }
-        
         async function captureScreen() {
-            updateStatus('Taking screenshot...', 'loading');
-            showLoading(true);
-            
+            updateStatus('Capturing...'); showLoading(true);
             try {
-                const response = await fetch(`${API_BASE}/screenshot/capture`, {
-                    method: 'POST'
-                });
-                
+                const response = await fetch(`${API_BASE}/screenshot/capture`, { method: 'POST' });
                 const result = await response.json();
-                
-                if (response.ok) {
-                    updateStatus('✅ Screenshot captured successfully');
-                    updateScreenshotCount();
-                } else {
-                    updateStatus(`❌ Failed to capture screenshot: ${result.message}`, 'error');
-                }
-            } catch (error) {
-                updateStatus('❌ Connection failed - Make sure Interview Corvus is running!', 'error');
-            } finally {
-                showLoading(false);
-            }
+                if (response.ok) updateStatus('Captured');
+                else updateStatus('Error: ' + result.message);
+                updateScreenshotCount();
+            } catch (error) { updateStatus('Connection error'); }
+            finally { showLoading(false); }
         }
-        
         async function solveBrute() {
-            updateStatus('Generating brute force solution...', 'loading');
-            showLoading(true);
-            
+            updateStatus('Solving...'); showLoading(true);
             try {
                 const response = await fetch(`${API_BASE}/solution`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        language: 'Python'
-                    })
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ language: 'Python' })
                 });
-                
                 const result = await response.json();
-                
                 if (response.ok && result.solution) {
                     bruteSolution = result.solution;
                     displayBruteSolution(result.solution);
-                    updateStatus('✅ Brute force solution generated successfully');
-                    
-                    // Enable optimize button
-                    const optimizeBtn = document.getElementById('optimizeBtn');
-                    optimizeBtn.disabled = false;
-                    optimizeBtn.removeAttribute('aria-disabled');
-                } else {
-                    updateStatus(`❌ Failed to generate solution: ${result.message}`, 'error');
-                }
-            } catch (error) {
-                updateStatus('❌ Connection failed - Make sure Interview Corvus is running!', 'error');
-            } finally {
-                showLoading(false);
-            }
+                    updateStatus('Solved');
+                    document.getElementById('optimizeBtn').disabled = false;
+                } else updateStatus('Error: ' + result.message);
+            } catch (error) { updateStatus('Connection error'); }
+            finally { showLoading(false); }
         }
-        
         async function optimizeBest() {
-            if (!bruteSolution) {
-                updateStatus('❌ Please generate a brute force solution first', 'error');
-                return;
-            }
-            
-            updateStatus('Optimizing solution...', 'loading');
-            showLoading(true);
-            
+            if (!bruteSolution) { updateStatus('Solve first'); return; }
+            updateStatus('Optimizing...'); showLoading(true);
             try {
                 const response = await fetch(`${API_BASE}/optimize`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        code: bruteSolution.code,
-                        language: bruteSolution.language
-                    })
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: bruteSolution.code, language: bruteSolution.language })
                 });
-                
                 const result = await response.json();
-                
                 if (response.ok && result.optimization) {
                     displayOptimizedSolution(result.optimization);
-                    updateStatus('✅ Solution optimized successfully');
-                } else {
-                    updateStatus(`❌ Failed to optimize solution: ${result.message}`, 'error');
-                }
-            } catch (error) {
-                updateStatus('❌ Connection failed - Make sure Interview Corvus is running!', 'error');
-            } finally {
-                showLoading(false);
-            }
+                    updateStatus('Optimized');
+                } else updateStatus('Error: ' + result.message);
+            } catch (error) { updateStatus('Connection error'); }
+            finally { showLoading(false); }
         }
-        
         function displayBruteSolution(solution) {
-            document.getElementById('resultsContainer').style.display = 'grid';
+            document.getElementById('resultsContainer').style.display = 'block';
             document.getElementById('bruteSection').style.display = 'block';
-            
-            document.getElementById('bruteExplanation').textContent = solution.explanation || 'No explanation provided';
-            
-            const codeElement = document.getElementById('bruteCode');
-            codeElement.textContent = solution.code || 'No code provided';
-            
-            // Trigger Prism.js highlighting
-            Prism.highlightElement(codeElement);
-            
-            document.getElementById('bruteTimeComplexity').textContent = solution.time_complexity || 'Not specified';
-            document.getElementById('bruteSpaceComplexity').textContent = solution.space_complexity || 'Not specified';
+            document.getElementById('bruteExplanation').textContent = solution.explanation || '';
+            document.getElementById('bruteCode').textContent = solution.code || '';
+            Prism.highlightElement(document.getElementById('bruteCode'));
+            document.getElementById('bruteTimeComplexity').textContent = solution.time_complexity || '-';
+            document.getElementById('bruteSpaceComplexity').textContent = solution.space_complexity || '-';
         }
-        
         function displayOptimizedSolution(optimization) {
             document.getElementById('optimizedSection').style.display = 'block';
-            
-            document.getElementById('optimizedExplanation').textContent = optimization.explanation || 'No explanation provided';
-            
-            const codeElement = document.getElementById('optimizedCode');
-            codeElement.textContent = optimization.optimized_code || 'No optimized code provided';
-            
-            // Trigger Prism.js highlighting
-            Prism.highlightElement(codeElement);
-            
-            document.getElementById('optimizedTimeComplexity').textContent = optimization.optimized_time_complexity || 'Not specified';
-            document.getElementById('optimizedSpaceComplexity').textContent = optimization.optimized_space_complexity || 'Not specified';
+            document.getElementById('optimizedExplanation').textContent = optimization.explanation || '';
+            document.getElementById('optimizedCode').textContent = optimization.optimized_code || '';
+            Prism.highlightElement(document.getElementById('optimizedCode'));
+            document.getElementById('optimizedTimeComplexity').textContent = optimization.optimized_time_complexity || '-';
+            document.getElementById('optimizedSpaceComplexity').textContent = optimization.optimized_space_complexity || '-';
         }
-        
-        function copyCode(elementId) {
-            const codeElement = document.getElementById(elementId);
-            const text = codeElement.textContent;
-            
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(text).then(() => {
-                    // Find the copy button and provide feedback
-                    const copyBtn = codeElement.closest('.code-container').querySelector('.copy-btn');
-                    const originalText = copyBtn.innerHTML;
-                    copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                    copyBtn.style.background = 'rgba(76, 175, 80, 0.3)';
-                    
-                    setTimeout(() => {
-                        copyBtn.innerHTML = originalText;
-                        copyBtn.style.background = 'rgba(255,255,255,0.1)';
-                    }, 2000);
-                });
-            } else {
-                // Fallback for older browsers
-                const textArea = document.createElement('textarea');
-                textArea.value = text;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-            }
+        function toggleWindow() {
+            fetch(`${API_BASE}/window/toggle`, { method: 'POST' })
+                .then(() => updateStatus('Toggled'))
+                .catch(() => updateStatus('Toggle failed'));
         }
-        
-        // Initialize
         window.addEventListener('load', () => {
+            document.getElementById('solveBtn').disabled = true;
+            document.getElementById('optimizeBtn').disabled = true;
             updateScreenshotCount();
-            updateStatus('Ready to assist with your coding interview');
-            
-            // Initially disable solve and optimize buttons
-            const solveBtn = document.getElementById('solveBtn');
-            const optimizeBtn = document.getElementById('optimizeBtn');
-            
-            solveBtn.disabled = true;
-            optimizeBtn.disabled = true;
-            solveBtn.setAttribute('aria-disabled', 'true');
-            optimizeBtn.setAttribute('aria-disabled', 'true');
-            
-            // Set up Prism.js
-            Prism.plugins.autoloader.languages_path = 'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/';
+            updateStatus('Ready');
         });
-        
-        // Auto-refresh screenshot count every 5 seconds
         setInterval(updateScreenshotCount, 5000);
-        
-        // Add touch feedback for mobile
-        if ('ontouchstart' in window) {
-            document.querySelectorAll('.action-btn').forEach(btn => {
-                btn.addEventListener('touchstart', function() {
-                    this.style.transform = 'scale(0.98)';
-                });
-                
-                btn.addEventListener('touchend', function() {
-                    this.style.transform = '';
-                });
-            });
-        }
     </script>
 </body>
 </html>
         """
-        
         return HTMLResponse(content=html_content)
 
 
@@ -1344,7 +780,7 @@ class WebServerThread(QThread):
 def create_integrated_web_server(
     llm_service: 'LLMService' = None, 
     screenshot_manager: 'ScreenshotManager' = None,
-    host: str = "127.0.0.1",
+    host: str = "0.0.0.0",
     port: int = 8000
 ) -> tuple[WebServerAPI, WebServerThread]:
     """
