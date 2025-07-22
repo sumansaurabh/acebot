@@ -229,22 +229,10 @@ class MainWindow(QMainWindow):
         header_layout = QHBoxLayout()
         header_layout.setSpacing(16)
 
-        # App title with icon
-        title_container = QHBoxLayout()
-        title_label = QLabel("🤖 AceBot")
-        title_label.setStyleSheet("""
-            font-size: 20px; 
-            font-weight: bold; 
-            color: #4A90E2;
-            padding: 8px;
-            margin-right: 16px;
-        """)
-        title_container.addWidget(title_label)
-        
         # Language selection - compact
         lang_label = QLabel("🌐 Language:")
         lang_label.setStyleSheet("font-weight: bold; color: #666; margin-right: 6px; font-size: 12px;")
-        title_container.addWidget(lang_label)
+        header_layout.addWidget(lang_label)
         
         self.language_combo = QComboBox()
         self.language_combo.addItems(settings.available_languages)
@@ -254,22 +242,20 @@ class MainWindow(QMainWindow):
         self.language_combo.setMinimumWidth(100)
         self.language_combo.setMaximumWidth(130)
         self.language_combo.setFixedHeight(28)
-        title_container.addWidget(self.language_combo)
+        header_layout.addWidget(self.language_combo)
         
         # Monitor selection - next to language
         monitor_label = QLabel("📺 Monitor:")
         monitor_label.setStyleSheet("font-weight: bold; color: #666; margin-left: 16px; margin-right: 6px; font-size: 12px;")
-        title_container.addWidget(monitor_label)
+        header_layout.addWidget(monitor_label)
         
         self.screen_combo = QComboBox()
         self.update_screen_list()
         self.screen_combo.setMinimumWidth(150)
         self.screen_combo.setMaximumWidth(200)
         self.screen_combo.setFixedHeight(28)
-        title_container.addWidget(self.screen_combo)
-        title_container.addStretch()
-        
-        header_layout.addLayout(title_container)
+        header_layout.addWidget(self.screen_combo)
+        header_layout.addStretch()
 
         # Minimal controls on the right
         controls_right = QHBoxLayout()
@@ -463,6 +449,11 @@ class MainWindow(QMainWindow):
         self.progress_label = QLabel("Idle")
         self.progress_label.setStyleSheet("color: #4A90E2; font-weight: bold; font-size: 11px;")
         self.status_bar.addPermanentWidget(self.progress_label)
+        
+        # AceBot title in the middle
+        self.app_title_label = QLabel("🤖 AceBot")
+        self.app_title_label.setStyleSheet("color: #4A90E2; font-weight: bold; font-size: 12px; padding: 0 16px;")
+        self.status_bar.addPermanentWidget(self.app_title_label)
 
         # Web server status (if available)
         if WEB_SERVER_AVAILABLE:
