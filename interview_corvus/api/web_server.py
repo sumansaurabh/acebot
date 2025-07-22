@@ -429,7 +429,7 @@ class WebServerAPI(QObject):
         .action-buttons {
             display: flex;
             flex-direction: row;
-            gap: 12px;
+            gap: 6px; /* Reduced gap between buttons */
             margin-bottom: 14px;
             justify-content: flex-start;
         }
@@ -453,6 +453,10 @@ class WebServerAPI(QObject):
         .optimize-btn:hover { background: #ef6c00; }
         .toggle-btn { background: #9c27b0; color: #fff; }
         .toggle-btn:hover { background: #6d1b7b; }
+        .clear-btn { background: #e53935; color: #fff; }
+        .clear-btn:hover { background: #b71c1c; }
+        .reset-btn { background: #607d8b; color: #fff; }
+        .reset-btn:hover { background: #37474f; }
         .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .status-bar {
             font-size: 13px;
@@ -498,6 +502,8 @@ class WebServerAPI(QObject):
             <button class="action-btn solve-btn" onclick="solveBrute()" id="solveBtn">Solve</button>
             <button class="action-btn optimize-btn" onclick="optimizeBest()" id="optimizeBtn">Optimize</button>
             <button class="action-btn toggle-btn" onclick="toggleWindow()" id="toggleBtn">Toggle</button>
+            <button class="action-btn clear-btn" onclick="clearScreenshots()" id="clearBtn">Clear</button>
+            <button class="action-btn reset-btn" onclick="resetAll()" id="resetBtn">Reset</button>
         </div>
         <div class="status-bar" id="statusBar">Ready</div>
         <div class="loading-spinner" id="loadingSpinner"></div>
@@ -584,6 +590,42 @@ class WebServerAPI(QObject):
                     displayOptimizedSolution(result.optimization);
                     updateStatus('Optimized');
                 } else updateStatus('Error: ' + result.message);
+            } catch (error) { updateStatus('Connection error'); }
+            finally { showLoading(false); }
+        }
+        async function clearScreenshots() {
+            updateStatus('Clearing...'); showLoading(true);
+            try {
+                const response = await fetch(`${API_BASE}/screenshots`, { method: 'DELETE' });
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    updateStatus('Cleared');
+                    updateScreenshotCount();
+                    document.getElementById('resultsContainer').style.display = 'none';
+                    document.getElementById('bruteSection').style.display = 'none';
+                    document.getElementById('optimizedSection').style.display = 'none';
+                    bruteSolution = null;
+                    document.getElementById('optimizeBtn').disabled = true;
+                } else updateStatus('Error: ' + result.message);
+            } catch (error) { updateStatus('Connection error'); }
+            finally { showLoading(false); }
+        }
+        async function resetAll() {
+            updateStatus('Resetting...'); showLoading(true);
+            try {
+                const response1 = await fetch(`${API_BASE}/screenshots`, { method: 'DELETE' });
+                const response2 = await fetch(`${API_BASE}/history`, { method: 'DELETE' });
+                const result1 = await response1.json();
+                const result2 = await response2.json();
+                if ((response1.ok && result1.success) && (response2.ok && result2.success)) {
+                    updateStatus('Reset');
+                    updateScreenshotCount();
+                    document.getElementById('resultsContainer').style.display = 'none';
+                    document.getElementById('bruteSection').style.display = 'none';
+                    document.getElementById('optimizedSection').style.display = 'none';
+                    bruteSolution = null;
+                    document.getElementById('optimizeBtn').disabled = true;
+                } else updateStatus('Error: ' + (result1.message || result2.message));
             } catch (error) { updateStatus('Connection error'); }
             finally { showLoading(false); }
         }

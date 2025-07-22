@@ -96,7 +96,7 @@ class LLMService(QObject):
         response = structured.chat([message])
         return response.raw
 
-    def get_solution_from_screenshots(
+    def 8u9get_solution_from_screenshots(
         self, screenshot_paths: List[str], language: str = None
     ) -> CodeSolution:
         """
