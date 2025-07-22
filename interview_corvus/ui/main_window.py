@@ -33,6 +33,14 @@ from interview_corvus.screenshot.screenshot_manager import ScreenshotManager
 from interview_corvus.ui.settings_dialog import SettingsDialog
 from interview_corvus.ui.styles import Styles, Theme
 
+# Try to import web server (optional dependency)
+try:
+    from interview_corvus.api.web_server import create_integrated_web_server
+    WEB_SERVER_AVAILABLE = True
+except ImportError:
+    WEB_SERVER_AVAILABLE = False
+    logger.warning("Web server dependencies not available. Web API will be disabled.")
+
 
 class MainWindow(QMainWindow):
     """
@@ -60,6 +68,23 @@ class MainWindow(QMainWindow):
         self.screenshot_manager = ScreenshotManager()
         self.llm_service = LLMService()
         self.styles = Styles()
+
+        # Initialize web server (optional)
+        self.web_api = None
+        self.web_server_thread = None
+        if WEB_SERVER_AVAILABLE:
+            try:
+                self.web_api, self.web_server_thread = create_integrated_web_server(
+                    llm_service=self.llm_service,
+                    screenshot_manager=self.screenshot_manager,
+                    host="127.0.0.1",
+                    port=8000
+                )
+                logger.info("✅ Web server initialized successfully")
+            except Exception as e:
+                logger.error(f"❌ Failed to initialize web server: {e}")
+                self.web_api = None
+                self.web_server_thread = None
 
         # Connect LLM service signals
         self.llm_service.completion_finished.connect(self.on_solution_ready)
@@ -265,6 +290,14 @@ class MainWindow(QMainWindow):
         )
         controls_layout.addWidget(self.reset_history_button)
 
+        # Web server controls (if available)
+        if WEB_SERVER_AVAILABLE:
+            # Start/Stop web server button
+            self.web_server_button = QPushButton("Start Web Server")
+            self.web_server_button.clicked.connect(self.toggle_web_server)
+            self.web_server_button.setToolTip("Start/stop the integrated web API server")
+            controls_layout.addWidget(self.web_server_button)
+
         main_layout.addLayout(controls_layout)
 
         # Content splitter - allowing user to adjust size of sections
@@ -328,6 +361,12 @@ class MainWindow(QMainWindow):
         # Progress indicator in status bar for solution generation
         self.progress_label = QLabel("Idle")
         self.status_bar.addPermanentWidget(self.progress_label)
+
+        # Web server status indicator
+        if WEB_SERVER_AVAILABLE:
+            self.web_server_status = QLabel("Web API: Stopped")
+            self.web_server_status.setStyleSheet("color: red;")
+            self.status_bar.addPermanentWidget(self.web_server_status)
 
         # Set up main widget
         central_widget.setLayout(main_layout)
@@ -969,6 +1008,52 @@ class MainWindow(QMainWindow):
         self.status_bar.showMessage("Solution copied to clipboard")
         logger.info("Solution copied to clipboard")
 
+    def toggle_web_server(self):
+        """Toggle the web server on/off."""
+        if not WEB_SERVER_AVAILABLE:
+            self.status_bar.showMessage("Web server not available - missing dependencies")
+            return
+        
+        if self.web_server_thread and self.web_server_thread.isRunning():
+            # Stop the web server
+            try:
+                self.web_server_thread.terminate()
+                self.web_server_thread.wait(3000)  # Wait up to 3 seconds
+                self.web_server_button.setText("Start Web Server")
+                self.status_bar.showMessage("Web server stopped")
+                if hasattr(self, 'web_server_status'):
+                    self.web_server_status.setText("Web API: Stopped")
+                    self.web_server_status.setStyleSheet("color: red;")
+                logger.info("🛑 Web server stopped")
+            except Exception as e:
+                logger.error(f"Error stopping web server: {e}")
+                self.status_bar.showMessage(f"Error stopping web server: {e}")
+        else:
+            # Start the web server
+            try:
+                if self.web_server_thread:
+                    self.web_server_thread.start()
+                    self.web_server_button.setText("Stop Web Server")
+                    self.status_bar.showMessage("Web server started on http://127.0.0.1:8000")
+                    if hasattr(self, 'web_server_status'):
+                        self.web_server_status.setText("Web API: Running")
+                        self.web_server_status.setStyleSheet("color: green;")
+                    logger.info("🚀 Web server started on http://127.0.0.1:8000")
+                    
+                    # Show notification with API info
+                    if hasattr(self, 'tray_icon') and self.tray_icon:
+                        self.tray_icon.showMessage(
+                            "Web Server Started",
+                            "API available at http://127.0.0.1:8000\nDocs: http://127.0.0.1:8000/docs",
+                            QSystemTrayIcon.MessageIcon.Information,
+                            5000
+                        )
+                else:
+                    self.status_bar.showMessage("Web server not initialized")
+            except Exception as e:
+                logger.error(f"Error starting web server: {e}")
+                self.status_bar.showMessage(f"Error starting web server: {e}")
+
     @pyqtSlot()
     def toggle_visibility(self):
         """Toggle the visibility of the application window."""
@@ -1160,6 +1245,13 @@ class MainWindow(QMainWindow):
         Args:
             event: Close event
         """
+        # Stop web server if running
+        if hasattr(self, 'web_server_thread') and self.web_server_thread and self.web_server_thread.isRunning():
+            logger.info("Stopping web server...")
+            self.web_server_thread.terminate()
+            self.web_server_thread.wait(3000)
+            logger.info("Web server stopped")
+
         if hasattr(self, "hotkey_manager"):
             self.hotkey_manager.stop_global_listener()
 
