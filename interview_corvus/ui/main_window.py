@@ -171,6 +171,21 @@ class MainWindow(QMainWindow):
         # Processing state
         self.processing_screenshot = False
         self.solution_text = ""
+        
+        # Session state to persist generated code and explanations
+        self.current_session = {
+            "code": "",
+            "explanation": "",
+            "time_complexity": "N/A",
+            "space_complexity": "N/A",
+            "is_optimized": False
+        }
+        
+        # Auto-save timer for session persistence
+        self.session_save_timer = QTimer()
+        self.session_save_timer.setSingleShot(True)
+        self.session_save_timer.timeout.connect(self.save_session_data)
+        self._is_optimized = False
 
         # Set up UI
         self.init_ui()
@@ -467,6 +482,9 @@ class MainWindow(QMainWindow):
         # Update thumbnails
         self.update_thumbnails()
         self.update_button_texts()
+        
+        # Restore session data if available
+        self.restore_session_data()
         
         # Update web server button state if auto-started
         if WEB_SERVER_AVAILABLE and self.web_server_thread and self.web_server_thread.isRunning():
@@ -787,6 +805,9 @@ class MainWindow(QMainWindow):
         self.language_combo.currentTextChanged.connect(self.on_language_changed)
         QApplication.instance().screenAdded.connect(self.update_screen_list)
         QApplication.instance().screenRemoved.connect(self.update_screen_list)
+        
+        # Session persistence - connect code editor changes
+        self.code_editor.textChanged.connect(self.on_code_changed)
 
     def set_always_on_top(self, enabled: bool):
         """
@@ -852,6 +873,10 @@ class MainWindow(QMainWindow):
 
     def update_thumbnails(self):
         """Update screenshot thumbnails display - minimal version."""
+        # Save session data before updating thumbnails (which can cause UI refresh)
+        if hasattr(self, 'current_session'):
+            self.save_session_data()
+            
         # Clear existing thumbnails
         while self.thumbnails_layout.count():
             item = self.thumbnails_layout.takeAt(0)
@@ -946,6 +971,10 @@ class MainWindow(QMainWindow):
         # If no screenshot is selected, select the most recent one
         if self.selected_screenshot_index == -1 and screenshots:
             self.select_screenshot(len(screenshots) - 1)
+        
+        # Restore session data after thumbnail update
+        if hasattr(self, 'current_session'):
+            self.restore_session_data()
 
     def select_screenshot(self, index):
         """
@@ -992,6 +1021,13 @@ class MainWindow(QMainWindow):
 
         # Save settings
         settings.save_user_settings()
+    
+    def on_code_changed(self):
+        """Handle code editor changes to preserve session data."""
+        # Only save if we have actual content to avoid overwriting with empty text during initialization
+        if hasattr(self, 'current_session') and self.code_editor.toPlainText().strip():
+            # Use timer to avoid too frequent saves while typing
+            self.session_save_timer.start(500)  # Save after 500ms of inactivity
 
     @pyqtSlot()
     def take_screenshot(self):
@@ -1038,11 +1074,8 @@ class MainWindow(QMainWindow):
             self.selected_screenshot_index = -1
             self.update_thumbnails()
 
-            # Clear UI components
-            self.code_editor.clear()
-            self.explanation_text.setMarkdown("")  # Clear markdown content
-            self.time_complexity.setText("N/A")
-            self.space_complexity.setText("N/A")
+            # Clear UI components and session data
+            self.clear_session_data()
 
             self.status_bar.showMessage("Chat history and screenshots reset.")
             logger.info("Chat history and screenshots have been reset")
@@ -1172,11 +1205,11 @@ class MainWindow(QMainWindow):
 
             def run(self):
                 try:
-                    logger.info("Optimizing code in thread")
-                    solution = self.llm_service.get_code_optimization(
+                    logger.info("Processing code optimization in thread")
+                    optimization = self.llm_service.get_code_optimization(
                         self.code, self.language
                     )
-                    self.solution_ready.emit(solution)
+                    self.solution_ready.emit(optimization)
                 except Exception as e:
                     logger.info(f"Error in optimization thread: {e}")
                     self.error_occurred.emit(str(e))
@@ -1223,6 +1256,10 @@ class MainWindow(QMainWindow):
         
         self.time_complexity.setText(solution.time_complexity)
         self.space_complexity.setText(solution.space_complexity)
+        
+        # Mark as not optimized and save session
+        self._is_optimized = False
+        self.save_session_data()
 
         self.status_bar.showMessage("Solution generated")
         logger.info("Solution generated successfully")
@@ -1265,6 +1302,10 @@ class MainWindow(QMainWindow):
         self.explanation_text.setMarkdown(detailed_explanation)
         self.time_complexity.setText(optimization.optimized_time_complexity)
         self.space_complexity.setText(optimization.optimized_space_complexity)
+        
+        # Mark as optimized and save session
+        self._is_optimized = True
+        self.save_session_data()
 
         self.status_bar.showMessage("Solution optimized")
         logger.info("Solution optimized successfully")
@@ -1298,6 +1339,42 @@ class MainWindow(QMainWindow):
         clipboard.setText(self.code_editor.toPlainText())
         self.status_bar.showMessage("Solution copied to clipboard")
         logger.info("Solution copied to clipboard")
+    
+    def save_session_data(self):
+        """Save current session data to preserve across UI refreshes."""
+        self.current_session = {
+            "code": self.code_editor.toPlainText(),
+            "explanation": self.explanation_text.toMarkdown(),
+            "time_complexity": self.time_complexity.text(),
+            "space_complexity": self.space_complexity.text(),
+            "is_optimized": getattr(self, '_is_optimized', False)
+        }
+        logger.debug("Session data saved")
+    
+    def restore_session_data(self):
+        """Restore session data to UI components."""
+        if self.current_session["code"]:
+            self.code_editor.setPlainText(self.current_session["code"])
+            self.explanation_text.setMarkdown(self.current_session["explanation"])
+            self.time_complexity.setText(self.current_session["time_complexity"])
+            self.space_complexity.setText(self.current_session["space_complexity"])
+            logger.debug("Session data restored")
+    
+    def clear_session_data(self):
+        """Clear session data and UI components."""
+        self.current_session = {
+            "code": "",
+            "explanation": "",
+            "time_complexity": "N/A",
+            "space_complexity": "N/A",
+            "is_optimized": False
+        }
+        self.code_editor.clear()
+        self.explanation_text.setMarkdown("")
+        self.time_complexity.setText("N/A")
+        self.space_complexity.setText("N/A")
+        self._is_optimized = False
+        logger.debug("Session data cleared")
 
     def toggle_web_server(self):
         """Toggle the web server on/off."""
@@ -1366,9 +1443,15 @@ class MainWindow(QMainWindow):
         if is_visible:
             self.visibility_button.setText("👁️")
             self.visibility_button.setToolTip("Hide Window")
+            # Restore session data when becoming visible again
+            if hasattr(self, 'current_session'):
+                self.restore_session_data()
         else:
             self.visibility_button.setText("👁️‍🗨️")
             self.visibility_button.setToolTip("Show Window")
+            # Save session data before hiding
+            if hasattr(self, 'current_session'):
+                self.save_session_data()
 
         self.status_bar.showMessage(
             f"Visibility set to {'visible' if is_visible else 'hidden'}"
@@ -1503,6 +1586,10 @@ class MainWindow(QMainWindow):
 
     def show_settings(self):
         """Show the settings dialog."""
+        # Save current session before opening settings
+        if hasattr(self, 'current_session'):
+            self.save_session_data()
+            
         dialog = SettingsDialog(self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             # Update services that depend on settings
@@ -1525,6 +1612,10 @@ class MainWindow(QMainWindow):
 
             # Re-register hotkeys with the hotkey manager
             self.hotkey_manager.register_hotkeys(self)
+            
+            # Restore session data after settings update
+            if hasattr(self, 'current_session'):
+                self.restore_session_data()
 
             self.status_bar.showMessage("Settings updated")
             logger.info("Settings updated")
@@ -1621,6 +1712,20 @@ class MainWindow(QMainWindow):
             self.reset_history_action.setShortcut(
                 QKeySequence(settings.hotkeys.reset_history_key)
             )
+    
+    def resizeEvent(self, event):
+        """Handle resize events to preserve session data."""
+        super().resizeEvent(event)
+        # Save session data when window is resized (which can trigger UI refresh)
+        if hasattr(self, 'current_session'):
+            self.save_session_data()
+    
+    def showEvent(self, event):
+        """Handle show events to restore session data."""
+        super().showEvent(event)
+        # Restore session data when window is shown (in case of UI refresh)
+        if hasattr(self, 'current_session'):
+            self.restore_session_data()
 
     def check_and_request_permissions(self):
         """Check for and request required permissions for global hotkey monitoring."""
