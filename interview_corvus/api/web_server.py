@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Integrated Web Server for Interview Corvus
+Integrated Web Server for AceBot
 Runs alongside the GUI application and shares the same services.
 """
 
@@ -460,7 +460,7 @@ class WebServerAPI(QObject):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, minimum-scale=1.0, maximum-scale=5.0">
-    <title>Interview Corvus</title>
+    <title>🤖 AceBot</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
     <style>
@@ -875,7 +875,7 @@ class WebServerThread(QThread):
     def _create_app(self) -> FastAPI:
         """Create the FastAPI application."""
         app = FastAPI(
-            title="Interview Corvus Integrated API",
+            title="🤖 AceBot Integrated API",
             description="AI-powered coding interview assistant API integrated with GUI",
             version="1.0.0",
             docs_url="/docs",
@@ -985,7 +985,7 @@ class WebServerThread(QThread):
         """Run the FastAPI server."""
         try:
             print("=" * 60)
-            print("🌐 Interview Corvus Integrated Web Server")
+            print("🌐 AceBot Integrated Web Server")
             print("=" * 60)
             print(f"🚀 Server: http://{self.host}:{self.port}")
             print(f"📚 API Documentation: http://{self.host}:{self.port}/docs")

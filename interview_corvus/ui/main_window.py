@@ -3,7 +3,7 @@ import re
 
 from loguru import logger
 from PyQt6.QtCore import QEvent, QSize, Qt, QThread, QTimer, pyqtSignal, pyqtSlot
-from PyQt6.QtGui import QAction, QFont, QIcon, QKeySequence, QSyntaxHighlighter, QTextCharFormat, QTextDocument, QColor
+from PyQt6.QtGui import QAction, QFont, QIcon, QKeySequence, QSyntaxHighlighter, QTextCharFormat, QTextDocument, QColor, QPixmap
 from PyQt6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -180,7 +180,8 @@ class MainWindow(QMainWindow):
 
         # Set window properties
         self.setWindowTitle(settings.app_name)
-        self.resize(800, 600)  # Larger default size for unified interface
+        self.resize(1000, 700)  # Better default size for unified interface
+        self.setMinimumSize(800, 600)  # Set minimum size
 
         # Initialize opacity
         self.set_opacity(settings.ui.default_window_opacity)
@@ -211,26 +212,33 @@ class MainWindow(QMainWindow):
 
         # Compact header
         header_layout = QHBoxLayout()
-        header_layout.setSpacing(12)
+        header_layout.setSpacing(16)
 
         # App title with icon
         title_container = QHBoxLayout()
         title_label = QLabel("🤖 AceBot")
         title_label.setStyleSheet("""
-            font-size: 18px; 
+            font-size: 20px; 
             font-weight: bold; 
             color: #4A90E2;
             padding: 8px;
+            margin-right: 16px;
         """)
         title_container.addWidget(title_label)
         
         # Language selection - compact
+        lang_label = QLabel("🌐 Language:")
+        lang_label.setStyleSheet("font-weight: bold; color: #666; margin-right: 6px; font-size: 12px;")
+        title_container.addWidget(lang_label)
+        
         self.language_combo = QComboBox()
         self.language_combo.addItems(settings.available_languages)
         index = self.language_combo.findText(settings.default_language)
         if index >= 0:
             self.language_combo.setCurrentIndex(index)
-        self.language_combo.setMaximumWidth(120)
+        self.language_combo.setMinimumWidth(100)
+        self.language_combo.setMaximumWidth(130)
+        self.language_combo.setFixedHeight(28)
         title_container.addWidget(self.language_combo)
         title_container.addStretch()
         
@@ -238,20 +246,29 @@ class MainWindow(QMainWindow):
 
         # Minimal controls on the right
         controls_right = QHBoxLayout()
+        controls_right.setSpacing(6)
         
         # Settings button - icon only
-        settings_button = QPushButton("⚙️")
-        settings_button.setFixedSize(32, 32)
+        settings_button = QPushButton("⚙️ Settings")
+        settings_button.setFixedSize(80, 32)
         settings_button.clicked.connect(self.show_settings)
         settings_button.setToolTip("Settings")
         controls_right.addWidget(settings_button)
 
         # Visibility toggle - icon only
-        self.visibility_button = QPushButton("👁️")
-        self.visibility_button.setFixedSize(32, 32)
+        self.visibility_button = QPushButton("👁️ Hide")
+        self.visibility_button.setFixedSize(70, 32)
         self.visibility_button.clicked.connect(self.toggle_visibility)
         self.visibility_button.setToolTip(f"Toggle Visibility ({settings.hotkeys.toggle_visibility_key})")
         controls_right.addWidget(self.visibility_button)
+
+        # Web server toggle (if available)
+        if WEB_SERVER_AVAILABLE:
+            self.web_server_button = QPushButton("🌐 API")
+            self.web_server_button.setFixedSize(70, 32)
+            self.web_server_button.clicked.connect(self.toggle_web_server)
+            self.web_server_button.setToolTip("Toggle Web API Server")
+            controls_right.addWidget(self.web_server_button)
 
         header_layout.addLayout(controls_right)
         main_layout.addLayout(header_layout)
@@ -264,35 +281,57 @@ class MainWindow(QMainWindow):
         self.screenshot_button = QPushButton("📸 Screenshot")
         self.screenshot_button.clicked.connect(self.take_screenshot)
         self.screenshot_button.setToolTip(f"Take Screenshot ({settings.hotkeys.screenshot_key})")
+        self.screenshot_button.setFixedHeight(35)
+        self.screenshot_button.setMinimumWidth(100)
         action_layout.addWidget(self.screenshot_button)
 
         # Generate solution button
         self.generate_button = QPushButton("🚀 Generate")
         self.generate_button.clicked.connect(self.generate_solution)
         self.generate_button.setToolTip(f"Generate Solution ({settings.hotkeys.generate_solution_key})")
+        self.generate_button.setFixedHeight(35)
+        self.generate_button.setMinimumWidth(100)
         action_layout.addWidget(self.generate_button)
 
         # Optimize button
         self.optimize_button = QPushButton("⚡ Optimize")
         self.optimize_button.clicked.connect(self.optimize_solution)
         self.optimize_button.setToolTip(f"Optimize Solution ({settings.hotkeys.optimize_solution_key})")
+        self.optimize_button.setFixedHeight(35)
+        self.optimize_button.setMinimumWidth(100)
         action_layout.addWidget(self.optimize_button)
 
         # Copy button
-        self.copy_button = QPushButton("📋")
-        self.copy_button.setFixedWidth(40)
+        self.copy_button = QPushButton("📋 Copy")
+        self.copy_button.setFixedSize(70, 35)
         self.copy_button.clicked.connect(self.copy_solution)
         self.copy_button.setToolTip("Copy Solution")
         action_layout.addWidget(self.copy_button)
 
         # Clear button
-        clear_button = QPushButton("🗑️")
-        clear_button.setFixedWidth(40)
+        clear_button = QPushButton("🗑️ Clear")
+        clear_button.setFixedSize(70, 35)
         clear_button.clicked.connect(self.reset_chat_history)
         clear_button.setToolTip(f"Clear All ({settings.hotkeys.reset_history_key})")
         action_layout.addWidget(clear_button)
 
         main_layout.addLayout(action_layout)
+
+        # Screen selection - minimal
+        screen_layout = QHBoxLayout()
+        screen_label = QLabel("📺 Monitor:")
+        screen_label.setStyleSheet("font-weight: bold; color: #666; font-size: 12px; margin-right: 8px;")
+        screen_layout.addWidget(screen_label)
+        
+        self.screen_combo = QComboBox()
+        self.update_screen_list()
+        self.screen_combo.setMinimumWidth(200)
+        self.screen_combo.setMaximumWidth(300)
+        self.screen_combo.setFixedHeight(28)
+        screen_layout.addWidget(self.screen_combo)
+        screen_layout.addStretch()
+        
+        main_layout.addLayout(screen_layout)
 
         # Screenshots preview - compact horizontal
         screenshots_group = QWidget()
@@ -300,8 +339,8 @@ class MainWindow(QMainWindow):
         screenshots_layout.setContentsMargins(0, 8, 0, 8)
 
         screenshots_header = QHBoxLayout()
-        screenshots_label = QLabel("Screenshots:")
-        screenshots_label.setStyleSheet("font-weight: bold; color: #666;")
+        screenshots_label = QLabel("📷 Screenshots:")
+        screenshots_label.setStyleSheet("font-weight: bold; color: #666; font-size: 12px;")
         screenshots_header.addWidget(screenshots_label)
         screenshots_header.addStretch()
 
@@ -311,27 +350,31 @@ class MainWindow(QMainWindow):
         self.thumbnails_container = QWidget()
         self.thumbnails_layout = QHBoxLayout(self.thumbnails_container)
         self.thumbnails_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self.thumbnails_layout.setContentsMargins(0, 0, 0, 0)
+        self.thumbnails_layout.setContentsMargins(4, 4, 4, 4)
         self.thumbnails_layout.setSpacing(8)
 
         thumbnails_scroll = QScrollArea()
         thumbnails_scroll.setWidgetResizable(True)
         thumbnails_scroll.setWidget(self.thumbnails_container)
-        thumbnails_scroll.setFixedHeight(80)  # Smaller height
+        thumbnails_scroll.setFixedHeight(70)  # Much smaller height
         thumbnails_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         thumbnails_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         screenshots_layout.addWidget(thumbnails_scroll)
         main_layout.addWidget(screenshots_group)
 
-        # Content area - tabbed for space efficiency
-        self.content_tabs = QTabWidget()
-        self.content_tabs.setTabPosition(QTabWidget.TabPosition.North)
+        # Content area - side by side layout instead of tabs
+        content_splitter = QSplitter(Qt.Orientation.Horizontal)
+        content_splitter.setChildrenCollapsible(False)
 
-        # Code tab
+        # Code section
         code_widget = QWidget()
         code_layout = QVBoxLayout(code_widget)
-        code_layout.setContentsMargins(8, 8, 8, 8)
+        code_layout.setContentsMargins(4, 4, 4, 4)
+        
+        code_header = QLabel("💻 Code")
+        code_header.setStyleSheet("font-weight: bold; color: #4A90E2; font-size: 14px; padding: 4px;")
+        code_layout.addWidget(code_header)
 
         self.code_editor = QPlainTextEdit()
         self.code_editor.setReadOnly(True)
@@ -342,47 +385,26 @@ class MainWindow(QMainWindow):
             font = QFont("Monaco", 11)
         self.code_editor.setFont(font)
         
-        self.code_editor.setStyleSheet("""
-            QPlainTextEdit {
-                background-color: #1a1a1a;
-                color: #e8e8e8;
-                border: 1px solid #333;
-                border-radius: 6px;
-                padding: 12px;
-                font-family: "Fira Code", Consolas, Monaco, monospace;
-                line-height: 1.4;
-                selection-background-color: #264f78;
-            }
-        """)
-        
         self.setup_syntax_highlighting()
         self.code_editor.setPlaceholderText("Generated code will appear here...")
         
         code_layout.addWidget(self.code_editor)
-        self.content_tabs.addTab(code_widget, "💻 Code")
+        content_splitter.addWidget(code_widget)
 
-        # Explanation tab
+        # Info section
         info_widget = QWidget()
         info_layout = QVBoxLayout(info_widget)
-        info_layout.setContentsMargins(8, 8, 8, 8)
+        info_layout.setContentsMargins(4, 4, 4, 4)
+        
+        info_header = QLabel("📝 Explanation")
+        info_header.setStyleSheet("font-weight: bold; color: #4A90E2; font-size: 14px; padding: 4px;")
+        info_layout.addWidget(info_header)
 
         self.explanation_text = QTextEdit()
         self.explanation_text.setReadOnly(True)
         self.explanation_text.setAcceptRichText(True)
         self.explanation_text.setMarkdown("")
         
-        self.explanation_text.setStyleSheet("""
-            QTextEdit {
-                background-color: #f8f9fa;
-                border: 1px solid #e1e4e8;
-                border-radius: 6px;
-                padding: 12px;
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-                font-size: 13px;
-                line-height: 1.5;
-            }
-        """)
-
         self.explanation_text.setPlaceholderText("Solution explanation will appear here...")
         info_layout.addWidget(self.explanation_text)
 
@@ -390,14 +412,17 @@ class MainWindow(QMainWindow):
         complexity_container = QWidget()
         complexity_layout = QHBoxLayout(complexity_container)
         complexity_layout.setContentsMargins(0, 8, 0, 0)
+        complexity_layout.setSpacing(16)
 
         time_label = QLabel("⏱️ Time:")
-        time_label.setStyleSheet("font-weight: bold; color: #666;")
+        time_label.setStyleSheet("font-weight: bold; color: #666; font-size: 12px;")
         self.time_complexity = QLabel("N/A")
+        self.time_complexity.setStyleSheet("color: #4A90E2; font-weight: bold; font-size: 12px;")
         
         space_label = QLabel("💾 Space:")
-        space_label.setStyleSheet("font-weight: bold; color: #666;")
+        space_label.setStyleSheet("font-weight: bold; color: #666; font-size: 12px;")
         self.space_complexity = QLabel("N/A")
+        self.space_complexity.setStyleSheet("color: #4A90E2; font-weight: bold; font-size: 12px;")
 
         complexity_layout.addWidget(time_label)
         complexity_layout.addWidget(self.time_complexity)
@@ -406,32 +431,27 @@ class MainWindow(QMainWindow):
         complexity_layout.addWidget(self.space_complexity)
 
         info_layout.addWidget(complexity_container)
-        self.content_tabs.addTab(info_widget, "📝 Info")
-
-        main_layout.addWidget(self.content_tabs)
+        content_splitter.addWidget(info_widget)
+        
+        # Set equal sizes for both panels (60% code, 40% info)
+        content_splitter.setSizes([60, 40])
+        
+        main_layout.addWidget(content_splitter)
 
         # Minimal status bar
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
-        self.status_bar.setStyleSheet("""
-            QStatusBar {
-                background-color: #f0f0f0;
-                border-top: 1px solid #ccc;
-                font-size: 11px;
-                color: #666;
-            }
-        """)
         self.status_bar.showMessage("Ready")
 
         # Progress indicator
         self.progress_label = QLabel("Idle")
-        self.progress_label.setStyleSheet("color: #4A90E2; font-weight: bold;")
+        self.progress_label.setStyleSheet("color: #4A90E2; font-weight: bold; font-size: 11px;")
         self.status_bar.addPermanentWidget(self.progress_label)
 
         # Web server status (if available)
         if WEB_SERVER_AVAILABLE:
             self.web_server_status = QLabel("🌐 API: Off")
-            self.web_server_status.setStyleSheet("color: #ff6b6b;")
+            self.web_server_status.setStyleSheet("color: #ff6b6b; font-weight: bold; font-size: 12px;")
             self.status_bar.addPermanentWidget(self.web_server_status)
 
         # Set up main widget
@@ -466,7 +486,7 @@ class MainWindow(QMainWindow):
         }
         
         QWidget {
-            background-color: transparent;
+            background-color: #ffffff;
             color: #333333;
         }
         
@@ -475,17 +495,20 @@ class MainWindow(QMainWindow):
             color: white;
             border: none;
             border-radius: 6px;
-            padding: 8px 16px;
-            font-weight: bold;
+            padding: 8px 12px;
+            font-weight: 600;
             font-size: 12px;
+            min-height: 20px;
         }
         
         QPushButton:hover {
             background-color: #357ABD;
+            transform: translateY(-1px);
         }
         
         QPushButton:pressed {
             background-color: #2868A0;
+            transform: translateY(0px);
         }
         
         QPushButton:disabled {
@@ -497,12 +520,18 @@ class MainWindow(QMainWindow):
             background-color: #f8f9fa;
             border: 1px solid #e1e4e8;
             border-radius: 4px;
-            padding: 6px 8px;
+            padding: 6px 10px;
             font-size: 12px;
+            min-height: 16px;
         }
         
         QComboBox:hover {
             border-color: #4A90E2;
+        }
+        
+        QComboBox:focus {
+            border-color: #4A90E2;
+            outline: none;
         }
         
         QComboBox::drop-down {
@@ -515,30 +544,13 @@ class MainWindow(QMainWindow):
             height: 12px;
         }
         
-        QTabWidget::pane {
-            border: 1px solid #e1e4e8;
-            border-radius: 6px;
-            background-color: white;
+        QSplitter::handle {
+            background-color: #e1e4e8;
+            width: 2px;
         }
         
-        QTabBar::tab {
-            background-color: #f8f9fa;
-            border: 1px solid #e1e4e8;
-            border-bottom: none;
-            border-radius: 4px 4px 0 0;
-            padding: 8px 16px;
-            margin-right: 2px;
-            font-weight: bold;
-            font-size: 12px;
-        }
-        
-        QTabBar::tab:selected {
-            background-color: white;
-            color: #4A90E2;
-        }
-        
-        QTabBar::tab:hover:!selected {
-            background-color: #e9ecef;
+        QSplitter::handle:hover {
+            background-color: #4A90E2;
         }
         
         QScrollArea {
@@ -547,15 +559,31 @@ class MainWindow(QMainWindow):
             border-radius: 4px;
         }
         
+        QScrollBar:horizontal {
+            background-color: #f8f9fa;
+            height: 10px;
+            border-radius: 5px;
+        }
+        
+        QScrollBar::handle:horizontal {
+            background-color: #ced4da;
+            border-radius: 5px;
+            min-width: 20px;
+        }
+        
+        QScrollBar::handle:horizontal:hover {
+            background-color: #adb5bd;
+        }
+        
         QScrollBar:vertical {
             background-color: #f8f9fa;
-            width: 8px;
-            border-radius: 4px;
+            width: 10px;
+            border-radius: 5px;
         }
         
         QScrollBar::handle:vertical {
             background-color: #ced4da;
-            border-radius: 4px;
+            border-radius: 5px;
             min-height: 20px;
         }
         
@@ -565,6 +593,36 @@ class MainWindow(QMainWindow):
         
         QLabel {
             color: #333333;
+        }
+        
+        QPlainTextEdit {
+            background-color: #ffffff;
+            color: #333333;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: "Fira Code", "Consolas", "Monaco", monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            selection-background-color: #b3d7ff;
+        }
+        
+        QTextEdit {
+            background-color: #f8f9fa;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        QStatusBar {
+            background-color: #f8f9fa;
+            border-top: 1px solid #e1e4e8;
+            font-size: 11px;
+            color: #666;
+            padding: 3px 6px;
         }
         """
 
@@ -665,8 +723,13 @@ class MainWindow(QMainWindow):
     def _create_system_tray(self):
         """Create the system tray icon and menu."""
         self.tray_icon = QSystemTrayIcon(self)
-        # Используем стандартную иконку
-        self.tray_icon.setIcon(QIcon.fromTheme("applications-system"))
+        
+        # Create a simple colored icon as fallback
+        pixmap = QPixmap(16, 16)
+        pixmap.fill(QColor(74, 144, 226))  # Blue color matching our theme
+        icon = QIcon(pixmap)
+        
+        self.tray_icon.setIcon(icon)
         self.tray_icon.setToolTip(settings.app_name)
         self.tray_icon.activated.connect(self.on_tray_activated)
 
@@ -805,40 +868,65 @@ class MainWindow(QMainWindow):
             # Add placeholder
             placeholder = QLabel("No screenshots")
             placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            placeholder.setStyleSheet("color: #999; font-style: italic; padding: 20px;")
+            placeholder.setStyleSheet("""
+                color: #999; 
+                font-style: italic; 
+                padding: 20px;
+                font-size: 12px;
+                background-color: #f5f5f5;
+                border: 1px dashed #ddd;
+                border-radius: 4px;
+            """)
             self.thumbnails_layout.addWidget(placeholder)
             self.selected_screenshot_index = -1
             return
 
-        # Add minimal thumbnails for each screenshot
+        # Add thumbnails for each screenshot
         for i, screenshot in enumerate(screenshots):
             thumbnail_widget = QWidget()
             thumbnail_layout = QVBoxLayout(thumbnail_widget)
             thumbnail_layout.setContentsMargins(4, 4, 4, 4)
             thumbnail_layout.setSpacing(2)
 
-            # Create small thumbnail
+            # Create thumbnail - smaller size for compact view
             thumbnail = QLabel()
             pixmap = screenshot["pixmap"].scaled(
-                QSize(60, 45),  # Smaller size
+                QSize(60, 45),  # Smaller size for compact view
                 Qt.AspectRatioMode.KeepAspectRatio,
                 Qt.TransformationMode.SmoothTransformation,
             )
             thumbnail.setPixmap(pixmap)
             thumbnail.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-            # Minimal styling
+            # Better styling with selection state
             if i == self.selected_screenshot_index:
-                thumbnail.setStyleSheet("border: 2px solid #4A90E2; border-radius: 4px;")
+                thumbnail.setStyleSheet("""
+                    border: 2px solid #4A90E2; 
+                    border-radius: 4px;
+                    background-color: #f0f7ff;
+                    padding: 2px;
+                """)
             else:
-                thumbnail.setStyleSheet("border: 1px solid #ddd; border-radius: 4px;")
+                thumbnail.setStyleSheet("""
+                    border: 1px solid #ddd; 
+                    border-radius: 4px;
+                    background-color: white;
+                    padding: 2px;
+                """)
 
             thumbnail_layout.addWidget(thumbnail)
 
-            # Small index number
-            index_label = QLabel(str(i + 1))
+            # Index number with better styling
+            index_label = QLabel(f"#{i + 1}")
             index_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            index_label.setStyleSheet("font-size: 10px; color: #666; font-weight: bold;")
+            index_label.setStyleSheet("""
+                font-size: 10px; 
+                color: #666; 
+                font-weight: bold;
+                background-color: rgba(74, 144, 226, 0.1);
+                border-radius: 2px;
+                padding: 1px 4px;
+            """)
             thumbnail_layout.addWidget(index_label)
 
             # Make widget clickable
@@ -846,6 +934,14 @@ class MainWindow(QMainWindow):
                 lambda event, idx=i: self.select_screenshot(idx)
             )
             thumbnail_widget.setCursor(Qt.CursorShape.PointingHandCursor)
+            
+            # Hover effect
+            thumbnail_widget.setStyleSheet("""
+                QWidget:hover {
+                    background-color: #f8f9fa;
+                    border-radius: 8px;
+                }
+            """)
 
             # Add to container
             self.thumbnails_layout.addWidget(thumbnail_widget)
@@ -1487,20 +1583,6 @@ class MainWindow(QMainWindow):
         self.generate_button.setToolTip(f"Generate Solution ({settings.hotkeys.generate_solution_key})")
         self.optimize_button.setToolTip(f"Optimize Solution ({settings.hotkeys.optimize_solution_key})")
         self.visibility_button.setToolTip(f"Toggle Visibility ({settings.hotkeys.toggle_visibility_key})")
-
-        # Update button tooltips
-        self.screenshot_button.setToolTip(
-            f"Take a screenshot of your screen - Shortcut: {settings.hotkeys.screenshot_key}"
-        )
-        self.generate_button.setToolTip(
-            f"Generate solution from the selected screenshot - Shortcut: {settings.hotkeys.generate_solution_key}"
-        )
-        self.optimize_button.setToolTip(
-            f"Optimize the current solution - Shortcut: {settings.hotkeys.optimize_solution_key}"
-        )
-        self.reset_history_button.setToolTip(
-            f"Reset chat history and clear screenshots - Shortcut: {settings.hotkeys.reset_history_key}"
-        )
 
         # Also update menu actions if they exist
         if hasattr(self, "take_screenshot_action"):
