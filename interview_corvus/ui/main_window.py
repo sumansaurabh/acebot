@@ -183,8 +183,8 @@ class MainWindow(QMainWindow):
         self.resize(1000, 700)  # Better default size for unified interface
         self.setMinimumSize(800, 600)  # Set minimum size
 
-        # Initialize opacity
-        self.set_opacity(settings.ui.default_window_opacity)
+        # Initialize opacity to 100%
+        self.set_opacity(1.0)
 
         # Set always on top flag
         self.set_always_on_top(settings.ui.always_on_top)
@@ -207,8 +207,8 @@ class MainWindow(QMainWindow):
         # Create central widget and layout
         central_widget = QWidget()
         main_layout = QVBoxLayout()
-        main_layout.setSpacing(12)
-        main_layout.setContentsMargins(16, 16, 16, 16)
+        main_layout.setSpacing(8)
+        main_layout.setContentsMargins(12, 12, 12, 12)
 
         # Compact header
         header_layout = QHBoxLayout()
@@ -240,6 +240,18 @@ class MainWindow(QMainWindow):
         self.language_combo.setMaximumWidth(130)
         self.language_combo.setFixedHeight(28)
         title_container.addWidget(self.language_combo)
+        
+        # Monitor selection - next to language
+        monitor_label = QLabel("📺 Monitor:")
+        monitor_label.setStyleSheet("font-weight: bold; color: #666; margin-left: 16px; margin-right: 6px; font-size: 12px;")
+        title_container.addWidget(monitor_label)
+        
+        self.screen_combo = QComboBox()
+        self.update_screen_list()
+        self.screen_combo.setMinimumWidth(150)
+        self.screen_combo.setMaximumWidth(200)
+        self.screen_combo.setFixedHeight(28)
+        title_container.addWidget(self.screen_combo)
         title_container.addStretch()
         
         header_layout.addLayout(title_container)
@@ -275,68 +287,49 @@ class MainWindow(QMainWindow):
 
         # Main action buttons - horizontal layout for compactness
         action_layout = QHBoxLayout()
-        action_layout.setSpacing(8)
+        action_layout.setSpacing(6)
 
         # Screenshot button
-        self.screenshot_button = QPushButton("📸 Screenshot")
+        self.screenshot_button = QPushButton("📸")
         self.screenshot_button.clicked.connect(self.take_screenshot)
         self.screenshot_button.setToolTip(f"Take Screenshot ({settings.hotkeys.screenshot_key})")
-        self.screenshot_button.setFixedHeight(35)
-        self.screenshot_button.setMinimumWidth(100)
+        self.screenshot_button.setFixedSize(80, 35)
         action_layout.addWidget(self.screenshot_button)
 
         # Generate solution button
         self.generate_button = QPushButton("🚀 Generate")
         self.generate_button.clicked.connect(self.generate_solution)
         self.generate_button.setToolTip(f"Generate Solution ({settings.hotkeys.generate_solution_key})")
-        self.generate_button.setFixedHeight(35)
-        self.generate_button.setMinimumWidth(100)
+        self.generate_button.setFixedSize(80, 35)
         action_layout.addWidget(self.generate_button)
 
         # Optimize button
         self.optimize_button = QPushButton("⚡ Optimize")
         self.optimize_button.clicked.connect(self.optimize_solution)
         self.optimize_button.setToolTip(f"Optimize Solution ({settings.hotkeys.optimize_solution_key})")
-        self.optimize_button.setFixedHeight(35)
-        self.optimize_button.setMinimumWidth(100)
+        self.optimize_button.setFixedSize(80, 35)
         action_layout.addWidget(self.optimize_button)
 
         # Copy button
-        self.copy_button = QPushButton("📋 Copy")
-        self.copy_button.setFixedSize(70, 35)
+        self.copy_button = QPushButton("📋")
+        self.copy_button.setFixedSize(50, 35)
         self.copy_button.clicked.connect(self.copy_solution)
         self.copy_button.setToolTip("Copy Solution")
         action_layout.addWidget(self.copy_button)
 
-        # Clear button
-        clear_button = QPushButton("🗑️ Clear")
-        clear_button.setFixedSize(70, 35)
-        clear_button.clicked.connect(self.reset_chat_history)
-        clear_button.setToolTip(f"Clear All ({settings.hotkeys.reset_history_key})")
-        action_layout.addWidget(clear_button)
+        # Reset All button
+        reset_button = QPushButton("🔄 Reset All")
+        reset_button.setFixedSize(85, 35)
+        reset_button.clicked.connect(self.reset_chat_history)
+        reset_button.setToolTip(f"Reset All ({settings.hotkeys.reset_history_key})")
+        action_layout.addWidget(reset_button)
 
         main_layout.addLayout(action_layout)
-
-        # Screen selection - minimal
-        screen_layout = QHBoxLayout()
-        screen_label = QLabel("📺 Monitor:")
-        screen_label.setStyleSheet("font-weight: bold; color: #666; font-size: 12px; margin-right: 8px;")
-        screen_layout.addWidget(screen_label)
-        
-        self.screen_combo = QComboBox()
-        self.update_screen_list()
-        self.screen_combo.setMinimumWidth(200)
-        self.screen_combo.setMaximumWidth(300)
-        self.screen_combo.setFixedHeight(28)
-        screen_layout.addWidget(self.screen_combo)
-        screen_layout.addStretch()
-        
-        main_layout.addLayout(screen_layout)
 
         # Screenshots preview - compact horizontal
         screenshots_group = QWidget()
         screenshots_layout = QVBoxLayout(screenshots_group)
-        screenshots_layout.setContentsMargins(0, 8, 0, 8)
+        screenshots_layout.setContentsMargins(0, 4, 0, 4)
 
         screenshots_header = QHBoxLayout()
         screenshots_label = QLabel("📷 Screenshots:")
@@ -350,13 +343,13 @@ class MainWindow(QMainWindow):
         self.thumbnails_container = QWidget()
         self.thumbnails_layout = QHBoxLayout(self.thumbnails_container)
         self.thumbnails_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self.thumbnails_layout.setContentsMargins(4, 4, 4, 4)
-        self.thumbnails_layout.setSpacing(8)
+        self.thumbnails_layout.setContentsMargins(2, 2, 2, 2)
+        self.thumbnails_layout.setSpacing(6)
 
         thumbnails_scroll = QScrollArea()
         thumbnails_scroll.setWidgetResizable(True)
         thumbnails_scroll.setWidget(self.thumbnails_container)
-        thumbnails_scroll.setFixedHeight(70)  # Much smaller height
+        thumbnails_scroll.setFixedHeight(50)  # Even smaller fixed height
         thumbnails_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         thumbnails_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
@@ -366,6 +359,9 @@ class MainWindow(QMainWindow):
         # Content area - side by side layout instead of tabs
         content_splitter = QSplitter(Qt.Orientation.Horizontal)
         content_splitter.setChildrenCollapsible(False)
+        
+        # Set minimum size for content area to expand properly
+        content_splitter.setMinimumHeight(400)
 
         # Code section
         code_widget = QWidget()
@@ -433,10 +429,11 @@ class MainWindow(QMainWindow):
         info_layout.addWidget(complexity_container)
         content_splitter.addWidget(info_widget)
         
-        # Set equal sizes for both panels (60% code, 40% info)
-        content_splitter.setSizes([60, 40])
+        # Set ratio: 70% code, 30% info
+        content_splitter.setSizes([70, 30])
         
-        main_layout.addWidget(content_splitter)
+        # Add with stretch factor so it expands to fill available space
+        main_layout.addWidget(content_splitter, 1)  # stretch factor of 1
 
         # Minimal status bar
         self.status_bar = QStatusBar()
@@ -494,11 +491,11 @@ class MainWindow(QMainWindow):
             background-color: #4A90E2;
             color: white;
             border: none;
-            border-radius: 6px;
-            padding: 8px 12px;
+            border-radius: 4px;
+            padding: 6px 8px;
             font-weight: 600;
-            font-size: 12px;
-            min-height: 20px;
+            font-size: 11px;
+            min-height: 18px;
         }
         
         QPushButton:hover {
@@ -871,8 +868,8 @@ class MainWindow(QMainWindow):
             placeholder.setStyleSheet("""
                 color: #999; 
                 font-style: italic; 
-                padding: 20px;
-                font-size: 12px;
+                padding: 12px;
+                font-size: 11px;
                 background-color: #f5f5f5;
                 border: 1px dashed #ddd;
                 border-radius: 4px;
@@ -885,13 +882,13 @@ class MainWindow(QMainWindow):
         for i, screenshot in enumerate(screenshots):
             thumbnail_widget = QWidget()
             thumbnail_layout = QVBoxLayout(thumbnail_widget)
-            thumbnail_layout.setContentsMargins(4, 4, 4, 4)
-            thumbnail_layout.setSpacing(2)
+            thumbnail_layout.setContentsMargins(2, 2, 2, 2)
+            thumbnail_layout.setSpacing(1)
 
-            # Create thumbnail - smaller size for compact view
+            # Create thumbnail - smaller size for even more compact view
             thumbnail = QLabel()
             pixmap = screenshot["pixmap"].scaled(
-                QSize(60, 45),  # Smaller size for compact view
+                QSize(45, 30),  # Even smaller size for very compact view
                 Qt.AspectRatioMode.KeepAspectRatio,
                 Qt.TransformationMode.SmoothTransformation,
             )
