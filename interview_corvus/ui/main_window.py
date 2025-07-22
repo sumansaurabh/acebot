@@ -81,6 +81,16 @@ class MainWindow(QMainWindow):
                     port=8000
                 )
                 logger.info("✅ Web server initialized successfully")
+                
+                # Connect web server signals immediately
+                self.web_api.screenshot_capture_requested.connect(self.take_screenshot)
+                
+                # Auto-start the web server
+                if self.web_server_thread:
+                    self.web_server_thread.start()
+                    logger.info("🚀 Web server auto-started on http://127.0.0.1:8000")
+                    # Will update button text in init_ui after button is created
+                    
             except Exception as e:
                 logger.error(f"❌ Failed to initialize web server: {e}")
                 self.web_api = None
@@ -384,6 +394,12 @@ class MainWindow(QMainWindow):
         # Update thumbnails
         self.update_thumbnails()
         self.update_button_texts()
+        
+        # Update web server button state if auto-started
+        if WEB_SERVER_AVAILABLE and self.web_server_thread and self.web_server_thread.isRunning():
+            self.web_server_button.setText("Stop Web Server")
+            self.web_server_status.setText("Web API: Running")
+            self.web_server_status.setStyleSheet("color: green;")
 
     def _create_menu_bar(self):
         """Create the application menu bar."""

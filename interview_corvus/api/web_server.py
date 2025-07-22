@@ -283,11 +283,19 @@ class WebServerAPI(QObject):
                     status_code=503
                 )
             
+            # Get current screenshot count before triggering
+            current_count = len(self.screenshot_manager.get_all_screenshots())
+            
             # Emit signal to trigger screenshot in GUI
             self.screenshot_capture_requested.emit()
             
             return JSONResponse(
-                content={"success": True, "message": "Screenshot capture triggered in GUI"}
+                content={
+                    "success": True, 
+                    "message": "Screenshot capture triggered in GUI",
+                    "current_screenshot_count": current_count,
+                    "note": "Check /screenshots endpoint to see new screenshots"
+                }
             )
             
         except Exception as e:
