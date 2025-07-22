@@ -174,16 +174,31 @@ class WebServerAPI(QObject):
                     except:
                         pass
             
-            # Convert to dictionary for JSON response
-            solution_dict = {
-                "code": solution.code,
-                "language": solution.language,
-                "explanation": solution.explanation,
-                "time_complexity": solution.time_complexity,
-                "space_complexity": solution.space_complexity,
-                "edge_cases": solution.edge_cases if solution.edge_cases else [],
-                "alternative_approaches": solution.alternative_approaches
-            }
+            # Debug: Check the type of solution object
+            print(f"🔍 Web API: Solution object type: {type(solution)}")
+            
+            # Safely convert to dictionary for JSON response
+            try:
+                solution_dict = {
+                    "code": getattr(solution, 'code', ''),
+                    "language": getattr(solution, 'language', request.language),
+                    "explanation": getattr(solution, 'explanation', 'No explanation provided.'),
+                    "time_complexity": getattr(solution, 'time_complexity', 'N/A'),
+                    "space_complexity": getattr(solution, 'space_complexity', 'N/A'),
+                    "edge_cases": getattr(solution, 'edge_cases', []) or [],
+                    "alternative_approaches": getattr(solution, 'alternative_approaches', None)
+                }
+            except Exception as attr_error:
+                print(f"❌ Web API: Error accessing solution attributes: {attr_error}")
+                # Fallback: try to convert directly if it's already a dict
+                if isinstance(solution, dict):
+                    solution_dict = solution
+                else:
+                    # If it's a Pydantic model, use model_dump
+                    if hasattr(solution, 'model_dump'):
+                        solution_dict = solution.model_dump()
+                    else:
+                        raise ValueError(f"Unexpected solution object type: {type(solution)}")
             
             print("✅ Web API: Solution generated successfully")
             
@@ -215,18 +230,34 @@ class WebServerAPI(QObject):
                 request.code, request.language
             )
             
-            # Convert to dictionary for JSON response
-            optimization_dict = {
-                "original_code": optimization.original_code,
-                "optimized_code": optimization.optimized_code,
-                "language": optimization.language,
-                "improvements": optimization.improvements,
-                "original_time_complexity": optimization.original_time_complexity,
-                "optimized_time_complexity": optimization.optimized_time_complexity,
-                "original_space_complexity": optimization.original_space_complexity,
-                "optimized_space_complexity": optimization.optimized_space_complexity,
-                "explanation": optimization.explanation
-            }
+            # Debug: Check the type of optimization object
+            print(f"🔍 Web API: Optimization object type: {type(optimization)}")
+            print(f"🔍 Web API: Optimization object attributes: {dir(optimization)}")
+            
+            # Safely convert to dictionary for JSON response
+            try:
+                optimization_dict = {
+                    "original_code": getattr(optimization, 'original_code', request.code),
+                    "optimized_code": getattr(optimization, 'optimized_code', ''),
+                    "language": getattr(optimization, 'language', request.language),
+                    "improvements": getattr(optimization, 'improvements', []),
+                    "original_time_complexity": getattr(optimization, 'original_time_complexity', 'N/A'),
+                    "optimized_time_complexity": getattr(optimization, 'optimized_time_complexity', 'N/A'),
+                    "original_space_complexity": getattr(optimization, 'original_space_complexity', 'N/A'),
+                    "optimized_space_complexity": getattr(optimization, 'optimized_space_complexity', 'N/A'),
+                    "explanation": getattr(optimization, 'explanation', 'No explanation provided.')
+                }
+            except Exception as attr_error:
+                print(f"❌ Web API: Error accessing attributes: {attr_error}")
+                # Fallback: try to convert directly if it's already a dict
+                if isinstance(optimization, dict):
+                    optimization_dict = optimization
+                else:
+                    # If it's a Pydantic model, use model_dump
+                    if hasattr(optimization, 'model_dump'):
+                        optimization_dict = optimization.model_dump()
+                    else:
+                        raise ValueError(f"Unexpected optimization object type: {type(optimization)}")
             
             print("✅ Web API: Code optimized successfully")
             
@@ -238,6 +269,9 @@ class WebServerAPI(QObject):
             
         except Exception as e:
             print(f"❌ Web API: Failed to optimize code: {str(e)}")
+            print(f"❌ Web API: Error type: {type(e)}")
+            import traceback
+            print(f"❌ Web API: Traceback: {traceback.format_exc()}")
             return OptimizationResponse(
                 success=False,
                 message=f"Failed to optimize code: {str(e)}"
@@ -558,12 +592,75 @@ class WebServerAPI(QObject):
             padding: 0 !important;
             color: inherit !important;
         }
+        
+        /* Prism.js syntax highlighting colors for dark background */
+        .code-block .token.comment,
+        .code-block .token.prolog,
+        .code-block .token.doctype,
+        .code-block .token.cdata {
+            color: #6A9955;
+            font-style: italic;
+        }
+        .code-block .token.namespace {
+            opacity: 0.7;
+        }
+        .code-block .token.string,
+        .code-block .token.attr-value {
+            color: #CE9178;
+        }
+        .code-block .token.punctuation,
+        .code-block .token.operator {
+            color: #D4D4D4;
+        }
+        .code-block .token.entity,
+        .code-block .token.url,
+        .code-block .token.symbol,
+        .code-block .token.number,
+        .code-block .token.boolean,
+        .code-block .token.variable,
+        .code-block .token.constant,
+        .code-block .token.property,
+        .code-block .token.regex,
+        .code-block .token.inserted {
+            color: #B5CEA8;
+        }
+        .code-block .token.atrule,
+        .code-block .token.keyword,
+        .code-block .token.attr-name {
+            color: #569CD6;
+        }
+        .code-block .token.function {
+            color: #DCDCAA;
+        }
+        .code-block .token.deleted {
+            color: #F44747;
+        }
+        .code-block .token.tag,
+        .code-block .token.selector {
+            color: #F44747;
+        }
+        .code-block .token.class-name {
+            color: #4EC9B0;
+        }
+        .code-block .token.important,
+        .code-block .token.bold {
+            font-weight: bold;
+        }
+        .code-block .token.italic {
+            font-style: italic;
+        }
+        
         .complexity-info { display: flex; gap: 10px; font-size: 12px; margin: 5px 0; }
         .complexity-item { background: #fff; border: 1px solid #eee; border-radius: 4px; padding: 3px 8px; }
         @media (max-width: 600px) {
             .main-content { padding: 6px 0 0 0; }
             .action-btn { font-size: 14px; min-width: 70px; min-height: 32px; padding: 7px 10px; }
-            .code-block { font-size: 12px; padding: 6px; }
+            .explanation { font-size: 11px; }
+            .explanation h1 { font-size: 14px; }
+            .explanation h2 { font-size: 13px; }
+            .explanation h3 { font-size: 12px; }
+            .explanation code { font-size: 10px; }
+            .code-block { font-size: 10px; padding: 12px !important; }
         }
     </style>
 </head>
@@ -602,6 +699,7 @@ class WebServerAPI(QObject):
         </div>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
     <script>
         const API_BASE = '';
         let bruteSolution = null;

@@ -135,17 +135,17 @@ class PromptTemplates(BaseSettings):
 
             {problem_description}
 
-            Provide a comprehensive solution in {language} programming language.
+            Provide a solution in {language} programming language.
 
             Your response should include:
             1. Complete code solution
-            2. Step-by-step explanation of your approach
+            2. Concise approach explanation focusing only on the core solution strategy
             3. Analysis of time complexity (Big O notation)
             4. Analysis of space complexity (Big O notation)
             5. Identification of edge cases and how they are handled
             6. (Optional) Alternative approaches with brief descriptions
 
-            Focus on writing efficient, clean, and well-documented code.
+            For the explanation, focus only on the key algorithmic approach and logic, not problem statement details.
             """,
             "code_optimization": """
             Please analyze and optimize the following {language} code:
@@ -189,28 +189,28 @@ class PromptTemplates(BaseSettings):
             "screenshot_solution": """
             Please analyze the programming problem shown in the screenshot and provide a solution.
 
-            Provide a comprehensive solution in {language} programming language.
+            Provide a solution in {language} programming language.
 
             Your response should include:
             1. Complete code solution
-            2. Step-by-step explanation of your approach
+            2. Concise approach explanation focusing only on the core solution strategy
             3. Analysis of time complexity (Big O notation)
             4. Analysis of space complexity (Big O notation)
             5. Identification of edge cases and how they are handled
             6. (Optional) Alternative approaches with brief descriptions
 
-            Focus on writing efficient, clean, and well-documented code.
+            For the explanation, focus only on the key algorithmic approach and logic, not problem statement details.
             """,
             "ocr_text_solution": """
             Please analyze the following programming problem extracted from a screenshot and provide a solution:
 
             {ocr_text}
 
-            Provide a comprehensive solution in {language} programming language.
+            Provide a solution in {language} programming language.
 
             Your response should include:
             1. Complete code solution
-            2. Step-by-step explanation of your approach
+            2. Concise approach explanation focusing only on the core solution strategy
             3. Analysis of time complexity (Big O notation)
             4. Analysis of space complexity (Big O notation)
             5. Identification of edge cases and how they are handled
@@ -219,7 +219,7 @@ class PromptTemplates(BaseSettings):
             If there seem to be any OCR errors or unclear parts in the problem description, 
             please make your best guess and note your assumptions.
 
-            Focus on writing efficient, clean, and well-documented code.
+            For the explanation, focus only on the key algorithmic approach and logic, not problem statement details.
             """,
         }
     )
