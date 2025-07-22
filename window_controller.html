@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interview Corvus Window Controller</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            flex: 1;
+            min-width: 120px;
+        }
+        .window-btn { background-color: #4CAF50; color: white; }
+        .window-btn:hover { background-color: #45a049; }
+        .screenshot-btn { background-color: #2196F3; color: white; }
+        .screenshot-btn:hover { background-color: #1976D2; }
+        .danger-btn { background-color: #f44336; color: white; }
+        .danger-btn:hover { background-color: #d32f2f; }
+        .status {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+            background-color: #f1f8e9;
+        }
+        .error {
+            border-left-color: #f44336;
+            background-color: #ffebee;
+        }
+        .info {
+            border-left-color: #2196F3;
+            background-color: #e3f2fd;
+        }
+        .section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .section h3 {
+            margin-top: 0;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Interview Corvus Controller</h1>
+        
+        <div class="section">
+            <h3>🪟 Window Controls</h3>
+            <div class="button-group">
+                <button class="window-btn" onclick="showWindow()">Show Window</button>
+                <button class="window-btn" onclick="hideWindow()">Hide Window</button>
+                <button class="window-btn" onclick="toggleWindow()">Toggle Window</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>📸 Screenshot Controls</h3>
+            <div class="button-group">
+                <button class="screenshot-btn" onclick="takeScreenshot()">Take Screenshot</button>
+                <button class="screenshot-btn" onclick="getScreenshots()">List Screenshots</button>
+                <button class="danger-btn" onclick="clearScreenshots()">Clear Screenshots</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>🔧 System Controls</h3>
+            <div class="button-group">
+                <button class="screenshot-btn" onclick="checkHealth()">Health Check</button>
+                <button class="danger-btn" onclick="resetHistory()">Reset History</button>
+            </div>
+        </div>
+
+        <div id="status" class="status">
+            Ready to control Interview Corvus
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8000';
+
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        async function makeRequest(method, endpoint, description) {
+            updateStatus(`${description}...`, 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    updateStatus(`✅ ${description} - ${result.message}`, 'info');
+                } else {
+                    updateStatus(`❌ ${description} failed - ${result.message}`, 'error');
+                }
+                
+                console.log(`${description}:`, result);
+                
+            } catch (error) {
+                updateStatus(`❌ Connection failed - Make sure Interview Corvus is running!`, 'error');
+                console.error('Error:', error);
+            }
+        }
+
+        // Window control functions
+        function showWindow() {
+            makeRequest('POST', '/window/show', 'Show window');
+        }
+
+        function hideWindow() {
+            makeRequest('POST', '/window/hide', 'Hide window');
+        }
+
+        function toggleWindow() {
+            makeRequest('POST', '/window/toggle', 'Toggle window visibility');
+        }
+
+        // Screenshot functions
+        function takeScreenshot() {
+            makeRequest('POST', '/screenshot/capture', 'Take screenshot');
+        }
+
+        async function getScreenshots() {
+            updateStatus('Getting screenshots...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/screenshots`);
+                const result = await response.json();
+                
+                if (response.ok) {
+                    const count = result.screenshots ? result.screenshots.length : 0;
+                    updateStatus(`✅ Found ${count} screenshots`, 'info');
+                } else {
+                    updateStatus(`❌ Failed to get screenshots - ${result.message}`, 'error');
+                }
+                
+                console.log('Screenshots:', result);
+                
+            } catch (error) {
+                updateStatus('❌ Connection failed - Make sure Interview Corvus is running!', 'error');
+                console.error('Error:', error);
+            }
+        }
+
+        function clearScreenshots() {
+            makeRequest('DELETE', '/screenshots', 'Clear screenshots');
+        }
+
+        // System functions
+        async function checkHealth() {
+            updateStatus('Checking health...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const result = await response.json();
+                
+                if (response.ok) {
+                    const guiStatus = result.gui_connected ? 'Connected' : 'Disconnected';
+                    updateStatus(`✅ Server healthy - GUI: ${guiStatus}`, 'info');
+                } else {
+                    updateStatus('❌ Health check failed', 'error');
+                }
+                
+                console.log('Health:', result);
+                
+            } catch (error) {
+                updateStatus('❌ Connection failed - Make sure Interview Corvus is running!', 'error');
+                console.error('Error:', error);
+            }
+        }
+
+        function resetHistory() {
+            makeRequest('DELETE', '/history', 'Reset history');
+        }
+
+        // Initial health check
+        window.addEventListener('load', checkHealth);
+    </script>
+</body>
+</html>

@@ -83,6 +83,9 @@ class WebServerAPI(QObject):
     solution_requested = pyqtSignal(object, str)  # screenshot_paths, language
     optimization_requested = pyqtSignal(str, str)  # code, language
     screenshot_capture_requested = pyqtSignal()
+    window_show_requested = pyqtSignal()
+    window_hide_requested = pyqtSignal()
+    window_toggle_requested = pyqtSignal()
     
     def __init__(self, llm_service: 'LLMService' = None, screenshot_manager: 'ScreenshotManager' = None):
         """Initialize the web API with shared services."""
@@ -341,6 +344,72 @@ class WebServerAPI(QObject):
                 content={"success": False, "message": f"Failed to reset chat history: {str(e)}"},
                 status_code=500
             )
+    
+    def show_window(self) -> JSONResponse:
+        """Show the main application window."""
+        try:
+            if not self.gui_connected:
+                return JSONResponse(
+                    content={"success": False, "message": "GUI services not connected."},
+                    status_code=503
+                )
+            
+            # Emit signal to show window in GUI
+            self.window_show_requested.emit()
+            
+            return JSONResponse(
+                content={"success": True, "message": "Window show requested"}
+            )
+            
+        except Exception as e:
+            return JSONResponse(
+                content={"success": False, "message": f"Failed to show window: {str(e)}"},
+                status_code=500
+            )
+    
+    def hide_window(self) -> JSONResponse:
+        """Hide the main application window."""
+        try:
+            if not self.gui_connected:
+                return JSONResponse(
+                    content={"success": False, "message": "GUI services not connected."},
+                    status_code=503
+                )
+            
+            # Emit signal to hide window in GUI
+            self.window_hide_requested.emit()
+            
+            return JSONResponse(
+                content={"success": True, "message": "Window hide requested"}
+            )
+            
+        except Exception as e:
+            return JSONResponse(
+                content={"success": False, "message": f"Failed to hide window: {str(e)}"},
+                status_code=500
+            )
+    
+    def toggle_window(self) -> JSONResponse:
+        """Toggle the visibility of the main application window."""
+        try:
+            if not self.gui_connected:
+                return JSONResponse(
+                    content={"success": False, "message": "GUI services not connected."},
+                    status_code=503
+                )
+            
+            # Emit signal to toggle window visibility in GUI
+            self.window_toggle_requested.emit()
+            
+            return JSONResponse(
+                content={"success": True, "message": "Window visibility toggle requested"}
+            )
+            
+        except Exception as e:
+            return JSONResponse(
+                content={"success": False, "message": f"Failed to toggle window: {str(e)}"},
+                status_code=500
+            )
 
 
 class WebServerThread(QThread):
@@ -451,6 +520,19 @@ class WebServerThread(QThread):
         async def reset_history():
             return self.api_instance.reset_chat_history()
         
+        # Window control endpoints
+        @app.post("/window/show")
+        async def show_window():
+            return self.api_instance.show_window()
+        
+        @app.post("/window/hide")
+        async def hide_window():
+            return self.api_instance.hide_window()
+        
+        @app.post("/window/toggle")
+        async def toggle_window():
+            return self.api_instance.toggle_window()
+        
         return app
     
     def run(self):
@@ -463,6 +545,19 @@ class WebServerThread(QThread):
             print(f"📚 API Documentation: http://{self.host}:{self.port}/docs")
             print(f"📖 ReDoc Documentation: http://{self.host}:{self.port}/redoc")
             print(f"🔗 GUI Connected: {self.api_instance.gui_connected}")
+            print("=" * 60)
+            print("Available endpoints:")
+            print("  GET  /health                 - Health check")
+            print("  GET  /screenshots            - List screenshots")
+            print("  POST /screenshot/capture     - Trigger screenshot")
+            print("  POST /solution               - Generate solution")
+            print("  POST /upload-solution        - Upload & solve")
+            print("  POST /optimize               - Optimize code")
+            print("  POST /window/show            - Show window")
+            print("  POST /window/hide            - Hide window")
+            print("  POST /window/toggle          - Toggle window")
+            print("  DELETE /screenshots          - Clear screenshots")
+            print("  DELETE /history              - Reset history")
             print("=" * 60)
             
             uvicorn.run(

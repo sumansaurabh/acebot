@@ -84,6 +84,9 @@ class MainWindow(QMainWindow):
                 
                 # Connect web server signals immediately
                 self.web_api.screenshot_capture_requested.connect(self.take_screenshot)
+                self.web_api.window_show_requested.connect(self.show)
+                self.web_api.window_hide_requested.connect(self.hide)
+                self.web_api.window_toggle_requested.connect(self.toggle_visibility)
                 
                 # Auto-start the web server
                 if self.web_server_thread:
