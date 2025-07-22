@@ -174,28 +174,28 @@ class HotkeyManager(QObject):
         self.start_global_listener()
 
     def start_global_listener(self):
-        """Запускает прослушивание глобальных горячих клавиш с помощью pynput."""
+        """Starts listening for global hotkeys using pynput."""
         if self.key_listener is not None and self.key_listener.is_alive():
-            logger.info("Глобальный обработчик горячих клавиш уже запущен")
+            logger.info("Global hotkey handler is already running")
             return
 
-        # Обновляем множество интересующих нас клавиш
+        # Update the set of keys of interest
         for keys_set in self.pynput_hotkeys.keys():
             for key in keys_set:
                 self.keys_of_interest.add(key)
 
-        # Запускаем прослушиватель клавиатуры
+        # Start the keyboard listener
         self.key_listener = keyboard.Listener(
             on_press=self.on_key_press, on_release=self.on_key_release
         )
         self.key_listener.start()
-        logger.info("Запущен глобальный обработчик горячих клавиш")
+        logger.info("Global hotkey handler started")
 
     def stop_global_listener(self):
-        """Останавливает прослушивание глобальных горячих клавиш."""
+        """Stops listening for global hotkeys."""
         if self.key_listener and self.key_listener.is_alive():
             self.key_listener.stop()
-            logger.info("Глобальный обработчик горячих клавиш остановлен")
+            logger.info("Global hotkey handler stopped")
 
     def on_key_press(self, key):
         """Handler for key press events from pynput."""
@@ -305,7 +305,7 @@ class HotkeyManager(QObject):
     def eventFilter(self, obj: QObject, event: QEvent) -> bool:
         """
         Filter application events to detect hotkey combinations (backup method).
-        Только для внутриоконных шорткатов и как резервный механизм.
+        Only for in-window shortcuts and as a fallback mechanism.
 
         Args:
             obj: The object that received the event
@@ -314,5 +314,5 @@ class HotkeyManager(QObject):
         Returns:
             True if the event was handled, False otherwise
         """
-        # Для внутреннего использования в приложении - оставляем как запасной вариант
+        # For internal use in the application - kept as a backup option
         return super().eventFilter(obj, event)
