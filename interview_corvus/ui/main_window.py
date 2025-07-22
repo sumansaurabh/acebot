@@ -215,8 +215,20 @@ class MainWindow(QMainWindow):
         self.installEventFilter(self.hotkey_manager)
 
     def init_ui(self):
-        """Set up the minimalistic user interface."""
         # Set modern dark stylesheet
+        """Initialize the user interface.
+        
+        This function sets up a minimalistic UI with various components such as
+        headers, buttons, and layout managers to create an organized and functional
+        application interface.  The function initializes stylesheets, creates central
+        widgets and layouts, adds labels, combo boxes, buttons, and other interactive
+        elements. It also configures the appearance of these components using specific
+        styles and tooltips. The UI includes sections for language selection, monitor
+        selection, main action buttons, screenshots preview, code and explanation
+        display, complexity information, status bar, and a progress indicator.
+        Additionally, it sets up a menu bar and system tray, initializes session data
+        restoration, and updates the web server button state if applicable.
+        """
         self.setStyleSheet(self._get_minimal_stylesheet())
 
         # Create central widget and layout
