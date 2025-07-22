@@ -1,8 +1,9 @@
 import platform
+import re
 
 from loguru import logger
 from PyQt6.QtCore import QEvent, QSize, Qt, QThread, QTimer, pyqtSignal, pyqtSlot
-from PyQt6.QtGui import QAction, QFont, QIcon, QKeySequence
+from PyQt6.QtGui import QAction, QFont, QIcon, QKeySequence, QSyntaxHighlighter, QTextCharFormat, QTextDocument, QColor
 from PyQt6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -40,6 +41,67 @@ try:
 except ImportError:
     WEB_SERVER_AVAILABLE = False
     logger.warning("Web server dependencies not available. Web API will be disabled.")
+
+
+class PythonSyntaxHighlighter(QSyntaxHighlighter):
+    """Syntax highlighter for Python code."""
+    
+    def __init__(self, document: QTextDocument):
+        super().__init__(document)
+        
+        # Define highlighting rules
+        self.highlighting_rules = []
+        
+        # Keyword format
+        keyword_format = QTextCharFormat()
+        keyword_format.setForeground(QColor(86, 156, 214))  # Blue
+        keyword_format.setFontWeight(QFont.Weight.Bold)
+        keywords = [
+            'and', 'as', 'assert', 'break', 'class', 'continue', 'def',
+            'del', 'elif', 'else', 'except', 'exec', 'finally', 'for',
+            'from', 'global', 'if', 'import', 'in', 'is', 'lambda',
+            'not', 'or', 'pass', 'print', 'raise', 'return', 'try',
+            'while', 'with', 'yield', 'None', 'True', 'False'
+        ]
+        for keyword in keywords:
+            pattern = f'\\b{keyword}\\b'
+            self.highlighting_rules.append((re.compile(pattern), keyword_format))
+        
+        # String format
+        string_format = QTextCharFormat()
+        string_format.setForeground(QColor(206, 145, 120))  # Orange
+        self.highlighting_rules.append((re.compile(r'".*?"'), string_format))
+        self.highlighting_rules.append((re.compile(r"'.*?'"), string_format))
+        
+        # Comment format
+        comment_format = QTextCharFormat()
+        comment_format.setForeground(QColor(106, 153, 85))  # Green
+        comment_format.setFontItalic(True)
+        self.highlighting_rules.append((re.compile(r'#.*'), comment_format))
+        
+        # Number format
+        number_format = QTextCharFormat()
+        number_format.setForeground(QColor(181, 206, 168))  # Light green
+        self.highlighting_rules.append((re.compile(r'\b\d+\b'), number_format))
+        
+        # Function format
+        function_format = QTextCharFormat()
+        function_format.setForeground(QColor(220, 220, 170))  # Yellow
+        self.highlighting_rules.append((re.compile(r'\bdef\s+(\w+)'), function_format))
+        
+        # Class format
+        class_format = QTextCharFormat()
+        class_format.setForeground(QColor(78, 201, 176))  # Cyan
+        class_format.setFontWeight(QFont.Weight.Bold)
+        self.highlighting_rules.append((re.compile(r'\bclass\s+(\w+)'), class_format))
+        
+    def highlightBlock(self, text: str):
+        """Apply syntax highlighting to a block of text."""
+        for pattern, format_obj in self.highlighting_rules:
+            for match in pattern.finditer(text):
+                start = match.start()
+                length = match.end() - start
+                self.setFormat(start, length, format_obj)
 
 
 class MainWindow(QMainWindow):
@@ -318,20 +380,66 @@ class MainWindow(QMainWindow):
         # Content splitter - allowing user to adjust size of sections
         splitter = QSplitter(Qt.Orientation.Vertical)
 
-        # Code editor
+        # Code editor with syntax highlighting
         self.code_editor = QPlainTextEdit()
         self.code_editor.setReadOnly(True)
         font = QFont("Consolas", 12)
+        if not font.exactMatch():
+            font = QFont("Monaco", 12)  # macOS fallback
+        if not font.exactMatch():
+            font = QFont("Courier New", 12)  # Windows fallback
         self.code_editor.setFont(font)
+        
+        # Style the code editor with dark theme
+        self.code_editor.setStyleSheet("""
+            QPlainTextEdit {
+                background-color: #1e1e1e;
+                color: #d4d4d4;
+                border: 1px solid #3c3c3c;
+                border-radius: 6px;
+                padding: 12px;
+                font-family: Consolas, Monaco, "Cascadia Code", "Fira Code", "JetBrains Mono", monospace;
+                font-size: 12px;
+                line-height: 1.5;
+                selection-background-color: #264f78;
+                selection-color: #ffffff;
+            }
+        """)
+        
+        # Set up syntax highlighting for Python
+        self.setup_syntax_highlighting()
+        
+        # Set placeholder text
+        self.code_editor.setPlaceholderText(
+            "Generated solution code will appear here with syntax highlighting."
+        )
+        
         splitter.addWidget(self.code_editor)
 
         # Information section
         info_widget = QWidget()
         info_layout = QVBoxLayout(info_widget)
 
-        # Explanation section
+        # Explanation section with markdown rendering
         self.explanation_text = QTextEdit()
         self.explanation_text.setReadOnly(True)
+        
+        # Enable markdown rendering
+        self.explanation_text.setAcceptRichText(True)
+        self.explanation_text.setMarkdown("")  # Initialize with empty markdown
+        
+        # Style the explanation text area for better markdown rendering
+        self.explanation_text.setStyleSheet("""
+            QTextEdit {
+                background-color: #f8f9fa;
+                border: 1px solid #e1e4e8;
+                border-radius: 6px;
+                padding: 12px;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+                font-size: 14px;
+                line-height: 1.5;
+            }
+        """)
 
         # Set placeholder text
         self.explanation_text.setPlaceholderText(
@@ -405,6 +513,10 @@ class MainWindow(QMainWindow):
             self.web_server_button.setText("Stop Web Server")
             self.web_server_status.setText("Web API: Running")
             self.web_server_status.setStyleSheet("color: green;")
+
+    def setup_syntax_highlighting(self):
+        """Set up Python syntax highlighting for the code editor."""
+        self.syntax_highlighter = PythonSyntaxHighlighter(self.code_editor.document())
 
     def _create_menu_bar(self):
         """Create the application menu bar."""
@@ -713,7 +825,7 @@ class MainWindow(QMainWindow):
         
         # Clear solution display as well
         self.code_editor.clear()
-        self.explanation_text.clear()
+        self.explanation_text.setMarkdown("")  # Clear markdown content
         self.time_complexity.setText("N/A")
         self.space_complexity.setText("N/A")
         
@@ -781,7 +893,7 @@ class MainWindow(QMainWindow):
 
             # Clear UI components
             self.code_editor.clear()
-            self.explanation_text.clear()
+            self.explanation_text.setMarkdown("")  # Clear markdown content
             self.time_complexity.setText("N/A")
             self.space_complexity.setText("N/A")
 
@@ -958,7 +1070,10 @@ class MainWindow(QMainWindow):
 
         # Update UI with solution
         self.code_editor.setPlainText(solution.code)
-        self.explanation_text.setText(solution.explanation)
+        
+        # Render explanation as markdown
+        self.explanation_text.setMarkdown(solution.explanation)
+        
         self.time_complexity.setText(solution.time_complexity)
         self.space_complexity.setText(solution.space_complexity)
 
@@ -989,17 +1104,18 @@ class MainWindow(QMainWindow):
         for improvement in optimization.improvements:
             detailed_explanation += f"- {improvement}\n"
         detailed_explanation += "\n\n## Time Complexity\n\n"
-        detailed_explanation += f"Original: {optimization.original_time_complexity}\n"
+        detailed_explanation += f"**Original:** {optimization.original_time_complexity}\n\n"
         detailed_explanation += (
-            f"Optimized: {optimization.optimized_time_complexity}\n\n"
+            f"**Optimized:** {optimization.optimized_time_complexity}\n\n"
         )
         detailed_explanation += "## Space Complexity\n\n"
-        detailed_explanation += f"Original: {optimization.original_space_complexity}\n"
+        detailed_explanation += f"**Original:** {optimization.original_space_complexity}\n\n"
         detailed_explanation += (
-            f"Optimized: {optimization.optimized_space_complexity}\n"
+            f"**Optimized:** {optimization.optimized_space_complexity}\n"
         )
 
-        self.explanation_text.setText(detailed_explanation)
+        # Render explanation as markdown
+        self.explanation_text.setMarkdown(detailed_explanation)
         self.time_complexity.setText(optimization.optimized_time_complexity)
         self.space_complexity.setText(optimization.optimized_space_complexity)
 

@@ -428,10 +428,11 @@ class WebServerAPI(QObject):
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, minimum-scale=1.0, maximum-scale=5.0">
     <title>Interview Corvus</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
     <style>
         html, body { background: #fff; margin: 0; padding: 0; }
         body { font-family: system-ui, sans-serif; font-size: 15px; color: #222; }
-        .main-content { max-width: 600px; margin: 0 auto; padding: 12px 0 0 0; }
+        .main-content { max-width: 800px; margin: 0 auto; padding: 12px 0 0 0; }
         .action-buttons {
             display: flex;
             flex-direction: row;
@@ -489,9 +490,74 @@ class WebServerAPI(QObject):
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .results-container { margin-top: 12px; }
-        .result-section { background: #fafbfc; border-radius: 5px; padding: 10px; border: 1px solid #eee; margin-bottom: 10px; }
-        .code-block { background: #23272e; color: #eee; border-radius: 4px; font-size: 13px; padding: 10px; overflow-x: auto; margin: 7px 0; }
-        .explanation { font-size: 13px; margin: 5px 0 7px 0; }
+        .result-section { 
+            background: #fafbfc; 
+            border-radius: 8px; 
+            padding: 16px; 
+            border: 1px solid #e1e4e8; 
+            margin-bottom: 16px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .section-header {
+            font-size: 16px;
+            font-weight: 600;
+            color: #24292e;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e1e4e8;
+        }
+        .brute-header { border-bottom-color: #2196f3; }
+        .optimized-header { border-bottom-color: #ff9800; }
+        
+        .explanation { 
+            font-size: 14px; 
+            line-height: 1.6;
+            margin: 12px 0; 
+            color: #24292e;
+        }
+        .explanation h1, .explanation h2, .explanation h3 {
+            color: #24292e;
+            margin-top: 16px;
+            margin-bottom: 8px;
+        }
+        .explanation h1 { font-size: 18px; }
+        .explanation h2 { font-size: 16px; }
+        .explanation h3 { font-size: 14px; }
+        .explanation p { margin: 8px 0; }
+        .explanation ul, .explanation ol { margin: 8px 0 8px 20px; }
+        .explanation li { margin: 4px 0; }
+        .explanation code {
+            background: #f6f8fa;
+            border: 1px solid #e1e4e8;
+            border-radius: 3px;
+            padding: 2px 4px;
+            font-size: 13px;
+            font-family: Monaco, "Cascadia Code", "Fira Code", monospace;
+        }
+        .explanation blockquote {
+            border-left: 4px solid #dfe2e5;
+            padding-left: 16px;
+            margin-left: 0;
+            color: #6a737d;
+        }
+        
+        .code-block { 
+            background: #1e1e1e !important; 
+            color: #d4d4d4 !important; 
+            border-radius: 8px !important; 
+            font-size: 13px; 
+            padding: 16px !important; 
+            overflow-x: auto; 
+            margin: 12px 0 !important;
+            border: 1px solid #3c3c3c !important;
+            font-family: Monaco, "Cascadia Code", "Fira Code", "JetBrains Mono", Consolas, monospace !important;
+        }
+        .code-block code {
+            background: transparent !important;
+            border: none !important;
+            padding: 0 !important;
+            color: inherit !important;
+        }
         .complexity-info { display: flex; gap: 10px; font-size: 12px; margin: 5px 0; }
         .complexity-item { background: #fff; border: 1px solid #eee; border-radius: 4px; padding: 3px 8px; }
         @media (max-width: 600px) {
@@ -516,19 +582,21 @@ class WebServerAPI(QObject):
         <div class="loading-spinner" id="loadingSpinner"></div>
         <div class="results-container" id="resultsContainer" style="display: none;">
             <div class="result-section" id="bruteSection" style="display: none;">
+                <div class="section-header brute-header">💡 Initial Solution</div>
                 <div class="explanation" id="bruteExplanation"></div>
-                <pre class="code-block language-python" id="bruteCode"></pre>
+                <pre class="code-block language-python"><code id="bruteCode"></code></pre>
                 <div class="complexity-info">
-                    <div class="complexity-item">Time: <span id="bruteTimeComplexity">-</span></div>
-                    <div class="complexity-item">Space: <span id="bruteSpaceComplexity">-</span></div>
+                    <div class="complexity-item">⏱️ Time: <span id="bruteTimeComplexity">-</span></div>
+                    <div class="complexity-item">💾 Space: <span id="bruteSpaceComplexity">-</span></div>
                 </div>
             </div>
             <div class="result-section" id="optimizedSection" style="display: none;">
+                <div class="section-header optimized-header">🚀 Optimized Solution</div>
                 <div class="explanation" id="optimizedExplanation"></div>
-                <pre class="code-block language-python" id="optimizedCode"></pre>
+                <pre class="code-block language-python"><code id="optimizedCode"></code></pre>
                 <div class="complexity-info">
-                    <div class="complexity-item">Time: <span id="optimizedTimeComplexity">-</span></div>
-                    <div class="complexity-item">Space: <span id="optimizedSpaceComplexity">-</span></div>
+                    <div class="complexity-item">⏱️ Time: <span id="optimizedTimeComplexity">-</span></div>
+                    <div class="complexity-item">💾 Space: <span id="optimizedSpaceComplexity">-</span></div>
                 </div>
             </div>
         </div>
@@ -651,17 +719,29 @@ class WebServerAPI(QObject):
         function displayBruteSolution(solution) {
             document.getElementById('resultsContainer').style.display = 'block';
             document.getElementById('bruteSection').style.display = 'block';
-            document.getElementById('bruteExplanation').textContent = solution.explanation || '';
+            
+            // Render markdown explanation
+            const explanationHtml = marked.parse(solution.explanation || 'No explanation provided.');
+            document.getElementById('bruteExplanation').innerHTML = explanationHtml;
+            
+            // Render syntax-highlighted code
             document.getElementById('bruteCode').textContent = solution.code || '';
             Prism.highlightElement(document.getElementById('bruteCode'));
+            
             document.getElementById('bruteTimeComplexity').textContent = solution.time_complexity || '-';
             document.getElementById('bruteSpaceComplexity').textContent = solution.space_complexity || '-';
         }
         function displayOptimizedSolution(optimization) {
             document.getElementById('optimizedSection').style.display = 'block';
-            document.getElementById('optimizedExplanation').textContent = optimization.explanation || '';
+            
+            // Render markdown explanation
+            const explanationHtml = marked.parse(optimization.explanation || 'No optimization explanation provided.');
+            document.getElementById('optimizedExplanation').innerHTML = explanationHtml;
+            
+            // Render syntax-highlighted optimized code
             document.getElementById('optimizedCode').textContent = optimization.optimized_code || '';
             Prism.highlightElement(document.getElementById('optimizedCode'));
+            
             document.getElementById('optimizedTimeComplexity').textContent = optimization.optimized_time_complexity || '-';
             document.getElementById('optimizedSpaceComplexity').textContent = optimization.optimized_space_complexity || '-';
         }
