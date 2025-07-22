@@ -29,7 +29,7 @@ class UISettings(BaseSettings):
 
     default_theme: str = "dark"
     default_font_size: int = 12
-    default_window_opacity: float = 0.9
+    default_window_opacity: float = 1
     default_window_size: Dict[str, int] = Field(
         default_factory=lambda: {"width": 600, "height": 400}
     )
