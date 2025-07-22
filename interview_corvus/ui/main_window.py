@@ -229,32 +229,6 @@ class MainWindow(QMainWindow):
         header_layout = QHBoxLayout()
         header_layout.setSpacing(16)
 
-        # Language selection - compact
-        lang_label = QLabel("🌐 Language:")
-        lang_label.setStyleSheet("font-weight: bold; color: #666; margin-right: 6px; font-size: 12px;")
-        header_layout.addWidget(lang_label)
-        
-        self.language_combo = QComboBox()
-        self.language_combo.addItems(settings.available_languages)
-        index = self.language_combo.findText(settings.default_language)
-        if index >= 0:
-            self.language_combo.setCurrentIndex(index)
-        self.language_combo.setMinimumWidth(100)
-        self.language_combo.setMaximumWidth(130)
-        self.language_combo.setFixedHeight(28)
-        header_layout.addWidget(self.language_combo)
-        
-        # Monitor selection - next to language
-        monitor_label = QLabel("📺 Monitor:")
-        monitor_label.setStyleSheet("font-weight: bold; color: #666; margin-left: 16px; margin-right: 6px; font-size: 12px;")
-        header_layout.addWidget(monitor_label)
-        
-        self.screen_combo = QComboBox()
-        self.update_screen_list()
-        self.screen_combo.setMinimumWidth(150)
-        self.screen_combo.setMaximumWidth(200)
-        self.screen_combo.setFixedHeight(28)
-        header_layout.addWidget(self.screen_combo)
         header_layout.addStretch()
 
         # Minimal controls on the right
@@ -286,10 +260,11 @@ class MainWindow(QMainWindow):
         header_layout.addLayout(controls_right)
         main_layout.addLayout(header_layout)
 
-        # Main action buttons - horizontal layout for compactness
+        # Main action buttons - horizontal layout for compactness (remove extra spacing)
         action_layout = QHBoxLayout()
         action_layout.setSpacing(3)  # Reduced spacing from 6 to 3
         action_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)  # Left align the buttons
+        action_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins to eliminate space above
 
         # Screenshot button
         self.screenshot_button = QPushButton("📸 Capture")
@@ -331,7 +306,12 @@ class MainWindow(QMainWindow):
 
         main_layout.addLayout(action_layout)
 
-        # Screenshots preview - compact horizontal
+        # Screenshots and controls section - horizontal layout
+        screenshots_controls_layout = QHBoxLayout()
+        screenshots_controls_layout.setSpacing(12)
+        screenshots_controls_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins
+
+        # Screenshots preview - expanded to fill remaining space
         screenshots_group = QWidget()
         screenshots_layout = QVBoxLayout(screenshots_group)
         screenshots_layout.setContentsMargins(0, 4, 0, 4)
@@ -344,7 +324,7 @@ class MainWindow(QMainWindow):
 
         screenshots_layout.addLayout(screenshots_header)
 
-        # Compact thumbnails container
+        # Compact thumbnails container - will expand to fill available space
         self.thumbnails_container = QWidget()
         self.thumbnails_layout = QHBoxLayout(self.thumbnails_container)
         self.thumbnails_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -354,12 +334,61 @@ class MainWindow(QMainWindow):
         thumbnails_scroll = QScrollArea()
         thumbnails_scroll.setWidgetResizable(True)
         thumbnails_scroll.setWidget(self.thumbnails_container)
-        thumbnails_scroll.setFixedHeight(50)  # Even smaller fixed height
+        thumbnails_scroll.setFixedHeight(80)  # Increased height from 50 to 80
         thumbnails_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         thumbnails_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         screenshots_layout.addWidget(thumbnails_scroll)
-        main_layout.addWidget(screenshots_group)
+        # Remove width limitation to let it expand
+        screenshots_controls_layout.addWidget(screenshots_group, 1)  # stretch factor 1 to fill space
+        
+        # Language and Monitor controls - compact horizontal layout, right-aligned
+        controls_group = QWidget()
+        controls_layout = QVBoxLayout(controls_group)
+        controls_layout.setContentsMargins(8, 4, 0, 4)
+        controls_layout.setSpacing(8)  # Reduced spacing
+        
+        # Language selection - horizontal layout (label + dropdown side by side)
+        language_layout = QHBoxLayout()
+        language_layout.setSpacing(6)
+        lang_label = QLabel("🌐 Language:")
+        lang_label.setStyleSheet("font-weight: bold; color: #666; font-size: 12px;")
+        language_layout.addWidget(lang_label)
+        
+        self.language_combo = QComboBox()
+        self.language_combo.addItems(settings.available_languages)
+        index = self.language_combo.findText(settings.default_language)
+        if index >= 0:
+            self.language_combo.setCurrentIndex(index)
+        self.language_combo.setMinimumWidth(120)
+        self.language_combo.setMaximumWidth(150)
+        self.language_combo.setFixedHeight(28)
+        language_layout.addWidget(self.language_combo)
+        
+        controls_layout.addLayout(language_layout)
+        
+        # Monitor selection - horizontal layout (label + dropdown side by side)
+        monitor_layout = QHBoxLayout()
+        monitor_layout.setSpacing(6)
+        monitor_label = QLabel("📺 Monitor:")
+        monitor_label.setStyleSheet("font-weight: bold; color: #666; font-size: 12px;")
+        monitor_layout.addWidget(monitor_label)
+        
+        self.screen_combo = QComboBox()
+        self.update_screen_list()
+        self.screen_combo.setMinimumWidth(120)
+        self.screen_combo.setMaximumWidth(150)
+        self.screen_combo.setFixedHeight(28)
+        monitor_layout.addWidget(self.screen_combo)
+        
+        controls_layout.addLayout(monitor_layout)
+        controls_layout.addStretch()  # Push controls to top
+        
+        # Set fixed width for controls to keep them compact
+        controls_group.setFixedWidth(200)
+        screenshots_controls_layout.addWidget(controls_group)
+        
+        main_layout.addLayout(screenshots_controls_layout)
 
         # Content area - side by side layout instead of tabs
         content_splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -905,10 +934,10 @@ class MainWindow(QMainWindow):
             thumbnail_layout.setContentsMargins(2, 2, 2, 2)
             thumbnail_layout.setSpacing(1)
 
-            # Create thumbnail - smaller size for even more compact view
+            # Create thumbnail - larger size for increased height
             thumbnail = QLabel()
             pixmap = screenshot["pixmap"].scaled(
-                QSize(45, 30),  # Even smaller size for very compact view
+                QSize(60, 45),  # Increased size to match the increased height
                 Qt.AspectRatioMode.KeepAspectRatio,
                 Qt.TransformationMode.SmoothTransformation,
             )
