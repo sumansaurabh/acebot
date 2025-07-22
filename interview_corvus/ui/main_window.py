@@ -382,49 +382,33 @@ class MainWindow(QMainWindow):
         self.status_bar_manager.show_message("Taking screenshot...")
         logger.info("Taking screenshot...")
 
-        # Store the current window state
-        self._was_visible_before_screenshot = self.isVisible()
+        # Get the index of the selected monitor
         selected_index = self.screenshot_controls.get_selected_screen_index()
 
-        # Temporarily hide the window if visible to avoid capturing it
-        if self._was_visible_before_screenshot:
-            logger.info("Hiding window before screenshot")
-            self.hide()
-            # Process events and wait to ensure window is fully hidden
-            QApplication.processEvents()
-            # Use a longer delay to ensure the window is completely hidden
-            QTimer.singleShot(300, lambda: self._take_delayed_screenshot(selected_index))
-        else:
-            # Window is already hidden, take screenshot immediately
-            logger.info("Window already hidden, taking screenshot immediately")
-            self._take_delayed_screenshot(selected_index)
+        # Temporarily hide the window if visible using invisibility manager
+        was_visible = self.invisibility_manager.is_visible
+        self.invisibility_manager.set_visibility(False)
+        QApplication.processEvents()
 
-    def _take_delayed_screenshot(self, selected_index):
-        """Take the actual screenshot after window is hidden."""        
         # Take the screenshot
-        logger.info(f"Taking screenshot of screen {selected_index}")
         screenshot = self.screenshot_manager.take_screenshot(selected_index)
 
-        logger.info(f"Screenshot captured: {screenshot['width']}x{screenshot['height']}")
+        # Restore visibility if needed, but don't activate the window
+        if was_visible:
+            QTimer.singleShot(
+                200,
+                lambda: self.invisibility_manager.restore_visibility_without_focus(),
+            )
 
-        # Restore window visibility after a short delay if it was visible before
-        if self._was_visible_before_screenshot:
-            QTimer.singleShot(100, self._restore_window_after_screenshot)
-        else:
-            # Just update the UI without showing the window
-            self.status_bar_manager.show_message("Screenshot captured successfully")
-            self.screenshot_controls.update_thumbnails()
-
-    def _restore_window_after_screenshot(self):
-        """Restore window visibility after screenshot is taken."""
-        logger.info("Restoring window visibility after screenshot")
-        self.show()
-        self.raise_()  # Bring to front
-        self.activateWindow()  # Activate the window
-        
-        # Update UI
-        self.status_bar_manager.show_message("Screenshot captured successfully")
+        # Update UI elements
+        self.status_bar_manager.show_message(
+            f"Screenshot captured: {screenshot['width']}x{screenshot['height']}"
+        )
         self.screenshot_controls.update_thumbnails()
+        # Select the newly captured screenshot (last one in the list)
+        screenshot_count = len(self.screenshot_manager.get_all_screenshots())
+        if screenshot_count > 0:
+            self.screenshot_controls.select_screenshot(screenshot_count - 1)
 
     @pyqtSlot()
     def generate_solution(self):
