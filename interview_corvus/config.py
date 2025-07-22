@@ -230,7 +230,7 @@ class PromptTemplates(BaseSettings):
 class Settings(BaseSettings):
     """Main application settings."""
 
-    app_name: str = "Interview Coder"
+    app_name: str = "AceBot"
     app_data_dir: Path = Field(
         default_factory=lambda: Path.home() / ".interview_corvus"
     )

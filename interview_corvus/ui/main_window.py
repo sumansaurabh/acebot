@@ -20,6 +20,7 @@ from PyQt6.QtWidgets import (
     QSplitter,
     QStatusBar,
     QSystemTrayIcon,
+    QTabWidget,
     QTextEdit,
     QVBoxLayout,
     QWidget,
@@ -198,297 +199,239 @@ class MainWindow(QMainWindow):
         self.installEventFilter(self.hotkey_manager)
 
     def init_ui(self):
-        """Set up the user interface."""
-        # Set stylesheet
-        self.setStyleSheet(self.styles.get_stylesheet())
+        """Set up the minimalistic user interface."""
+        # Set modern dark stylesheet
+        self.setStyleSheet(self._get_minimal_stylesheet())
 
         # Create central widget and layout
         central_widget = QWidget()
         main_layout = QVBoxLayout()
+        main_layout.setSpacing(12)
+        main_layout.setContentsMargins(16, 16, 16, 16)
 
-        # Header with controls
+        # Compact header
         header_layout = QHBoxLayout()
+        header_layout.setSpacing(12)
 
-        # Title label
-        title_label = QLabel(settings.app_name)
-        title_label.setStyleSheet("font-size: 16pt; font-weight: bold;")
-        header_layout.addWidget(title_label)
-
-        # Language selection
-        language_layout = QHBoxLayout()
-        language_layout.addWidget(QLabel("Language:"))
-
+        # App title with icon
+        title_container = QHBoxLayout()
+        title_label = QLabel("🤖 AceBot")
+        title_label.setStyleSheet("""
+            font-size: 18px; 
+            font-weight: bold; 
+            color: #4A90E2;
+            padding: 8px;
+        """)
+        title_container.addWidget(title_label)
+        
+        # Language selection - compact
         self.language_combo = QComboBox()
         self.language_combo.addItems(settings.available_languages)
         index = self.language_combo.findText(settings.default_language)
         if index >= 0:
             self.language_combo.setCurrentIndex(index)
-        language_layout.addWidget(self.language_combo)
+        self.language_combo.setMaximumWidth(120)
+        title_container.addWidget(self.language_combo)
+        title_container.addStretch()
+        
+        header_layout.addLayout(title_container)
 
-        header_layout.addLayout(language_layout)
-
-        # Add settings button
-        settings_button = QPushButton("Settings")
+        # Minimal controls on the right
+        controls_right = QHBoxLayout()
+        
+        # Settings button - icon only
+        settings_button = QPushButton("⚙️")
+        settings_button.setFixedSize(32, 32)
         settings_button.clicked.connect(self.show_settings)
-        header_layout.addWidget(settings_button)
+        settings_button.setToolTip("Settings")
+        controls_right.addWidget(settings_button)
 
-        # Spacer to push visibility controls to the right
-        header_layout.addStretch()
-
-        # Always on top checkbox
-        self.always_on_top_checkbox = QCheckBox("Always on Top")
-        self.always_on_top_checkbox.setChecked(settings.ui.always_on_top)
-        self.always_on_top_checkbox.stateChanged.connect(self.toggle_always_on_top)
-        header_layout.addWidget(self.always_on_top_checkbox)
-
-        screen_selection_group = QWidget()
-        screen_selection_layout = QVBoxLayout(screen_selection_group)
-        screen_selection_layout.setContentsMargins(0, 0, 0, 0)
-
-        screen_header = QHBoxLayout()
-        screen_header.addWidget(QLabel("Select monitor for screenshot:"))
-        screen_selection_layout.addLayout(screen_header)
-
-        # Dropdown list of monitors
-        self.screen_combo = QComboBox()
-        self.update_screen_list()  # Method to update the list of available monitors
-        screen_selection_layout.addWidget(self.screen_combo)
-
-        main_layout.addWidget(screen_selection_group)
-        # Visibility indicator
-        self.visibility_indicator = QLabel("Visible")
-        header_layout.addWidget(self.visibility_indicator)
-
-        # Visibility toggle button
-        self.visibility_button = QPushButton("Hide")
+        # Visibility toggle - icon only
+        self.visibility_button = QPushButton("👁️")
+        self.visibility_button.setFixedSize(32, 32)
         self.visibility_button.clicked.connect(self.toggle_visibility)
-        self.visibility_button.setToolTip(
-            f"Shortcut: {settings.hotkeys.toggle_visibility_key}"
-        )
-        header_layout.addWidget(self.visibility_button)
+        self.visibility_button.setToolTip(f"Toggle Visibility ({settings.hotkeys.toggle_visibility_key})")
+        controls_right.addWidget(self.visibility_button)
 
-        # Add header to main layout
+        header_layout.addLayout(controls_right)
         main_layout.addLayout(header_layout)
 
-        # Opacity slider
-        opacity_layout = QHBoxLayout()
-        opacity_layout.addWidget(QLabel("Opacity:"))
+        # Main action buttons - horizontal layout for compactness
+        action_layout = QHBoxLayout()
+        action_layout.setSpacing(8)
 
-        self.opacity_slider = QSlider(Qt.Orientation.Horizontal)
-        self.opacity_slider.setRange(10, 100)
-        self.opacity_slider.setValue(int(settings.ui.default_window_opacity * 100))
-        self.opacity_slider.valueChanged.connect(self.opacity_changed)
-        opacity_layout.addWidget(self.opacity_slider)
+        # Screenshot button
+        self.screenshot_button = QPushButton("📸 Screenshot")
+        self.screenshot_button.clicked.connect(self.take_screenshot)
+        self.screenshot_button.setToolTip(f"Take Screenshot ({settings.hotkeys.screenshot_key})")
+        action_layout.addWidget(self.screenshot_button)
 
-        main_layout.addLayout(opacity_layout)
+        # Generate solution button
+        self.generate_button = QPushButton("🚀 Generate")
+        self.generate_button.clicked.connect(self.generate_solution)
+        self.generate_button.setToolTip(f"Generate Solution ({settings.hotkeys.generate_solution_key})")
+        action_layout.addWidget(self.generate_button)
 
-        # Screenshot thumbnails section
+        # Optimize button
+        self.optimize_button = QPushButton("⚡ Optimize")
+        self.optimize_button.clicked.connect(self.optimize_solution)
+        self.optimize_button.setToolTip(f"Optimize Solution ({settings.hotkeys.optimize_solution_key})")
+        action_layout.addWidget(self.optimize_button)
+
+        # Copy button
+        self.copy_button = QPushButton("📋")
+        self.copy_button.setFixedWidth(40)
+        self.copy_button.clicked.connect(self.copy_solution)
+        self.copy_button.setToolTip("Copy Solution")
+        action_layout.addWidget(self.copy_button)
+
+        # Clear button
+        clear_button = QPushButton("🗑️")
+        clear_button.setFixedWidth(40)
+        clear_button.clicked.connect(self.reset_chat_history)
+        clear_button.setToolTip(f"Clear All ({settings.hotkeys.reset_history_key})")
+        action_layout.addWidget(clear_button)
+
+        main_layout.addLayout(action_layout)
+
+        # Screenshots preview - compact horizontal
         screenshots_group = QWidget()
         screenshots_layout = QVBoxLayout(screenshots_group)
-        screenshots_layout.setContentsMargins(0, 0, 0, 0)
+        screenshots_layout.setContentsMargins(0, 8, 0, 8)
 
         screenshots_header = QHBoxLayout()
-        screenshots_header.addWidget(QLabel("Recent Screenshots:"))
-
-        # Clear screenshots button
-        clear_screenshots_button = QPushButton("Clear Screenshots")
-        clear_screenshots_button.clicked.connect(self.clear_screenshots)
-        screenshots_header.addWidget(clear_screenshots_button)
+        screenshots_label = QLabel("Screenshots:")
+        screenshots_label.setStyleSheet("font-weight: bold; color: #666;")
+        screenshots_header.addWidget(screenshots_label)
+        screenshots_header.addStretch()
 
         screenshots_layout.addLayout(screenshots_header)
 
-        # Thumbnails scroll area
+        # Compact thumbnails container
         self.thumbnails_container = QWidget()
         self.thumbnails_layout = QHBoxLayout(self.thumbnails_container)
         self.thumbnails_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.thumbnails_layout.setContentsMargins(0, 0, 0, 0)
-        self.thumbnails_layout.setSpacing(10)
+        self.thumbnails_layout.setSpacing(8)
 
         thumbnails_scroll = QScrollArea()
         thumbnails_scroll.setWidgetResizable(True)
         thumbnails_scroll.setWidget(self.thumbnails_container)
-        thumbnails_scroll.setFixedHeight(120)  # Fixed height for thumbnails
-        thumbnails_scroll.setHorizontalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAsNeeded
-        )
-        thumbnails_scroll.setVerticalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-        )
+        thumbnails_scroll.setFixedHeight(80)  # Smaller height
+        thumbnails_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        thumbnails_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         screenshots_layout.addWidget(thumbnails_scroll)
         main_layout.addWidget(screenshots_group)
 
-        # Control buttons
-        controls_layout = QHBoxLayout()
+        # Content area - tabbed for space efficiency
+        self.content_tabs = QTabWidget()
+        self.content_tabs.setTabPosition(QTabWidget.TabPosition.North)
 
-        # Take Screenshot button
-        self.screenshot_button = QPushButton(
-            f"Take Screenshot ({settings.hotkeys.screenshot_key})"
-        )
-        self.screenshot_button.clicked.connect(self.take_screenshot)
-        self.screenshot_button.setToolTip(
-            f"Take a screenshot of your screen - Shortcut: {settings.hotkeys.screenshot_key}"
-        )
-        controls_layout.addWidget(self.screenshot_button)
+        # Code tab
+        code_widget = QWidget()
+        code_layout = QVBoxLayout(code_widget)
+        code_layout.setContentsMargins(8, 8, 8, 8)
 
-        # Generate Solution button
-        self.generate_button = QPushButton(
-            f"Generate Solution ({settings.hotkeys.generate_solution_key})"
-        )
-        self.generate_button.clicked.connect(self.generate_solution)
-        self.generate_button.setToolTip(
-            f"Generate solution from the selected screenshot - Shortcut: {settings.hotkeys.generate_solution_key}"
-        )
-        controls_layout.addWidget(self.generate_button)
-
-        # Optimize solution button
-        self.optimize_button = QPushButton(
-            f"Optimize Solution ({settings.hotkeys.optimize_solution_key})"
-        )
-        self.optimize_button.clicked.connect(self.optimize_solution)
-        self.optimize_button.setToolTip(
-            f"Optimize the current solution - Shortcut: {settings.hotkeys.optimize_solution_key}"
-        )
-        controls_layout.addWidget(self.optimize_button)
-
-        # Copy solution button
-        self.copy_button = QPushButton("Copy Solution")
-        self.copy_button.clicked.connect(self.copy_solution)
-        self.copy_button.setToolTip("Copy the solution code to clipboard")
-        controls_layout.addWidget(self.copy_button)
-
-        # Reset history button
-        self.reset_history_button = QPushButton(
-            f"Reset All ({settings.hotkeys.reset_history_key})"
-        )
-        self.reset_history_button.clicked.connect(self.reset_chat_history)
-        self.reset_history_button.setToolTip(
-            f"Reset chat history and clear screenshots - Shortcut: {settings.hotkeys.reset_history_key}"
-        )
-        controls_layout.addWidget(self.reset_history_button)
-
-        # Web server controls (if available)
-        if WEB_SERVER_AVAILABLE:
-            # Start/Stop web server button
-            self.web_server_button = QPushButton("Start Web Server")
-            self.web_server_button.clicked.connect(self.toggle_web_server)
-            self.web_server_button.setToolTip("Start/stop the integrated web API server")
-            controls_layout.addWidget(self.web_server_button)
-
-        main_layout.addLayout(controls_layout)
-
-        # Content splitter - allowing user to adjust size of sections
-        splitter = QSplitter(Qt.Orientation.Vertical)
-
-        # Code editor with syntax highlighting
         self.code_editor = QPlainTextEdit()
         self.code_editor.setReadOnly(True)
-        font = QFont("Consolas", 12)
+        font = QFont("Fira Code", 11)
         if not font.exactMatch():
-            font = QFont("Monaco", 12)  # macOS fallback
+            font = QFont("Consolas", 11)
         if not font.exactMatch():
-            font = QFont("Courier New", 12)  # Windows fallback
+            font = QFont("Monaco", 11)
         self.code_editor.setFont(font)
         
-        # Style the code editor with dark theme
         self.code_editor.setStyleSheet("""
             QPlainTextEdit {
-                background-color: #1e1e1e;
-                color: #d4d4d4;
-                border: 1px solid #3c3c3c;
+                background-color: #1a1a1a;
+                color: #e8e8e8;
+                border: 1px solid #333;
                 border-radius: 6px;
                 padding: 12px;
-                font-family: Consolas, Monaco, "Cascadia Code", "Fira Code", "JetBrains Mono", monospace;
-                font-size: 12px;
-                line-height: 1.5;
+                font-family: "Fira Code", Consolas, Monaco, monospace;
+                line-height: 1.4;
                 selection-background-color: #264f78;
-                selection-color: #ffffff;
             }
         """)
         
-        # Set up syntax highlighting for Python
         self.setup_syntax_highlighting()
+        self.code_editor.setPlaceholderText("Generated code will appear here...")
         
-        # Set placeholder text
-        self.code_editor.setPlaceholderText(
-            "Generated solution code will appear here with syntax highlighting."
-        )
-        
-        splitter.addWidget(self.code_editor)
+        code_layout.addWidget(self.code_editor)
+        self.content_tabs.addTab(code_widget, "💻 Code")
 
-        # Information section
+        # Explanation tab
         info_widget = QWidget()
         info_layout = QVBoxLayout(info_widget)
+        info_layout.setContentsMargins(8, 8, 8, 8)
 
-        # Explanation section with markdown rendering
         self.explanation_text = QTextEdit()
         self.explanation_text.setReadOnly(True)
-        
-        # Enable markdown rendering
         self.explanation_text.setAcceptRichText(True)
-        self.explanation_text.setMarkdown("")  # Initialize with empty markdown
+        self.explanation_text.setMarkdown("")
         
-        # Style the explanation text area for better markdown rendering
         self.explanation_text.setStyleSheet("""
             QTextEdit {
                 background-color: #f8f9fa;
                 border: 1px solid #e1e4e8;
                 border-radius: 6px;
                 padding: 12px;
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-                font-size: 14px;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                font-size: 13px;
                 line-height: 1.5;
             }
         """)
 
-        # Set placeholder text
-        self.explanation_text.setPlaceholderText(
-            "Solution explanation will appear here after generating a solution."
-        )
-
-        info_layout.addWidget(QLabel("Explanation:"))
+        self.explanation_text.setPlaceholderText("Solution explanation will appear here...")
         info_layout.addWidget(self.explanation_text)
 
-        # Complexity section
-        complexity_layout = QHBoxLayout()
+        # Complexity info - compact horizontal layout
+        complexity_container = QWidget()
+        complexity_layout = QHBoxLayout(complexity_container)
+        complexity_layout.setContentsMargins(0, 8, 0, 0)
 
-        # Time complexity
-        time_layout = QVBoxLayout()
-        time_layout.addWidget(QLabel("Time Complexity:"))
+        time_label = QLabel("⏱️ Time:")
+        time_label.setStyleSheet("font-weight: bold; color: #666;")
         self.time_complexity = QLabel("N/A")
-        time_layout.addWidget(self.time_complexity)
-        complexity_layout.addLayout(time_layout)
-
-        # Space complexity
-        space_layout = QVBoxLayout()
-        space_layout.addWidget(QLabel("Space Complexity:"))
+        
+        space_label = QLabel("💾 Space:")
+        space_label.setStyleSheet("font-weight: bold; color: #666;")
         self.space_complexity = QLabel("N/A")
-        space_layout.addWidget(self.space_complexity)
-        complexity_layout.addLayout(space_layout)
 
-        info_layout.addLayout(complexity_layout)
+        complexity_layout.addWidget(time_label)
+        complexity_layout.addWidget(self.time_complexity)
+        complexity_layout.addStretch()
+        complexity_layout.addWidget(space_label)
+        complexity_layout.addWidget(self.space_complexity)
 
-        # Add to splitter
-        splitter.addWidget(info_widget)
+        info_layout.addWidget(complexity_container)
+        self.content_tabs.addTab(info_widget, "📝 Info")
 
-        # Set initial sizes (70% for code, 30% for info)
-        splitter.setSizes([700, 300])
+        main_layout.addWidget(self.content_tabs)
 
-        main_layout.addWidget(splitter)
-
-        # Status bar
+        # Minimal status bar
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
+        self.status_bar.setStyleSheet("""
+            QStatusBar {
+                background-color: #f0f0f0;
+                border-top: 1px solid #ccc;
+                font-size: 11px;
+                color: #666;
+            }
+        """)
         self.status_bar.showMessage("Ready")
 
-        # Progress indicator in status bar for solution generation
+        # Progress indicator
         self.progress_label = QLabel("Idle")
+        self.progress_label.setStyleSheet("color: #4A90E2; font-weight: bold;")
         self.status_bar.addPermanentWidget(self.progress_label)
 
-        # Web server status indicator
+        # Web server status (if available)
         if WEB_SERVER_AVAILABLE:
-            self.web_server_status = QLabel("Web API: Stopped")
-            self.web_server_status.setStyleSheet("color: red;")
+            self.web_server_status = QLabel("🌐 API: Off")
+            self.web_server_status.setStyleSheet("color: #ff6b6b;")
             self.status_bar.addPermanentWidget(self.web_server_status)
 
         # Set up main widget
@@ -510,9 +453,120 @@ class MainWindow(QMainWindow):
         
         # Update web server button state if auto-started
         if WEB_SERVER_AVAILABLE and self.web_server_thread and self.web_server_thread.isRunning():
-            self.web_server_button.setText("Stop Web Server")
-            self.web_server_status.setText("Web API: Running")
-            self.web_server_status.setStyleSheet("color: green;")
+            if hasattr(self, 'web_server_status'):
+                self.web_server_status.setText("🌐 API: On")
+                self.web_server_status.setStyleSheet("color: #51cf66;")
+
+    def _get_minimal_stylesheet(self):
+        """Get the minimal modern stylesheet."""
+        return """
+        QMainWindow {
+            background-color: #ffffff;
+            color: #333333;
+        }
+        
+        QWidget {
+            background-color: transparent;
+            color: #333333;
+        }
+        
+        QPushButton {
+            background-color: #4A90E2;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        QPushButton:hover {
+            background-color: #357ABD;
+        }
+        
+        QPushButton:pressed {
+            background-color: #2868A0;
+        }
+        
+        QPushButton:disabled {
+            background-color: #cccccc;
+            color: #666666;
+        }
+        
+        QComboBox {
+            background-color: #f8f9fa;
+            border: 1px solid #e1e4e8;
+            border-radius: 4px;
+            padding: 6px 8px;
+            font-size: 12px;
+        }
+        
+        QComboBox:hover {
+            border-color: #4A90E2;
+        }
+        
+        QComboBox::drop-down {
+            border: none;
+            width: 20px;
+        }
+        
+        QComboBox::down-arrow {
+            width: 12px;
+            height: 12px;
+        }
+        
+        QTabWidget::pane {
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            background-color: white;
+        }
+        
+        QTabBar::tab {
+            background-color: #f8f9fa;
+            border: 1px solid #e1e4e8;
+            border-bottom: none;
+            border-radius: 4px 4px 0 0;
+            padding: 8px 16px;
+            margin-right: 2px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        QTabBar::tab:selected {
+            background-color: white;
+            color: #4A90E2;
+        }
+        
+        QTabBar::tab:hover:!selected {
+            background-color: #e9ecef;
+        }
+        
+        QScrollArea {
+            background-color: #f8f9fa;
+            border: 1px solid #e1e4e8;
+            border-radius: 4px;
+        }
+        
+        QScrollBar:vertical {
+            background-color: #f8f9fa;
+            width: 8px;
+            border-radius: 4px;
+        }
+        
+        QScrollBar::handle:vertical {
+            background-color: #ced4da;
+            border-radius: 4px;
+            min-height: 20px;
+        }
+        
+        QScrollBar::handle:vertical:hover {
+            background-color: #adb5bd;
+        }
+        
+        QLabel {
+            color: #333333;
+        }
+        """
 
     def setup_syntax_highlighting(self):
         """Set up Python syntax highlighting for the code editor."""
@@ -713,8 +767,7 @@ class MainWindow(QMainWindow):
         settings.ui.always_on_top = enabled
         settings.save_user_settings()
 
-        # Update UI
-        self.always_on_top_checkbox.setChecked(enabled)
+        # Update UI - only menu items since we removed the checkbox in minimal design
         self.always_on_top_action.setChecked(enabled)
         self.tray_always_on_top_action.setChecked(enabled)
 
@@ -738,7 +791,7 @@ class MainWindow(QMainWindow):
         self.set_always_on_top(self.always_on_top_action.isChecked())
 
     def update_thumbnails(self):
-        """Update screenshot thumbnails display."""
+        """Update screenshot thumbnails display - minimal version."""
         # Clear existing thumbnails
         while self.thumbnails_layout.count():
             item = self.thumbnails_layout.takeAt(0)
@@ -750,42 +803,43 @@ class MainWindow(QMainWindow):
 
         if not screenshots:
             # Add placeholder
-            placeholder = QLabel("No screenshots available. Take a screenshot first.")
+            placeholder = QLabel("No screenshots")
             placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            placeholder.setStyleSheet("color: #999; font-style: italic; padding: 20px;")
             self.thumbnails_layout.addWidget(placeholder)
             self.selected_screenshot_index = -1
             return
 
-        # Add thumbnails for each screenshot
+        # Add minimal thumbnails for each screenshot
         for i, screenshot in enumerate(screenshots):
             thumbnail_widget = QWidget()
             thumbnail_layout = QVBoxLayout(thumbnail_widget)
-            thumbnail_layout.setContentsMargins(5, 5, 5, 5)
+            thumbnail_layout.setContentsMargins(4, 4, 4, 4)
+            thumbnail_layout.setSpacing(2)
 
-            # Create thumbnail label
+            # Create small thumbnail
             thumbnail = QLabel()
             pixmap = screenshot["pixmap"].scaled(
-                QSize(100, 80),
+                QSize(60, 45),  # Smaller size
                 Qt.AspectRatioMode.KeepAspectRatio,
                 Qt.TransformationMode.SmoothTransformation,
             )
             thumbnail.setPixmap(pixmap)
             thumbnail.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-            # Add border for selected screenshot
+            # Minimal styling
             if i == self.selected_screenshot_index:
-                thumbnail.setStyleSheet(
-                    "border: 3px solid #4CAF50;"
-                )  # Green border for selected
+                thumbnail.setStyleSheet("border: 2px solid #4A90E2; border-radius: 4px;")
             else:
-                thumbnail.setStyleSheet("border: 1px solid gray;")
+                thumbnail.setStyleSheet("border: 1px solid #ddd; border-radius: 4px;")
 
             thumbnail_layout.addWidget(thumbnail)
 
-            # Add timestamp label
-            timestamp_label = QLabel(f"Screenshot {i + 1}")
-            timestamp_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            thumbnail_layout.addWidget(timestamp_label)
+            # Small index number
+            index_label = QLabel(str(i + 1))
+            index_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            index_label.setStyleSheet("font-size: 10px; color: #666; font-weight: bold;")
+            thumbnail_layout.addWidget(index_label)
 
             # Make widget clickable
             thumbnail_widget.mouseReleaseEvent = (
@@ -1217,11 +1271,11 @@ class MainWindow(QMainWindow):
             is_visible: The new visibility state
         """
         if is_visible:
-            self.visibility_indicator.setText("Visible")
-            self.visibility_button.setText("Hide")
+            self.visibility_button.setText("👁️")
+            self.visibility_button.setToolTip("Hide Window")
         else:
-            self.visibility_indicator.setText("Hidden")
-            self.visibility_button.setText("Show")
+            self.visibility_button.setText("👁️‍🗨️")
+            self.visibility_button.setToolTip("Show Window")
 
         self.status_bar.showMessage(
             f"Visibility set to {'visible' if is_visible else 'hidden'}"
@@ -1323,14 +1377,14 @@ class MainWindow(QMainWindow):
         """Show the about dialog."""
         QMessageBox.about(
             self,
-            "About Interview Corvus",
+            "About AceBot",
             f"""
-            <h1>Interview Corvus</h1>
+            <h1>🤖 AceBot</h1>
             <p>Version: {__import__("interview_corvus").__version__}</p>
-            <p>An invisible AI assistant for technical interviews.</p>
-            <p>This application helps users solve programming problems during technical interviews 
+            <p>Your intelligent coding assistant for technical interviews.</p>
+            <p>AceBot helps you solve programming problems during technical interviews 
             by providing real-time solutions while remaining invisible during screen sharing.</p>
-            <p>&copy; 2023 Your Company</p>
+            <p>Built with ❤️ for developers</p>
             """,
         )
 
@@ -1428,23 +1482,11 @@ class MainWindow(QMainWindow):
 
     def update_button_texts(self):
         """Update button texts to reflect current hotkey settings."""
-        self.screenshot_button.setText(
-            f"Take Screenshot ({settings.hotkeys.screenshot_key})"
-        )
-        self.generate_button.setText(
-            f"Generate Solution ({settings.hotkeys.generate_solution_key})"
-        )
-        self.optimize_button.setText(
-            f"Optimize Solution ({settings.hotkeys.optimize_solution_key})"
-        )
-        self.reset_history_button.setText(
-            f"Reset All ({settings.hotkeys.reset_history_key})"
-        )
-
-        # Update visibility button tooltip
-        self.visibility_button.setToolTip(
-            f"Shortcut: {settings.hotkeys.toggle_visibility_key}"
-        )
+        # Update tooltips since we're using minimal icon-based buttons
+        self.screenshot_button.setToolTip(f"Take Screenshot ({settings.hotkeys.screenshot_key})")
+        self.generate_button.setToolTip(f"Generate Solution ({settings.hotkeys.generate_solution_key})")
+        self.optimize_button.setToolTip(f"Optimize Solution ({settings.hotkeys.optimize_solution_key})")
+        self.visibility_button.setToolTip(f"Toggle Visibility ({settings.hotkeys.toggle_visibility_key})")
 
         # Update button tooltips
         self.screenshot_button.setToolTip(
@@ -1517,10 +1559,10 @@ class MainWindow(QMainWindow):
                     msg.setIcon(QMessageBox.Icon.Information)
                     msg.setWindowTitle("Permissions Required")
                     msg.setText(
-                        "Interview Corvus needs Accessibility permissions to use global hotkeys."
+                        "AceBot needs Accessibility permissions to use global hotkeys."
                     )
                     msg.setInformativeText(
-                        "You'll need to enable Interview Corvus in System Preferences → Security & Privacy → Privacy → Accessibility."
+                        "You'll need to enable AceBot in System Preferences → Security & Privacy → Privacy → Accessibility."
                     )
                     msg.setDetailedText(
                         "Without these permissions, global hotkeys (like taking screenshots or toggling visibility) won't work outside the application window."
@@ -1544,3 +1586,53 @@ class MainWindow(QMainWindow):
                         )
             except Exception as e:
                 logger.error(f"Error checking accessibility permissions: {e}")
+        
+        # For Windows, request foreground window permission
+        if platform.system() == "Windows":
+            import ctypes
+            from ctypes import wintypes
+
+            # Define the user32 functions we need
+            user32 = ctypes.WinDLL("user32", use_last_error=True)
+
+            # Check if the process is running as administrator
+            is_admin = ctypes.windll.shell32.IsUserAnAdmin()
+
+            if not is_admin:
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Icon.Warning)
+                msg.setWindowTitle("Administrator Permission Required")
+                msg.setText("AceBot needs to be run as administrator for the first time.")
+                msg.setInformativeText("Right-click on the AceBot icon and select 'Run as administrator'.")
+                msg.setDetailedText("This is required to enable global hotkeys and other features.")
+                msg.addButton("OK", QMessageBox.ButtonRole.AcceptRole)
+
+                msg.exec()
+
+                # Attempt to relaunch the application as administrator
+                import sys
+                import os
+
+                if not hasattr(sys, "_MEIPASS"):
+                    # Not frozen with PyInstaller, normal launch
+                    exe_path = sys.executable
+                else:
+                    # Frozen with PyInstaller, locate the exe
+                    exe_path = os.path.join(sys._MEIPASS, "interview_corvus.exe")
+
+                # Relaunch the application as administrator
+                ctypes.windll.shell32.ShellExecuteW(
+                    None,
+                    "runas",  # This is the key part that requests admin
+                    exe_path,
+                    " ".join(sys.argv),  # Pass along any arguments
+                    None,
+                    1,  # Show normal window
+                )
+
+                # Exit the current instance
+                QApplication.quit()
+                sys.exit()
+
+            # If we are admin, just continue
+            logger.info("Running with administrator privileges")
