@@ -6,14 +6,14 @@ from interview_corvus.screenshot.screen_capture_service import ScreenCaptureServ
 class ScreenshotManager:
     """
     Manager for capturing and storing screenshots.
-    Maintains up to 2 screenshots at a time.
+    Maintains up to 10 screenshots at a time.
     """
 
     def __init__(self):
         """Initialize the screenshot manager."""
         self.capture_service = ScreenCaptureService()
         self.screenshots: List[Dict[str, any]] = []
-        self.max_screenshots = 2
+        self.max_screenshots = 10
 
     def get_available_screens(self) -> List[Dict[str, any]]:
         """

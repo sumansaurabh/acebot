@@ -19,7 +19,7 @@ class LLMSettings(BaseSettings):
     streaming: bool = False
 
     # API key should be stored securely, not in config
-    api_key_env_var: str = "OPENAI_API_KEY"
+    api_key_env_var: str = "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"
 
     model_config = SettingsConfigDict(env_prefix="INTERVIEW_CORVUS_LLM_")
 

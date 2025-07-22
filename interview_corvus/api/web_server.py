@@ -429,19 +429,20 @@ class WebServerAPI(QObject):
         .action-buttons {
             display: flex;
             flex-direction: row;
-            gap: 6px; /* Reduced gap between buttons */
+            flex-wrap: wrap;
+            gap: 4px;
             margin-bottom: 14px;
             justify-content: flex-start;
         }
         .action-btn {
-            padding: 12px 22px;
+            padding: 8px 16px;
             border: none;
             border-radius: 6px;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            min-width: 90px;
-            min-height: 40px;
+            min-width: 70px;
+            min-height: 32px;
             transition: background 0.15s, box-shadow 0.15s;
             box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
@@ -552,11 +553,19 @@ class WebServerAPI(QObject):
         async function captureScreen() {
             updateStatus('Capturing...'); showLoading(true);
             try {
+                // Get current count before capture
+                const currentCount = parseInt(document.getElementById('screenshotCount').textContent);
+                
                 const response = await fetch(`${API_BASE}/screenshot/capture`, { method: 'POST' });
                 const result = await response.json();
-                if (response.ok) updateStatus('Captured');
-                else updateStatus('Error: ' + result.message);
-                updateScreenshotCount();
+                if (response.ok) {
+                    updateStatus('Captured');
+                    // Immediately update count without waiting for API call
+                    const newCount = Math.min(currentCount + 1, 10); // Max 10 screenshots
+                    document.getElementById('screenshotCount').textContent = newCount;
+                    // Enable solve button if we have screenshots
+                    document.getElementById('solveBtn').disabled = newCount === 0;
+                } else updateStatus('Error: ' + result.message);
             } catch (error) { updateStatus('Connection error'); }
             finally { showLoading(false); }
         }
@@ -600,7 +609,9 @@ class WebServerAPI(QObject):
                 const result = await response.json();
                 if (response.ok && result.success) {
                     updateStatus('Cleared');
-                    updateScreenshotCount();
+                    // Immediately update count
+                    document.getElementById('screenshotCount').textContent = '0';
+                    document.getElementById('solveBtn').disabled = true;
                     document.getElementById('resultsContainer').style.display = 'none';
                     document.getElementById('bruteSection').style.display = 'none';
                     document.getElementById('optimizedSection').style.display = 'none';
@@ -619,7 +630,9 @@ class WebServerAPI(QObject):
                 const result2 = await response2.json();
                 if ((response1.ok && result1.success) && (response2.ok && result2.success)) {
                     updateStatus('Reset');
-                    updateScreenshotCount();
+                    // Immediately update count
+                    document.getElementById('screenshotCount').textContent = '0';
+                    document.getElementById('solveBtn').disabled = true;
                     document.getElementById('resultsContainer').style.display = 'none';
                     document.getElementById('bruteSection').style.display = 'none';
                     document.getElementById('optimizedSection').style.display = 'none';
