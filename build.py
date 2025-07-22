@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 """
-Скрипт для сборки приложения Interview Corvus для различных операционных систем.
-Запуск: poetry run python build.py
+Build script for Interview Corvus application for various operating systems.
+Usage: poetry run python build.py
+
+This script automates the build process for Interview Corvus, including cleaning build directories, checking dependencies, and packaging the application for macOS, Windows, and Linux. It uses PyInstaller for creating executables and handles platform-specific packaging (DMG for macOS, ZIP for Windows, TGZ for Linux).
 """
 
 import os
@@ -13,37 +15,46 @@ from pathlib import Path
 
 
 def clean_build_dirs():
-    """Очистить директории сборки."""
+    """
+    Clean build directories ('build' and 'dist').
+    Removes previous build artifacts to ensure a clean build environment.
+    """
     dirs_to_clean = ["build", "dist"]
     for dir_name in dirs_to_clean:
         if os.path.exists(dir_name):
             shutil.rmtree(dir_name)
-            print(f"Очищена директория: {dir_name}")
+            print(f"Directory cleaned: {dir_name}")
 
 
 def get_version():
-    """Получить версию приложения из модуля."""
+    """
+    Retrieve the application version from the module.
+    Returns the version string if available, otherwise returns 'dev'.
+    """
     sys.path.append(os.path.abspath("."))
     try:
         from interview_corvus import __version__
 
         return __version__
     except ImportError:
-        print("Не удалось импортировать версию. Используется 'dev'")
+        print("Could not import version. Using 'dev'.")
         return "dev"
 
 
 def build_macos():
-    """Сборка для macOS."""
-    print("\n=== Сборка для macOS ===")
+    """
+    Build Interview Corvus for macOS.
+    Uses PyInstaller to create a macOS app bundle and packages it into a DMG image.
+    """
+    print("\n=== Building for macOS ===")
     version = get_version()
 
-    # Создаем временную директорию для приложения
+    # Create temporary directory for the app
     app_name = "Interview Corvus.app"
     if os.path.exists(f"dist/{app_name}"):
         shutil.rmtree(f"dist/{app_name}")
 
-    # Запускаем PyInstaller
+    # Run PyInstaller
     cmd = [
         "pyinstaller",
         "--clean",
@@ -61,11 +72,11 @@ def build_macos():
     try:
         subprocess.run(cmd, check=True)
     except subprocess.SubprocessError as e:
-        print(f"Ошибка при сборке macOS: {e}")
+        print(f"Error during macOS build: {e}")
         return
 
-    # Создаем DMG-образ
-    print("Создание DMG-образа...")
+    # Create DMG image
+    print("Creating DMG image...")
     dmg_name = f"Interview_Corvus-{version}-macOS.dmg"
 
     try:
@@ -84,18 +95,21 @@ def build_macos():
             ],
             check=True,
         )
-        print(f"macOS сборка завершена: dist/{dmg_name}")
+        print(f"macOS build completed: dist/{dmg_name}")
     except subprocess.SubprocessError as e:
-        print(f"Ошибка при создании DMG: {e}")
-        print(f"Сборка доступна в директории: dist/{app_name}")
+        print(f"Error creating DMG: {e}")
+        print(f"Build is available in directory: dist/{app_name}")
 
 
 def build_windows():
-    """Сборка для Windows."""
-    print("\n=== Сборка для Windows ===")
+    """
+    Build Interview Corvus for Windows.
+    Uses PyInstaller to create a Windows executable and packages it into a ZIP archive.
+    """
+    print("\n=== Building for Windows ===")
     version = get_version()
 
-    # Запускаем PyInstaller с правильным разделителем для Windows
+    # Use correct separator for Windows
     add_data_param = (
         "resources;resources"
         if platform.system() == "Windows"
@@ -118,11 +132,11 @@ def build_windows():
     try:
         subprocess.run(cmd, check=True)
     except subprocess.SubprocessError as e:
-        print(f"Ошибка при сборке Windows: {e}")
+        print(f"Error during Windows build: {e}")
         return
 
-    # Создаем ZIP-архив
-    print("Создание ZIP-архива...")
+    # Create ZIP archive
+    print("Creating ZIP archive...")
     output_dir = "dist/Interview Corvus"
     zip_name = f"Interview_Corvus-{version}-Windows.zip"
 
@@ -133,23 +147,26 @@ def build_windows():
             root_dir="dist",
             base_dir="Interview Corvus",
         )
-        print(f"Windows сборка завершена: dist/{zip_name}")
+        print(f"Windows build completed: dist/{zip_name}")
     except Exception as e:
-        print(f"Ошибка при создании ZIP-архива: {e}")
-        print(f"Сборка доступна в директории: {output_dir}")
+        print(f"Error creating ZIP archive: {e}")
+        print(f"Build is available in directory: {output_dir}")
 
 
 def build_linux():
-    """Сборка для Linux."""
-    print("\n=== Сборка для Linux ===")
+    """
+    Build Interview Corvus for Linux.
+    Uses PyInstaller to create a Linux executable and packages it into a TGZ archive.
+    """
+    print("\n=== Building for Linux ===")
     version = get_version()
 
-    # Запускаем PyInstaller
+    # Run PyInstaller
     cmd = [
         "pyinstaller",
         "--clean",
         "--windowed",
-        "--name=Interview Corvus",  # Унифицированное имя для всех платформ
+        "--name=Interview Corvus",  # Unified name for all platforms
         "--add-data=resources:resources",
         "--hidden-import=PyQt6.QtSvg",
         "--hidden-import=tiktoken_ext.openai_public",
@@ -161,11 +178,11 @@ def build_linux():
     try:
         subprocess.run(cmd, check=True)
     except subprocess.SubprocessError as e:
-        print(f"Ошибка при сборке Linux: {e}")
+        print(f"Error during Linux build: {e}")
         return
 
-    # Создаем TGZ-архив
-    print("Создание TGZ-архива...")
+    # Create TGZ archive
+    print("Creating TGZ archive...")
     output_dir = "dist/Interview Corvus"
     tgz_name = f"Interview_Corvus-{version}-Linux.tar.gz"
 
@@ -174,17 +191,21 @@ def build_linux():
             ["tar", "-czvf", f"dist/{tgz_name}", "-C", "dist", "Interview Corvus"],
             check=True,
         )
-        print(f"Linux сборка завершена: dist/{tgz_name}")
+        print(f"Linux build completed: dist/{tgz_name}")
     except subprocess.SubprocessError as e:
-        print(f"Ошибка при создании TGZ-архива: {e}")
-        print(f"Сборка доступна в директории: {output_dir}")
+        print(f"Error creating TGZ archive: {e}")
+        print(f"Build is available in directory: {output_dir}")
 
 
 def check_dependencies():
-    """Проверка наличия необходимых зависимостей."""
+    """
+    Check for required dependencies (currently only PyInstaller).
+    Prints a warning if any dependencies are missing.
+    Returns True if all dependencies are present, False otherwise.
+    """
     missing_deps = []
 
-    # Проверка PyInstaller
+    # Check PyInstaller
     try:
         subprocess.run(
             ["pyinstaller", "--version"],
@@ -196,34 +217,37 @@ def check_dependencies():
         missing_deps.append("PyInstaller")
 
     if missing_deps:
-        print("\nВНИМАНИЕ: Отсутствуют следующие зависимости:")
+        print("\nWARNING: The following dependencies are missing:")
         for dep in missing_deps:
             print(f"  - {dep}")
-        print("Установите их перед сборкой.")
+        print("Please install them before building.")
         return False
 
     return True
 
 
 def main():
-    """Основная функция."""
+    """
+    Main entry point for the build script.
+    Detects the current OS, checks dependencies, cleans previous builds, and triggers the appropriate build process.
+    """
     current_os = platform.system()
 
-    print("=== Сборка Interview Corvus ===")
-    print(f"Текущая ОС: {current_os}")
-    print(f"Версия приложения: {get_version()}")
+    print("=== Interview Corvus Build ===")
+    print(f"Current OS: {current_os}")
+    print(f"Application version: {get_version()}")
 
-    # Создаем директорию ресурсов, если её нет
+    # Create resources directory if it does not exist
     Path("resources").mkdir(exist_ok=True)
 
-    # Проверяем зависимости
+    # Check dependencies
     if not check_dependencies():
         sys.exit(1)
 
-    # Очищаем предыдущие сборки
+    # Clean previous builds
     clean_build_dirs()
 
-    # Определяем, какую сборку запускать
+    # Determine which build to run
     if len(sys.argv) > 1:
         target_os = sys.argv[1].lower()
         if target_os == "macos" or target_os == "darwin":
@@ -233,10 +257,10 @@ def main():
         elif target_os == "linux":
             build_linux()
         else:
-            print(f"Неизвестная ОС: {target_os}")
-            print("Используйте: macos, windows или linux")
+            print(f"Unknown OS: {target_os}")
+            print("Use: macos, windows, or linux")
     else:
-        # Если не указана ОС, собираем для текущей
+        # If OS is not specified, build for the current OS
         if current_os == "Darwin":
             build_macos()
         elif current_os == "Windows":
@@ -244,8 +268,8 @@ def main():
         elif current_os == "Linux":
             build_linux()
         else:
-            print(f"Неподдерживаемая ОС для автоматической сборки: {current_os}")
-            print("Пожалуйста, укажите ОС вручную: macos, windows или linux")
+            print(f"Unsupported OS for automatic build: {current_os}")
+            print("Please specify the OS manually: macos, windows, or linux")
 
 
 if __name__ == "__main__":
