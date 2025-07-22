@@ -676,7 +676,7 @@ class MainWindow(QMainWindow):
         # Get the index of the selected monitor
         selected_index = self.screen_combo.currentData()
 
-        # Save the currently active window handle before taking screenshot
+        # Save the currently active window handle before taking 
         # This can be done with platform-specific code
 
         # Temporarily hide the window if visible
