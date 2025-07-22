@@ -222,48 +222,12 @@ class MainWindow(QMainWindow):
         # Create central widget and layout
         central_widget = QWidget()
         main_layout = QVBoxLayout()
-        main_layout.setSpacing(8)
-        main_layout.setContentsMargins(12, 12, 12, 12)
+        main_layout.setSpacing(0)  # Remove all spacing between layouts
+        main_layout.setContentsMargins(12, 4, 12, 12)  # Minimal top margin
 
-        # Compact header
-        header_layout = QHBoxLayout()
-        header_layout.setSpacing(16)
-
-        header_layout.addStretch()
-
-        # Minimal controls on the right
-        controls_right = QHBoxLayout()
-        controls_right.setSpacing(6)
-        
-        # Settings button - icon only
-        settings_button = QPushButton("⚙️ Settings")
-        settings_button.setFixedSize(80, 32)
-        settings_button.clicked.connect(self.show_settings)
-        settings_button.setToolTip("Settings")
-        controls_right.addWidget(settings_button)
-
-        # Visibility toggle - icon only
-        self.visibility_button = QPushButton("👁️ Hide")
-        self.visibility_button.setFixedSize(70, 32)
-        self.visibility_button.clicked.connect(self.toggle_visibility)
-        self.visibility_button.setToolTip(f"Toggle Visibility ({settings.hotkeys.toggle_visibility_key})")
-        controls_right.addWidget(self.visibility_button)
-
-        # Web server toggle (if available)
-        if WEB_SERVER_AVAILABLE:
-            self.web_server_button = QPushButton("🌐 API")
-            self.web_server_button.setFixedSize(70, 32)
-            self.web_server_button.clicked.connect(self.toggle_web_server)
-            self.web_server_button.setToolTip("Toggle Web API Server")
-            controls_right.addWidget(self.web_server_button)
-
-        header_layout.addLayout(controls_right)
-        main_layout.addLayout(header_layout)
-
-        # Main action buttons - horizontal layout for compactness (remove extra spacing)
+        # Main action buttons with header buttons on the same row
         action_layout = QHBoxLayout()
         action_layout.setSpacing(3)  # Reduced spacing from 6 to 3
-        action_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)  # Left align the buttons
         action_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins to eliminate space above
 
         # Screenshot button
@@ -301,8 +265,31 @@ class MainWindow(QMainWindow):
         reset_button.setToolTip(f"Reset All ({settings.hotkeys.reset_history_key})")
         action_layout.addWidget(reset_button)
         
-        # Add stretch to push buttons to the left
+        # Add stretch to separate action buttons from header buttons
         action_layout.addStretch()
+
+        # Header buttons on the same row as action buttons (right side)
+        # Settings button
+        settings_button = QPushButton("⚙️ Settings")
+        settings_button.setFixedSize(80, 32)
+        settings_button.clicked.connect(self.show_settings)
+        settings_button.setToolTip("Settings")
+        action_layout.addWidget(settings_button)
+
+        # Visibility toggle
+        self.visibility_button = QPushButton("👁️ Hide")
+        self.visibility_button.setFixedSize(70, 32)
+        self.visibility_button.clicked.connect(self.toggle_visibility)
+        self.visibility_button.setToolTip(f"Toggle Visibility ({settings.hotkeys.toggle_visibility_key})")
+        action_layout.addWidget(self.visibility_button)
+
+        # Web server toggle (if available)
+        if WEB_SERVER_AVAILABLE:
+            self.web_server_button = QPushButton("🌐 API")
+            self.web_server_button.setFixedSize(70, 32)
+            self.web_server_button.clicked.connect(self.toggle_web_server)
+            self.web_server_button.setToolTip("Toggle Web API Server")
+            action_layout.addWidget(self.web_server_button)
 
         main_layout.addLayout(action_layout)
 
