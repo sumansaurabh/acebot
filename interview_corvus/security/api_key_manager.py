@@ -26,7 +26,7 @@ class APIKeyManager:
 
     def get_api_key(self) -> str:
         """
-        Get the API key from environment variable or keyring.
+        Get the API key from environment variable, config, or keyring.
 
         Returns:
             str: The API key
@@ -38,6 +38,10 @@ class APIKeyManager:
         api_key = os.environ.get(self.env_var_name)
         if api_key:
             return api_key
+
+        # Check if it's stored in config (fallback for development)
+        if hasattr(settings.llm, 'api_key_env_var') and settings.llm.api_key_env_var.startswith('sk-'):
+            return settings.llm.api_key_env_var
 
         # Then try keyring
         api_key = keyring.get_password(self.SERVICE_NAME, self.env_var_name)

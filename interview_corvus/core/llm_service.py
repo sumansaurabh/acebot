@@ -27,6 +27,13 @@ class LLMService(QObject):
         """Initialize the LLM service with configured settings."""
         super().__init__()
         api_key = APIKeyManager().get_api_key()
+        
+        # Debug: Check if API key is properly retrieved
+        if not api_key:
+            logger.error("❌ No API key found! Please set your OpenAI API key.")
+            raise ValueError("API key is required but not found")
+        else:
+            logger.info(f"✅ API key found (length: {len(api_key)})")
 
         # Determine if we're using OpenAI or Anthropic based on model name
         is_anthropic = any(
@@ -41,6 +48,7 @@ class LLMService(QObject):
                 api_key=api_key,
                 max_tokens=12000,  # Set an appropriate max tokens value
             )
+            logger.info(f"Initialized Anthropic LLM with model: {settings.llm.model}")
         else:
             # Initialize OpenAI client
             self.llm = OpenAI(
