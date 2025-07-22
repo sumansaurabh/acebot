@@ -305,35 +305,35 @@ class MainWindow(QMainWindow):
         action_layout.setSpacing(6)
 
         # Screenshot button
-        self.screenshot_button = QPushButton("📸")
+        self.screenshot_button = QPushButton("📸 Capture")
         self.screenshot_button.clicked.connect(self.take_screenshot)
         self.screenshot_button.setToolTip(f"Take Screenshot ({settings.hotkeys.screenshot_key})")
-        self.screenshot_button.setFixedSize(80, 35)
+        self.screenshot_button.setFixedSize(90, 35)
         action_layout.addWidget(self.screenshot_button)
 
         # Generate solution button
-        self.generate_button = QPushButton("🚀 Generate")
+        self.generate_button = QPushButton("🚀 Solve")
         self.generate_button.clicked.connect(self.generate_solution)
         self.generate_button.setToolTip(f"Generate Solution ({settings.hotkeys.generate_solution_key})")
-        self.generate_button.setFixedSize(80, 35)
+        self.generate_button.setFixedSize(90, 35)
         action_layout.addWidget(self.generate_button)
 
         # Optimize button
         self.optimize_button = QPushButton("⚡ Optimize")
         self.optimize_button.clicked.connect(self.optimize_solution)
         self.optimize_button.setToolTip(f"Optimize Solution ({settings.hotkeys.optimize_solution_key})")
-        self.optimize_button.setFixedSize(80, 35)
+        self.optimize_button.setFixedSize(90, 35)
         action_layout.addWidget(self.optimize_button)
 
         # Copy button
-        self.copy_button = QPushButton("📋")
+        self.copy_button = QPushButton("📋 Copy")
         self.copy_button.setFixedSize(50, 35)
         self.copy_button.clicked.connect(self.copy_solution)
         self.copy_button.setToolTip("Copy Solution")
         action_layout.addWidget(self.copy_button)
 
         # Reset All button
-        reset_button = QPushButton("🔄 Reset All")
+        reset_button = QPushButton("🔄 Reset")
         reset_button.setFixedSize(85, 35)
         reset_button.clicked.connect(self.reset_chat_history)
         reset_button.setToolTip(f"Reset All ({settings.hotkeys.reset_history_key})")
