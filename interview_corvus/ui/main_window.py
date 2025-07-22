@@ -302,7 +302,8 @@ class MainWindow(QMainWindow):
 
         # Main action buttons - horizontal layout for compactness
         action_layout = QHBoxLayout()
-        action_layout.setSpacing(6)
+        action_layout.setSpacing(3)  # Reduced spacing from 6 to 3
+        action_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)  # Left align the buttons
 
         # Screenshot button
         self.screenshot_button = QPushButton("📸 Capture")
@@ -338,6 +339,9 @@ class MainWindow(QMainWindow):
         reset_button.clicked.connect(self.reset_chat_history)
         reset_button.setToolTip(f"Reset All ({settings.hotkeys.reset_history_key})")
         action_layout.addWidget(reset_button)
+        
+        # Add stretch to push buttons to the left
+        action_layout.addStretch()
 
         main_layout.addLayout(action_layout)
 
