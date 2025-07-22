@@ -326,8 +326,8 @@ class MainWindow(QMainWindow):
         thumbnails_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         screenshots_layout.addWidget(thumbnails_scroll)
-        # Remove width limitation to let it expand
-        screenshots_controls_layout.addWidget(screenshots_group, 1)  # stretch factor 1 to fill space
+        # Set width to 70% of available space
+        screenshots_controls_layout.addWidget(screenshots_group, 7)  # stretch factor 7 for 70% space
         
         # Language and Monitor controls - compact horizontal layout, right-aligned
         controls_group = QWidget()
@@ -371,9 +371,8 @@ class MainWindow(QMainWindow):
         controls_layout.addLayout(monitor_layout)
         controls_layout.addStretch()  # Push controls to top
         
-        # Set fixed width for controls to keep them compact
-        controls_group.setFixedWidth(200)
-        screenshots_controls_layout.addWidget(controls_group)
+        # Use remaining 30% space instead of fixed width
+        screenshots_controls_layout.addWidget(controls_group, 3)  # stretch factor 3 for 30% space
         
         main_layout.addLayout(screenshots_controls_layout)
 
