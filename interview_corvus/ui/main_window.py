@@ -144,12 +144,12 @@ class MainWindow(QMainWindow):
         screen_selection_layout.setContentsMargins(0, 0, 0, 0)
 
         screen_header = QHBoxLayout()
-        screen_header.addWidget(QLabel("Выберите монитор для скриншота:"))
+        screen_header.addWidget(QLabel("Select monitor for screenshot:"))
         screen_selection_layout.addLayout(screen_header)
 
-        # Выпадающий список мониторов
+        # Dropdown list of monitors
         self.screen_combo = QComboBox()
-        self.update_screen_list()  # Метод для обновления списка доступных мониторов
+        self.update_screen_list()  # Method to update the list of available monitors
         screen_selection_layout.addWidget(self.screen_combo)
 
         main_layout.addWidget(screen_selection_group)
@@ -865,14 +865,14 @@ class MainWindow(QMainWindow):
         self.optimization_thread.start()
 
     def update_screen_list(self):
-        """Обновить список доступных мониторов в выпадающем списке."""
+        """Update the list of available monitors in the dropdown."""
         self.screen_combo.clear()
 
         screens = self.screenshot_manager.get_available_screens()
         for screen in screens:
             display_name = f"{screen['name']} ({screen['width']}x{screen['height']})"
             if screen["primary"]:
-                display_name += " (Основной)"
+                display_name += " (Primary)"
             self.screen_combo.addItem(display_name, screen["index"])
 
     @pyqtSlot(object)
@@ -1184,7 +1184,7 @@ class MainWindow(QMainWindow):
         """
         Additional key press event handling.
         """
-        # Отладочная информация о нажатых клавишах
+        # Debug information about pressed keys
         logger.info(f"Key pressed: {event.key()}, modifiers: {event.modifiers()}")
 
         # Standard key press handling
