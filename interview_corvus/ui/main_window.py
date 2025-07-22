@@ -527,7 +527,7 @@ class MainWindow(QMainWindow):
 
             def run(self):
                 try:
-                    optimization = self.llm_service.optimize_solution(self.code, self.language)
+                    optimization = self.llm_service.get_code_optimization(self.code, self.language)
                     self.solution_ready.emit(optimization)
                 except Exception as e:
                     logger.error(f"Error in optimization thread: {e}")
