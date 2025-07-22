@@ -919,12 +919,12 @@ class MainWindow(QMainWindow):
             thumbnail_widget = QWidget()
             thumbnail_layout = QVBoxLayout(thumbnail_widget)
             thumbnail_layout.setContentsMargins(2, 2, 2, 2)
-            thumbnail_layout.setSpacing(1)
+            thumbnail_layout.setSpacing(2)  # Increase spacing between thumbnail and number
 
-            # Create thumbnail - larger size for increased height
+            # Create thumbnail - larger size with reduced width (30% reduction from original 60 width)
             thumbnail = QLabel()
             pixmap = screenshot["pixmap"].scaled(
-                QSize(60, 45),  # Increased size to match the increased height
+                QSize(150,120),  # Reduced width by 30% (60->42) but increased height significantly
                 Qt.AspectRatioMode.KeepAspectRatio,
                 Qt.TransformationMode.SmoothTransformation,
             )
@@ -949,16 +949,17 @@ class MainWindow(QMainWindow):
 
             thumbnail_layout.addWidget(thumbnail)
 
-            # Index number with better styling
+            # Index number with very small styling
             index_label = QLabel(f"#{i + 1}")
             index_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             index_label.setStyleSheet("""
-                font-size: 10px; 
-                color: #666; 
-                font-weight: bold;
-                background-color: rgba(74, 144, 226, 0.1);
-                border-radius: 2px;
-                padding: 1px 4px;
+                font-size: 7px; 
+                color: #888; 
+                font-weight: normal;
+                background-color: rgba(74, 144, 226, 0.08);
+                border-radius: 1px;
+                padding: 0px 2px;
+                max-height: 12px;
             """)
             thumbnail_layout.addWidget(index_label)
 
