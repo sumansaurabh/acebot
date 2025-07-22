@@ -253,7 +253,7 @@ class MainWindow(QMainWindow):
 
         # Copy button
         self.copy_button = QPushButton("📋 Copy")
-        self.copy_button.setFixedSize(50, 35)
+        self.copy_button.setFixedSize(90, 35)
         self.copy_button.clicked.connect(self.copy_solution)
         self.copy_button.setToolTip("Copy Solution")
         action_layout.addWidget(self.copy_button)
@@ -449,8 +449,8 @@ class MainWindow(QMainWindow):
         info_layout.addWidget(complexity_container)
         content_splitter.addWidget(info_widget)
         
-        # Set ratio: 70% code, 30% info
-        content_splitter.setSizes([70, 30])
+        # Set ratio: 70% code, 30% info - using pixel values for better control
+        content_splitter.setSizes([700, 300])  # 70% code, 30% explanation
         
         # Add with stretch factor so it expands to fill available space
         main_layout.addWidget(content_splitter, 1)  # stretch factor of 1
