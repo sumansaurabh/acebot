@@ -250,6 +250,7 @@ class Settings(BaseSettings):
             "go",
             "rust",
             "ruby",
+            "mysql",
         ]
     )
 
