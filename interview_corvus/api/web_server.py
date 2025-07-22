@@ -19,7 +19,8 @@ try:
     import uvicorn
     from fastapi import FastAPI, HTTPException, UploadFile, File, Form, BackgroundTasks
     from fastapi.middleware.cors import CORSMiddleware
-    from fastapi.responses import JSONResponse
+    from fastapi.responses import JSONResponse, HTMLResponse
+    from fastapi.staticfiles import StaticFiles
     from pydantic import BaseModel, Field
     from PyQt6.QtCore import QObject, pyqtSignal, QThread
 except ImportError as e:
@@ -410,12 +411,481 @@ class WebServerAPI(QObject):
                 content={"success": False, "message": f"Failed to toggle window: {str(e)}"},
                 status_code=500
             )
+    
+    def get_main_ui(self) -> HTMLResponse:
+        """Serve the main web UI."""
+        html_content = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interview Corvus - AI Coding Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            padding: 40px;
+        }
+        
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .action-btn {
+            padding: 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .action-btn:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .action-btn:hover:before {
+            left: 100%;
+        }
+        
+        .capture-btn {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+        }
+        
+        .solve-btn {
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            color: white;
+        }
+        
+        .optimize-btn {
+            background: linear-gradient(135deg, #FF9800, #F57C00);
+            color: white;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .action-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status-bar {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .status-bar.error {
+            border-left-color: #f44336;
+            background: #ffebee;
+        }
+        
+        .status-bar.loading {
+            border-left-color: #2196F3;
+            background: #e3f2fd;
+        }
+        
+        .results-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .result-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .result-section h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            overflow-x: auto;
+            margin: 15px 0;
+            white-space: pre-wrap;
+        }
+        
+        .explanation {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            line-height: 1.6;
+            margin: 15px 0;
+        }
+        
+        .complexity-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 15px 0;
+        }
+        
+        .complexity-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            text-align: center;
+        }
+        
+        .complexity-item strong {
+            color: #667eea;
+            font-size: 1.1em;
+        }
+        
+        .screenshots-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .loading-spinner {
+            display: none;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .results-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <div class="main-content">
+            <div class="screenshots-info" id="screenshotInfo">
+                📸 Screenshots: <span id="screenshotCount">0</span> captured
+            </div>
+            
+            <div class="action-buttons">
+                <button class="action-btn capture-btn" onclick="captureScreen()">
+                    📸 Capture
+                    <div style="font-size: 12px; margin-top: 5px;">Take Screenshot</div>
+                </button>
+                
+                <button class="action-btn solve-btn" onclick="solveBrute()" id="solveBtn">
+                    🧠 Solve [Brute]
+                    <div style="font-size: 12px; margin-top: 5px;">Generate Solution</div>
+                </button>
+                
+                <button class="action-btn optimize-btn" onclick="optimizeBest()" id="optimizeBtn">
+                    ⚡ Optimize [Best]
+                    <div style="font-size: 12px; margin-top: 5px;">Optimize Solution</div>
+                </button>
+            </div>
+            
+            <div class="status-bar" id="statusBar">
+                Ready to assist with your coding interview
+            </div>
+            
+            <div class="loading-spinner" id="loadingSpinner"></div>
+            
+            <div class="results-container" id="resultsContainer" style="display: none;">
+                <div class="result-section" id="bruteSection" style="display: none;">
+                    <h3>🧠 Brute Force Solution</h3>
+                    <div class="explanation" id="bruteExplanation"></div>
+                    <div class="code-block" id="bruteCode"></div>
+                    <div class="complexity-info">
+                        <div class="complexity-item">
+                            <strong>Time:</strong><br>
+                            <span id="bruteTimeComplexity">-</span>
+                        </div>
+                        <div class="complexity-item">
+                            <strong>Space:</strong><br>
+                            <span id="bruteSpaceComplexity">-</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="result-section" id="optimizedSection" style="display: none;">
+                    <h3>⚡ Optimized Solution</h3>
+                    <div class="explanation" id="optimizedExplanation"></div>
+                    <div class="code-block" id="optimizedCode"></div>
+                    <div class="complexity-info">
+                        <div class="complexity-item">
+                            <strong>Time:</strong><br>
+                            <span id="optimizedTimeComplexity">-</span>
+                        </div>
+                        <div class="complexity-item">
+                            <strong>Space:</strong><br>
+                            <span id="optimizedSpaceComplexity">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+        let bruteSolution = null;
+        
+        function updateStatus(message, type = 'info') {
+            const statusBar = document.getElementById('statusBar');
+            statusBar.textContent = message;
+            statusBar.className = `status-bar ${type}`;
+        }
+        
+        function showLoading(show = true) {
+            const spinner = document.getElementById('loadingSpinner');
+            spinner.style.display = show ? 'block' : 'none';
+        }
+        
+        function updateScreenshotCount() {
+            fetch(`${API_BASE}/screenshots`)
+                .then(response => response.json())
+                .then(data => {
+                    const count = data.screenshots ? data.screenshots.length : 0;
+                    document.getElementById('screenshotCount').textContent = count;
+                    
+                    // Enable/disable solve button based on screenshot availability
+                    const solveBtn = document.getElementById('solveBtn');
+                    solveBtn.disabled = count === 0;
+                })
+                .catch(error => console.error('Error updating screenshot count:', error));
+        }
+        
+        async function captureScreen() {
+            updateStatus('Taking screenshot...', 'loading');
+            showLoading(true);
+            
+            try {
+                const response = await fetch(`${API_BASE}/screenshot/capture`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    updateStatus('✅ Screenshot captured successfully');
+                    updateScreenshotCount();
+                } else {
+                    updateStatus(`❌ Failed to capture screenshot: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                updateStatus('❌ Connection failed - Make sure Interview Corvus is running!', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        async function solveBrute() {
+            updateStatus('Generating brute force solution...', 'loading');
+            showLoading(true);
+            
+            try {
+                const response = await fetch(`${API_BASE}/solution`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        language: 'Python'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.solution) {
+                    bruteSolution = result.solution;
+                    displayBruteSolution(result.solution);
+                    updateStatus('✅ Brute force solution generated successfully');
+                    
+                    // Enable optimize button
+                    document.getElementById('optimizeBtn').disabled = false;
+                } else {
+                    updateStatus(`❌ Failed to generate solution: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                updateStatus('❌ Connection failed - Make sure Interview Corvus is running!', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        async function optimizeBest() {
+            if (!bruteSolution) {
+                updateStatus('❌ Please generate a brute force solution first', 'error');
+                return;
+            }
+            
+            updateStatus('Optimizing solution...', 'loading');
+            showLoading(true);
+            
+            try {
+                const response = await fetch(`${API_BASE}/optimize`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        code: bruteSolution.code,
+                        language: bruteSolution.language
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.optimization) {
+                    displayOptimizedSolution(result.optimization);
+                    updateStatus('✅ Solution optimized successfully');
+                } else {
+                    updateStatus(`❌ Failed to optimize solution: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                updateStatus('❌ Connection failed - Make sure Interview Corvus is running!', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        function displayBruteSolution(solution) {
+            document.getElementById('resultsContainer').style.display = 'grid';
+            document.getElementById('bruteSection').style.display = 'block';
+            
+            document.getElementById('bruteExplanation').textContent = solution.explanation || 'No explanation provided';
+            document.getElementById('bruteCode').textContent = solution.code || 'No code provided';
+            document.getElementById('bruteTimeComplexity').textContent = solution.time_complexity || 'Not specified';
+            document.getElementById('bruteSpaceComplexity').textContent = solution.space_complexity || 'Not specified';
+        }
+        
+        function displayOptimizedSolution(optimization) {
+            document.getElementById('optimizedSection').style.display = 'block';
+            
+            document.getElementById('optimizedExplanation').textContent = optimization.explanation || 'No explanation provided';
+            document.getElementById('optimizedCode').textContent = optimization.optimized_code || 'No optimized code provided';
+            document.getElementById('optimizedTimeComplexity').textContent = optimization.optimized_time_complexity || 'Not specified';
+            document.getElementById('optimizedSpaceComplexity').textContent = optimization.optimized_space_complexity || 'Not specified';
+        }
+        
+        // Initialize
+        window.addEventListener('load', () => {
+            updateScreenshotCount();
+            updateStatus('Ready to assist with your coding interview');
+            
+            // Initially disable solve and optimize buttons
+            document.getElementById('solveBtn').disabled = true;
+            document.getElementById('optimizeBtn').disabled = true;
+        });
+        
+        // Auto-refresh screenshot count every 5 seconds
+        setInterval(updateScreenshotCount, 5000);
+    </script>
+</body>
+</html>
+        """
+        
+        return HTMLResponse(content=html_content)
 
 
 class WebServerThread(QThread):
     """Thread to run the FastAPI server."""
     
-    def __init__(self, api_instance: WebServerAPI, host: str = "127.0.0.1", port: int = 8000):
+    def __init__(self, api_instance: WebServerAPI, host: str = "0.0.0.0", port: int = 8000):
         super().__init__()
         self.api_instance = api_instance
         self.host = host
@@ -442,13 +912,9 @@ class WebServerThread(QThread):
         )
         
         # Health check endpoints
-        @app.get("/", response_model=HealthResponse)
+        @app.get("/", response_class=HTMLResponse)
         async def root():
-            return HealthResponse(
-                status="healthy", 
-                version="1.0.0",
-                gui_connected=self.api_instance.gui_connected
-            )
+            return self.api_instance.get_main_ui()
         
         @app.get("/health", response_model=HealthResponse)
         async def health_check():
