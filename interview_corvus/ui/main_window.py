@@ -77,7 +77,7 @@ class MainWindow(QMainWindow):
                 self.web_api, self.web_server_thread = create_integrated_web_server(
                     llm_service=self.llm_service,
                     screenshot_manager=self.screenshot_manager,
-                    host="127.0.0.1",
+                    host="0.0.0.0",
                     port=8000
                 )
                 logger.info("✅ Web server initialized successfully")
@@ -91,7 +91,7 @@ class MainWindow(QMainWindow):
                 # Auto-start the web server
                 if self.web_server_thread:
                     self.web_server_thread.start()
-                    logger.info("🚀 Web server auto-started on http://127.0.0.1:8000")
+                    logger.info("🚀 Web server auto-started on http://0.0.0.0:8000 (accessible from all interfaces)")
                     # Will update button text in init_ui after button is created
                     
             except Exception as e:
@@ -1053,17 +1053,17 @@ class MainWindow(QMainWindow):
                 if self.web_server_thread:
                     self.web_server_thread.start()
                     self.web_server_button.setText("Stop Web Server")
-                    self.status_bar.showMessage("Web server started on http://127.0.0.1:8000")
+                    self.status_bar.showMessage("Web server started on all interfaces (port 8000)")
                     if hasattr(self, 'web_server_status'):
                         self.web_server_status.setText("Web API: Running")
                         self.web_server_status.setStyleSheet("color: green;")
-                    logger.info("🚀 Web server started on http://127.0.0.1:8000")
+                    logger.info("🚀 Web server started on http://0.0.0.0:8000 (accessible from all interfaces)")
                     
                     # Show notification with API info
                     if hasattr(self, 'tray_icon') and self.tray_icon:
                         self.tray_icon.showMessage(
                             "Web Server Started",
-                            "API available at http://127.0.0.1:8000\nDocs: http://127.0.0.1:8000/docs",
+                            "API available on port 8000 (all interfaces)\nDocs: http://localhost:8000/docs",
                             QSystemTrayIcon.MessageIcon.Information,
                             5000
                         )
