@@ -201,32 +201,34 @@ def find_available_port(host: str, start_port: int = 26262, max_attempts: int = 
     return None
 
 
-def get_server_addresses(host: str, port: int) -> List[str]:
+def get_server_addresses(host: str, port: int, use_ssl: bool = False) -> List[str]:
     """
     Get all possible server addresses for the given host and port.
     
     Args:
         host: Host address (e.g., "0.0.0.0")
         port: Port number
+        use_ssl: Whether to use HTTPS protocol
         
     Returns:
         List of server URLs
     """
     addresses = []
+    protocol = "https" if use_ssl else "http"
     
     if host == "0.0.0.0":
         # Server is bound to all interfaces, get all local IPs
         local_ips = get_local_ip_addresses()
         for ip in local_ips:
-            addresses.append(f"http://{ip}:{port}")
+            addresses.append(f"{protocol}://{ip}:{port}")
     else:
         # Server is bound to specific host
-        addresses.append(f"http://{host}:{port}")
+        addresses.append(f"{protocol}://{host}:{port}")
     
     return addresses
 
 
-def print_server_info(host: str, port: int, app_name: str = "AceBot"):
+def print_server_info(host: str, port: int, app_name: str = "AceBot", use_ssl: bool = False):
     """
     Print formatted server information with all accessible addresses.
     
@@ -234,19 +236,25 @@ def print_server_info(host: str, port: int, app_name: str = "AceBot"):
         host: Server host
         port: Server port
         app_name: Application name for display
+        use_ssl: Whether SSL/HTTPS is enabled
     """
-    addresses = get_server_addresses(host, port)
+    addresses = get_server_addresses(host, port, use_ssl=use_ssl)
+    
+    protocol = "HTTPS" if use_ssl else "HTTP"
+    ssl_icon = "🔒" if use_ssl else "🔓"
     
     print("=" * 60)
-    print(f"🌐 {app_name} Integrated Web Server")
+    print(f"🌐 {app_name} Integrated Web Server ({protocol})")
     print("=" * 60)
     print("📍 Server accessible at:")
     
     for i, address in enumerate(addresses, 1):
         icon = "🏠" if "127.0.0.1" in address else "🌐"
         name = "Localhost" if "127.0.0.1" in address else "Network"
-        print(f"   {icon} {name:12} {address}")
+        print(f"   {ssl_icon}{icon} {name:12} {address}")
     
     print(f"📚 API Documentation: {addresses[0]}/docs")
     print(f"📖 ReDoc Documentation: {addresses[0]}/redoc")
+    if use_ssl:
+        print("🔒 SSL/HTTPS Enabled - Secure connections only")
     print("=" * 60)

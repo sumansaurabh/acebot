@@ -68,3 +68,23 @@ class StateResponse(BaseModel):
     current_optimization: Optional[Dict[str, Any]] = None
     current_language: str
     has_screenshots: bool
+
+
+class RecordingStartRequest(BaseModel):
+    """Request model for starting recording."""
+    audio_data: Optional[str] = Field(default=None, description="Base64 encoded audio data (for mobile)")
+    recording_type: str = Field(default="audio", description="Type of recording: audio, screen, or mobile")
+
+
+class RecordingResponse(BaseModel):
+    """Response model for recording operations."""
+    success: bool
+    message: str
+    recording_id: Optional[str] = None
+
+
+class RecordingAnalysisRequest(BaseModel):
+    """Request model for recording analysis."""
+    audio_data: str = Field(..., description="Base64 encoded audio data")
+    recording_metadata: Optional[Dict[str, Any]] = Field(default=None, description="Recording metadata")
+    custom_prompt: Optional[str] = Field(default=None, description="Custom analysis prompt")

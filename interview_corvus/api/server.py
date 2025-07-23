@@ -32,12 +32,47 @@ if TYPE_CHECKING:
 class WebServerThread(QThread):
     """Thread to run the FastAPI server."""
     
-    def __init__(self, api_instance: WebServerAPI, host: str = "0.0.0.0", port: int = 8000):
+    def __init__(self, api_instance: WebServerAPI, host: str = "0.0.0.0", port: int = 8000, use_ssl: bool = False):
         super().__init__()
         self.api_instance = api_instance
         self.host = host
         self.port = port
+        self.use_ssl = use_ssl
         self.app = self._create_app()
+        
+        # SSL certificate paths
+        self.ssl_cert_path = None
+        self.ssl_key_path = None
+        
+        if use_ssl:
+            self._setup_ssl_paths()
+    
+    def _setup_ssl_paths(self):
+        """Setup SSL certificate and key paths."""
+        try:
+            # Get the project root directory
+            project_root = Path(__file__).parent.parent.parent
+            certs_dir = project_root / "certs"
+            
+            self.ssl_cert_path = certs_dir / "cert.pem"
+            self.ssl_key_path = certs_dir / "key.pem"
+            
+            # Verify files exist
+            if not self.ssl_cert_path.exists():
+                logger.error(f"SSL certificate not found: {self.ssl_cert_path}")
+                raise FileNotFoundError(f"SSL certificate not found: {self.ssl_cert_path}")
+            
+            if not self.ssl_key_path.exists():
+                logger.error(f"SSL private key not found: {self.ssl_key_path}")
+                raise FileNotFoundError(f"SSL private key not found: {self.ssl_key_path}")
+            
+            logger.info(f"SSL certificate found: {self.ssl_cert_path}")
+            logger.info(f"SSL private key found: {self.ssl_key_path}")
+            
+        except Exception as e:
+            logger.error(f"Failed to setup SSL paths: {e}")
+            self.use_ssl = False
+            raise
     
     def _create_app(self) -> FastAPI:
         """Create the FastAPI application."""
@@ -57,15 +92,25 @@ class WebServerThread(QThread):
     def run(self):
         """Run the FastAPI server."""
         try:
+            # Determine protocol and port info
+            protocol = "https" if self.use_ssl else "http"
+            default_port = 443 if self.use_ssl else 80
+            port_info = f":{self.port}" if self.port != default_port else ""
+            
             # Print comprehensive server information
-            print_server_info(self.host, self.port, "AceBot")
+            print_server_info(self.host, self.port, "AceBot", use_ssl=self.use_ssl)
             print(f"🔗 GUI Connected: {self.api_instance.gui_connected}")
+            print(f"🔒 SSL Enabled: {self.use_ssl}")
+            if self.use_ssl:
+                print(f"📜 Certificate: {self.ssl_cert_path}")
+                print(f"🔑 Private Key: {self.ssl_key_path}")
             print("Available endpoints:")
             print("  GET  /health                 - Health check")
             print("  GET  /screenshots            - List screenshots")
             print("  POST /screenshot/capture     - Trigger screenshot")
             print("  POST /solution               - Generate solution")
-            print("  POST /upload-solution        - Upload & solve")
+            print("  POST /recording/mobile       - Mobile recording analysis")
+            print("  GET  /recording/stream       - Recording analysis stream")
             print("  POST /optimize               - Optimize code")
             print("  POST /window/show            - Show window")
             print("  POST /window/hide            - Hide window")
@@ -74,13 +119,25 @@ class WebServerThread(QThread):
             print("  DELETE /history              - Reset history")
             print("=" * 60)
             
-            uvicorn.run(
-                self.app,
-                host=self.host,
-                port=self.port,
-                log_level="warning",  # Only show warnings and errors, no access logs
-                access_log=False      # Disable HTTP access logging
-            )
+            # Configure uvicorn parameters
+            uvicorn_config = {
+                "app": self.app,
+                "host": self.host,
+                "port": self.port,
+                "log_level": "warning",  # Only show warnings and errors
+                "access_log": False      # Disable HTTP access logging
+            }
+            
+            # Add SSL configuration if enabled
+            if self.use_ssl:
+                uvicorn_config.update({
+                    "ssl_certfile": str(self.ssl_cert_path),
+                    "ssl_keyfile": str(self.ssl_key_path),
+                    "ssl_version": 2,  # Use TLS
+                })
+            
+            uvicorn.run(**uvicorn_config)
+            
         except Exception as e:
             logger.error(f"❌ Failed to start web server: {e}")
             print(f"❌ Failed to start web server: {e}")

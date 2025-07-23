@@ -27,7 +27,8 @@ def create_integrated_web_server(
     screenshot_manager: 'ScreenshotManager' = None,
     host: str = "0.0.0.0",
     port: int = 26262,
-    auto_find_port: bool = True
+    auto_find_port: bool = True,
+    use_ssl: bool = False
 ) -> Tuple[WebServerAPI, WebServerThread, int]:
     """
     Create an integrated web server that works with the GUI application.
@@ -37,8 +38,9 @@ def create_integrated_web_server(
         llm_service: The LLM service from the GUI
         screenshot_manager: The screenshot manager from the GUI
         host: Host to bind to (default: "0.0.0.0" for all interfaces)
-        port: Preferred port to bind to (default: 26262)
+        port: Preferred port to bind to (default: 26262, or 8443 for SSL)
         auto_find_port: Whether to automatically find an available port if preferred is taken
+        use_ssl: Whether to enable HTTPS with SSL certificates
     
     Returns:
         Tuple of (API instance, Server thread, actual port used)
@@ -46,6 +48,10 @@ def create_integrated_web_server(
     Raises:
         RuntimeError: If no available port could be found
     """
+    # Use different default port for HTTPS
+    if use_ssl and port == 26262:
+        port = 8443  # Common alternative HTTPS port
+    
     actual_port = port
     
     if auto_find_port:
@@ -64,9 +70,12 @@ def create_integrated_web_server(
     
     # Create API and server instances
     api_instance = WebServerAPI(llm_service, screenshot_manager)
-    server_thread = WebServerThread(api_instance, host, actual_port)
+    server_thread = WebServerThread(api_instance, host, actual_port, use_ssl=use_ssl)
     
     # Log server setup information
-    logger.info(f"Web server configured on {host}:{actual_port}")
+    protocol = "https" if use_ssl else "http"
+    logger.info(f"Web server configured on {protocol}://{host}:{actual_port}")
+    if use_ssl:
+        logger.info("🔒 SSL/HTTPS enabled with certificates from certs/ directory")
     
     return api_instance, server_thread, actual_port

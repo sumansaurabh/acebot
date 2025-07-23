@@ -13,7 +13,8 @@ from fastapi.responses import JSONResponse, HTMLResponse
 from .models import (
     GenerateSolutionRequest, OptimizeSolutionRequest, SolutionResponse,
     OptimizationResponse, HealthResponse, ScreenshotListResponse,
-    LanguageResponse, LanguageUpdateRequest, StateResponse
+    LanguageResponse, LanguageUpdateRequest, StateResponse,
+    RecordingStartRequest, RecordingResponse, RecordingAnalysisRequest
 )
 from .api_handler import WebServerAPI
 
@@ -102,3 +103,24 @@ def create_routes(app: FastAPI, api_instance: WebServerAPI) -> None:
     async def get_current_state():
         """Get current application state for synchronization."""
         return api_instance.get_current_state()
+
+    # Recording endpoints
+    @app.post("/recording/mobile", response_model=RecordingResponse)
+    async def start_mobile_recording(request: RecordingStartRequest):
+        """Start mobile recording analysis."""
+        return api_instance.start_mobile_recording(request)
+
+    @app.get("/recording/stream")
+    async def get_recording_stream():
+        """Stream recording analysis results."""
+        from fastapi.responses import StreamingResponse
+        return StreamingResponse(
+            api_instance.get_recording_analysis_stream(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "*",
+            }
+        )

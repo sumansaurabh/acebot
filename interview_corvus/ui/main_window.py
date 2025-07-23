@@ -135,10 +135,11 @@ class MainWindow(QMainWindow):
                 llm_service=self.llm_service,
                 screenshot_manager=self.screenshot_manager,
                 host="0.0.0.0",
-                port=26262  # Changed from 8000 to 26262 as requested
+                port=8443,  # Use HTTPS port
+                use_ssl=True  # Enable SSL/HTTPS
             )
             self.web_server_port = actual_port  # Store the actual port used
-            logger.info(f"✅ Web server initialized successfully on port {actual_port}")
+            logger.info(f"✅ Web server initialized successfully on HTTPS port {actual_port}")
 
             # Connect web server signals
             self.web_api.screenshot_capture_requested.connect(self.take_screenshot)

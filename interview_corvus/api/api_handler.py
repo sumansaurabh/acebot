@@ -37,6 +37,11 @@ class WebServerAPI(QObject):
     window_toggle_requested = pyqtSignal()
     language_changed = pyqtSignal(str)  # new language
     
+    # Recording signals
+    recording_start_requested = pyqtSignal()
+    recording_stop_requested = pyqtSignal()
+    mobile_recording_received = pyqtSignal(object)  # recording data
+    
     # New signals for solution synchronization
     solution_generated_from_web = pyqtSignal(object)  # solution object
     optimization_generated_from_web = pyqtSignal(object)  # optimization object
@@ -656,3 +661,125 @@ class WebServerAPI(QObject):
                 current_language="python",
                 has_screenshots=False
             )
+
+    # Recording methods
+    def start_mobile_recording(self, request) -> JSONResponse:
+        """Start mobile recording analysis."""
+        try:
+            if not self.gui_connected or not self.llm_service:
+                return JSONResponse(
+                    status_code=503,
+                    content={"success": False, "message": "GUI services not connected"}
+                )
+
+            # For mobile recording, we process the audio data immediately
+            if request.audio_data:
+                # Decode base64 audio data
+                try:
+                    audio_bytes = base64.b64decode(request.audio_data)
+                    
+                    # Create temporary file
+                    temp_dir = Path(tempfile.gettempdir()) / "interview_corvus_recordings"
+                    temp_dir.mkdir(exist_ok=True)
+                    
+                    temp_file = temp_dir / f"mobile_recording_{os.getpid()}.wav"
+                    with open(temp_file, "wb") as f:
+                        f.write(audio_bytes)
+                    
+                    # Process the recording
+                    recording_data = {
+                        'content': f"[Mobile Recording: {temp_file.name}, Size: {len(audio_bytes)} bytes - Audio transcription would go here]",
+                        'metadata': {
+                            'filename': temp_file.name,
+                            'size': len(audio_bytes),
+                            'type': 'mobile_audio',
+                            'format': 'wav'
+                        }
+                    }
+                    
+                    # Store for streaming
+                    self._current_recording_data = recording_data
+                    
+                    # Clean up temp file
+                    try:
+                        temp_file.unlink()
+                    except:
+                        pass
+                    
+                    return JSONResponse(content={
+                        "success": True,
+                        "message": "Mobile recording received and ready for analysis",
+                        "recording_id": f"mobile_{os.getpid()}"
+                    })
+                    
+                except Exception as e:
+                    return JSONResponse(
+                        status_code=400,
+                        content={"success": False, "message": f"Failed to process audio data: {str(e)}"}
+                    )
+            else:
+                return JSONResponse(
+                    status_code=400,
+                    content={"success": False, "message": "No audio data provided"}
+                )
+                
+        except Exception as e:
+            return JSONResponse(
+                status_code=500,
+                content={"success": False, "message": f"Failed to start mobile recording: {str(e)}"}
+            )
+
+    def get_recording_analysis_stream(self):
+        """Get streaming analysis for the current recording."""
+        try:
+            if not hasattr(self, '_current_recording_data') or not self._current_recording_data:
+                yield f"data: {{'error': 'No recording data available'}}\n\n"
+                return
+
+            if not self.gui_connected or not self.llm_service:
+                yield f"data: {{'error': 'GUI services not connected'}}\n\n"
+                return
+
+            # Start streaming analysis
+            yield f"data: {{'status': 'starting_analysis'}}\n\n"
+            
+            accumulated_text = ""
+            chunk_count = 0
+            
+            try:
+                # Get streaming response from LLM service
+                for chunk in self.llm_service.get_recording_analysis_stream(self._current_recording_data):
+                    if chunk:
+                        accumulated_text += chunk
+                        chunk_count += 1
+                        
+                        # Send chunk as SSE event
+                        import json
+                        chunk_data = {
+                            'chunk': chunk,
+                            'chunk_count': chunk_count,
+                            'total_length': len(accumulated_text)
+                        }
+                        yield f"data: {json.dumps(chunk_data)}\n\n"
+                
+                # Send completion event
+                completion_data = {
+                    'status': 'completed',
+                    'complete_text': accumulated_text,
+                    'total_chunks': chunk_count,
+                    'final_length': len(accumulated_text)
+                }
+                yield f"data: {json.dumps(completion_data)}\n\n"
+                
+            except Exception as e:
+                error_data = {
+                    'status': 'error',
+                    'error': str(e)
+                }
+                yield f"data: {json.dumps(error_data)}\n\n"
+            
+            # Clean up
+            self._current_recording_data = None
+            
+        except Exception as e:
+            yield f"data: {{'error': 'Streaming failed: {str(e)}'}}\n\n"

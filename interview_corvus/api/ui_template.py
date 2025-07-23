@@ -264,6 +264,33 @@ def get_main_ui_template() -> str:
         
         .complexity-info { display: flex; gap: 10px; font-size: 12px; margin: 5px 0; }
         .complexity-item { background: #fff; border: 1px solid #eee; border-radius: 4px; padding: 3px 8px; }
+        
+        /* Streaming content styles */
+        .streaming-content {
+            background: linear-gradient(90deg, #f0f9ff, #e0f2fe, #f0f9ff);
+            background-size: 200% 100%;
+            animation: shimmer 2s ease-in-out infinite;
+            padding: 8px 12px;
+            border-radius: 4px;
+            color: #0369a1;
+            font-style: italic;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        /* Recording button active state */
+        .record-btn.recording {
+            background: #ef4444 !important;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
         @media (max-width: 600px) {
             .main-content { padding: 8px 16px 0 16px; }
             .action-buttons { gap: 4px; max-width: 240px; margin-bottom: 24px; }
@@ -340,6 +367,11 @@ def get_main_ui_template() -> str:
         let bruteSolution = null;
         let optimizedSolution = null;
         let isWindowOpen = true; // Track toggle state, default is open
+        
+        // Recording variables
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
         
         // Load existing solutions from backend
         async function loadExistingSolutions() {
@@ -451,15 +483,193 @@ def get_main_ui_template() -> str:
             finally { showLoading(false); }
         }
         async function recordScreen() {
-            updateStatus('Recording...'); showLoading(true);
+            if (isRecording) {
+                // Stop recording
+                stopRecording();
+                return;
+            }
+            
+            // Check if browser supports media recording
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                updateStatus('Recording not supported in this browser');
+                return;
+            }
+            
             try {
-                const response = await fetch(`${API_BASE}/screen/record`, { method: 'POST' });
+                updateStatus('Starting recording...'); 
+                showLoading(true);
+                
+                // Request microphone access
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                // Create MediaRecorder
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                isRecording = true;
+                
+                // Update UI
+                const recordBtn = document.getElementById('recordBtn');
+                recordBtn.innerHTML = '<i class="fas fa-stop"></i>';
+                recordBtn.style.background = '#ef4444';
+                
+                // Handle data collection
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+                
+                // Handle recording stop
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    await processRecording(audioBlob);
+                };
+                
+                // Start recording
+                mediaRecorder.start();
+                updateStatus('Recording... Click record button again to stop');
+                showLoading(false);
+                
+            } catch (error) {
+                updateStatus('Failed to start recording: ' + error.message);
+                showLoading(false);
+                console.error('Recording error:', error);
+            }
+        }
+        
+        function stopRecording() {
+            if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+                isRecording = false;
+                
+                // Stop all audio tracks
+                if (mediaRecorder.stream) {
+                    mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                }
+                
+                // Reset UI
+                const recordBtn = document.getElementById('recordBtn');
+                recordBtn.innerHTML = '<i class="fas fa-video"></i>';
+                recordBtn.style.background = '#ec4899';
+                
+                updateStatus('Processing recording...');
+                showLoading(true);
+            }
+        }
+        
+        async function processRecording(audioBlob) {
+            try {
+                // Convert blob to base64
+                const base64Audio = await blobToBase64(audioBlob);
+                
+                // Send to server
+                const response = await fetch(`${API_BASE}/recording/mobile`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        audio_data: base64Audio.split(',')[1], // Remove data:audio/wav;base64, prefix
+                        recording_type: 'mobile'
+                    })
+                });
+                
                 const result = await response.json();
-                if (response.ok) {
-                    updateStatus('Recording started');
-                } else updateStatus('Error: ' + result.message);
-            } catch (error) { updateStatus('Recording failed'); }
-            finally { showLoading(false); }
+                if (response.ok && result.success) {
+                    updateStatus('Recording received, starting analysis...');
+                    // Start streaming analysis
+                    await startRecordingAnalysisStream();
+                } else {
+                    updateStatus('Error: ' + result.message);
+                    showLoading(false);
+                }
+            } catch (error) {
+                updateStatus('Failed to process recording: ' + error.message);
+                showLoading(false);
+                console.error('Processing error:', error);
+            }
+        }
+        
+        async function startRecordingAnalysisStream() {
+            try {
+                // Clear previous results
+                document.getElementById('resultsContainer').style.display = 'block';
+                document.getElementById('bruteSection').style.display = 'block';
+                document.getElementById('bruteExplanation').innerHTML = '<div class="streaming-content">Starting analysis...</div>';
+                document.getElementById('bruteCode').textContent = '';
+                
+                // Start Server-Sent Events stream
+                const eventSource = new EventSource(`${API_BASE}/recording/stream`);
+                let accumulatedText = '';
+                
+                eventSource.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        
+                        if (data.error) {
+                            updateStatus('Error: ' + data.error);
+                            showLoading(false);
+                            eventSource.close();
+                            return;
+                        }
+                        
+                        if (data.status === 'starting_analysis') {
+                            updateStatus('Analysis starting...');
+                            return;
+                        }
+                        
+                        if (data.chunk) {
+                            // Append new chunk
+                            accumulatedText += data.chunk;
+                            
+                            // Update display with streaming content
+                            const explanationHtml = marked.parse(accumulatedText);
+                            document.getElementById('bruteExplanation').innerHTML = explanationHtml;
+                            
+                            // Update status
+                            updateStatus(`Analyzing... (${data.total_length} characters)`);
+                        }
+                        
+                        if (data.status === 'completed') {
+                            // Final update
+                            const explanationHtml = marked.parse(data.complete_text);
+                            document.getElementById('bruteExplanation').innerHTML = explanationHtml;
+                            
+                            updateStatus(`Recording analysis completed (${data.final_length} characters)`);
+                            showLoading(false);
+                            eventSource.close();
+                        }
+                        
+                    } catch (parseError) {
+                        console.error('Failed to parse SSE data:', parseError);
+                    }
+                };
+                
+                eventSource.onerror = function(event) {
+                    updateStatus('Stream connection error');
+                    showLoading(false);
+                    eventSource.close();
+                };
+                
+                // Auto-close after 5 minutes
+                setTimeout(() => {
+                    if (eventSource.readyState === EventSource.OPEN) {
+                        eventSource.close();
+                        updateStatus('Analysis timeout');
+                        showLoading(false);
+                    }
+                }, 300000);
+                
+            } catch (error) {
+                updateStatus('Failed to start analysis stream: ' + error.message);
+                showLoading(false);
+                console.error('Stream error:', error);
+            }
+        }
+        
+        function blobToBase64(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
         }
         async function solveBrute() {
             updateStatus('Solving...'); showLoading(true);
