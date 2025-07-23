@@ -65,40 +65,6 @@ def create_routes(app: FastAPI, api_instance: WebServerAPI) -> None:
     async def get_current_solutions():
         return api_instance.get_current_solutions()
     
-    @app.post("/upload-solution", response_model=SolutionResponse)
-    async def upload_and_solve(
-        files: List[UploadFile] = File(...),
-        language: str = Form(default="Python")
-    ):
-        try:
-            screenshot_data = []
-            
-            for file in files:
-                # Validate file type
-                if not file.content_type.startswith('image/'):
-                    return SolutionResponse(
-                        success=False,
-                        message=f"File {file.filename} is not a valid image"
-                    )
-                
-                # Read and encode file to base64
-                contents = await file.read()
-                encoded = base64.b64encode(contents).decode()
-                screenshot_data.append(encoded)
-            
-            request = GenerateSolutionRequest(
-                language=language,
-                screenshot_data=screenshot_data
-            )
-            
-            return api_instance.generate_solution_from_screenshots(request)
-            
-        except Exception as e:
-            return SolutionResponse(
-                success=False,
-                message=f"Failed to process uploaded files: {str(e)}"
-            )
-    
     # Code optimization endpoint
     @app.post("/optimize", response_model=OptimizationResponse)
     async def optimize_solution(request: OptimizeSolutionRequest):

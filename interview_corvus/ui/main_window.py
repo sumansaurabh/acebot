@@ -497,6 +497,8 @@ class MainWindow(QMainWindow):
             solution_ready = pyqtSignal(object)
             error_occurred = pyqtSignal(str)
 
+            llm_service: LLMService = None
+
             def __init__(self, llm_service, screenshot_paths, language):
                 super().__init__()
                 self.llm_service = llm_service
@@ -632,7 +634,9 @@ class MainWindow(QMainWindow):
         logger.info(f"Language changed to: {language}")
         # Update web API state if connected
         if self.web_api:
-            self.web_api.update_language_from_gui(language)    @pyqtSlot(str)
+            self.web_api.update_language_from_gui(language)
+
+    @pyqtSlot(str)
     def on_language_changed_from_web(self, language: str):
         """Handle language changes from web API."""
         # Update the GUI language dropdown to match web selection
