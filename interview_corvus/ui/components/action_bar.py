@@ -56,11 +56,11 @@ class ActionBar(QWidget):
         self.optimize_button.setEnabled(False)
         layout.addWidget(self.optimize_button)
         
-        self.copy_button = QPushButton("📋 Copy")
-        self.copy_button.setFixedSize(90, 35)
-        self.copy_button.setToolTip("Copy Solution")
-        self.copy_button.setEnabled(False)
-        layout.addWidget(self.copy_button)
+        # self.copy_button = QPushButton("📋 Copy")
+        # self.copy_button.setFixedSize(90, 35)
+        # self.copy_button.setToolTip("Copy Solution")
+        # self.copy_button.setEnabled(False)
+        # layout.addWidget(self.copy_button)
         
         # Upload button
         self.upload_button = QPushButton("📁 Upload")
@@ -103,10 +103,10 @@ class ActionBar(QWidget):
         # Web server button (optional)
         try:
             from interview_corvus.api.web_server import create_integrated_web_server
-            self.web_server_button = QPushButton("🌐 API")
-            self.web_server_button.setFixedSize(70, 32)
-            self.web_server_button.setToolTip("Toggle Web API Server")
-            layout.addWidget(self.web_server_button)
+            # self.web_server_button = QPushButton("🌐 API")
+            # self.web_server_button.setFixedSize(70, 32)
+            # self.web_server_button.setToolTip("Toggle Web API Server")
+            # layout.addWidget(self.web_server_button)
         except ImportError:
             self.web_server_button = None
         
@@ -129,7 +129,7 @@ class ActionBar(QWidget):
         self.screenshot_button.clicked.connect(self.screenshot_requested.emit)
         self.generate_button.clicked.connect(self.generate_requested.emit)
         self.optimize_button.clicked.connect(self.optimize_requested.emit)
-        self.copy_button.clicked.connect(self.copy_requested.emit)
+        # self.copy_button.clicked.connect(self.copy_requested.emit)
         self.upload_button.clicked.connect(self.file_upload_requested.emit)
         self.record_button.clicked.connect(self.start_recording)
         self.stop_record_button.clicked.connect(self.stop_recording)
@@ -137,8 +137,8 @@ class ActionBar(QWidget):
         self.settings_button.clicked.connect(self.settings_requested.emit)
         self.visibility_button.clicked.connect(self.visibility_toggle_requested.emit)
         
-        if self.web_server_button:
-            self.web_server_button.clicked.connect(self.web_server_toggle_requested.emit)
+        # if self.web_server_button:
+        #     self.web_server_button.clicked.connect(self.web_server_toggle_requested.emit)
     
     def start_recording(self):
         """Handle start recording button click."""
@@ -176,7 +176,7 @@ class ActionBar(QWidget):
         """Update button enabled states based on available content."""
         self.generate_button.setEnabled(has_screenshots)
         self.optimize_button.setEnabled(has_solution)
-        self.copy_button.setEnabled(has_solution)
+        # self.copy_button.setEnabled(has_solution)
         
     def update_button_texts(self):
         """Update button tooltips to reflect current hotkey settings."""

@@ -232,8 +232,8 @@ class MainWindow(QMainWindow):
         self.action_bar.file_upload_requested.connect(self.show_file_upload_dialog)
         self.action_bar.recording_start_requested.connect(self.start_recording)
         self.action_bar.recording_stop_requested.connect(self.stop_recording)
-        if self.action_bar.web_server_button:
-            self.action_bar.web_server_toggle_requested.connect(self.toggle_web_server)
+        # if self.action_bar.web_server_button:
+        #     self.action_bar.web_server_toggle_requested.connect(self.toggle_web_server)
 
         # Screenshot controls signals
         self.screenshot_controls.screenshot_selected.connect(self._on_screenshot_selected)
