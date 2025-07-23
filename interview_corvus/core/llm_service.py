@@ -615,3 +615,242 @@ class LLMService(QObject):
                 file_summary=file_summary,
                 confidence=0.0
             )
+
+    def process_recording_with_files(self, recording_data: str, custom_prompt: Optional[str] = None) -> Generator[str, None, None]:
+        """Process recording with uploaded files and return streaming response.
+        
+        Args:
+            recording_data: Recording data or description
+            custom_prompt: Optional custom prompt from user
+            
+        Yields:
+            Streaming response chunks from LLM
+        """
+        try:
+            logger.info("Starting recording analysis with files")
+            
+            # Get file processor instance
+            file_processor = FileProcessor()
+            
+            # Get uploaded files content
+            saved_files = file_processor.get_saved_files_content()
+            files_content = None
+            
+            if saved_files:
+                # Combine content from all uploaded files
+                combined_content = []
+                for file_key, file_data in saved_files.items():
+                    if isinstance(file_data, dict) and 'content' in file_data:
+                        filename = file_data.get('filename', 'unknown')
+                        content = file_data.get('content', '')
+                        combined_content.append(f"=== File: {filename} ===\n{content}\n")
+                
+                if combined_content:
+                    files_content = "\n".join(combined_content)
+                    logger.info(f"Retrieved {len(saved_files)} uploaded files with {len(files_content)} characters")
+            
+            # Create recording analysis prompt
+            prompt_parts = []
+            
+            # Base recording prompt
+            base_prompt = """Analyze the provided recording and any additional file content. Provide a comprehensive analysis in markdown format.
+
+Recording Data:
+{recording_data}
+""".format(recording_data=recording_data)
+            
+            prompt_parts.append(base_prompt)
+            
+            # Add file content if available
+            if files_content:
+                prompt_parts.append(f"""
+Additional File Content:
+{files_content}
+""")
+            
+            # Add custom prompt if provided
+            if custom_prompt:
+                prompt_parts.append(f"""
+Specific Instructions:
+{custom_prompt}
+""")
+            
+            # Final instructions
+            prompt_parts.append("""
+Please provide your analysis in clear markdown format with appropriate headers and sections.""")
+            
+            full_prompt = "\n".join(prompt_parts)
+            
+            # Create chat messages
+            system_message = ChatMessage(
+                role=MessageRole.SYSTEM,
+                content="You are an expert analyst. Analyze recordings and related files to provide comprehensive insights."
+            )
+            
+            user_message = ChatMessage(
+                role=MessageRole.USER,
+                content=full_prompt
+            )
+            
+            chat_messages = [system_message, user_message]
+            
+            # Stream the response
+            logger.info("Starting streaming response for recording analysis")
+            self.streaming_started.emit()
+            
+            accumulated_text = ""
+            
+            try:
+                # Use streaming chat
+                response_stream = self.llm.stream_chat(chat_messages)
+                
+                for chunk in response_stream:
+                    if hasattr(chunk, 'delta') and chunk.delta:
+                        chunk_text = str(chunk.delta)
+                    elif hasattr(chunk, 'message') and hasattr(chunk.message, 'content'):
+                        chunk_text = str(chunk.message.content)
+                    else:
+                        chunk_text = str(chunk)
+                    
+                    if chunk_text:
+                        accumulated_text += chunk_text
+                        self.streaming_chunk_received.emit(chunk_text)
+                        yield chunk_text
+                        
+            except Exception as stream_error:
+                logger.warning(f"Streaming failed, falling back to regular chat: {stream_error}")
+                # Fallback to regular chat if streaming fails
+                response = self.llm.chat(chat_messages)
+                content = response.message.content if hasattr(response, 'message') else str(response)
+                accumulated_text = content
+                self.streaming_chunk_received.emit(content)
+                yield content
+            
+            logger.info(f"Recording analysis streaming completed, total length: {len(accumulated_text)}")
+            self.streaming_finished.emit(accumulated_text)
+            
+        except Exception as e:
+            error_msg = f"Error during recording analysis: {str(e)}"
+            logger.error(error_msg)
+            self.error_occurred.emit(error_msg)
+            yield f"**Error:** {error_msg}"
+
+    def get_recording_analysis_stream(self, recording_data: dict) -> Generator[str, None, None]:
+        """Get streaming analysis for recording data.
+        
+        Args:
+            recording_data: Dictionary containing recording information
+            
+        Yields:
+            Streaming response chunks from LLM
+        """
+        try:
+            logger.info("Starting recording analysis stream")
+            
+            # Extract recording content from the data
+            recording_content = recording_data.get('content', 'No recording content available')
+            recording_metadata = recording_data.get('metadata', {})
+            
+            # Get file processor instance for uploaded files
+            file_processor = FileProcessor()
+            saved_files = file_processor.get_saved_files_content()
+            files_content = None
+            
+            if saved_files:
+                # Combine content from all uploaded files
+                combined_content = []
+                for file_key, file_data in saved_files.items():
+                    if isinstance(file_data, dict) and 'content' in file_data:
+                        filename = file_data.get('filename', 'unknown')
+                        content = file_data.get('content', '')
+                        combined_content.append(f"=== File: {filename} ===\n{content}\n")
+                
+                if combined_content:
+                    files_content = "\n".join(combined_content)
+                    logger.info(f"Retrieved {len(saved_files)} uploaded files with {len(files_content)} characters")
+            
+            # Create the analysis prompt
+            prompt_parts = []
+            
+            # Base recording prompt
+            base_prompt = f"""Analyze the provided recording and any additional file content. Provide a comprehensive analysis in markdown format.
+
+Recording Content:
+{recording_content}
+
+Recording Metadata:
+{json.dumps(recording_metadata, indent=2) if recording_metadata else 'No metadata available'}
+"""
+            prompt_parts.append(base_prompt)
+            
+            # Add file content if available
+            if files_content:
+                prompt_parts.append(f"""
+Additional File Content:
+{files_content}
+""")
+            
+            # Final instructions
+            prompt_parts.append("""
+Please provide your analysis in clear markdown format with appropriate headers and sections. Focus on:
+1. Key insights from the recording
+2. Connections with any provided file content
+3. Actionable recommendations
+4. Summary of findings
+""")
+            
+            full_prompt = "\n".join(prompt_parts)
+            
+            # Create chat messages
+            system_message = ChatMessage(
+                role=MessageRole.SYSTEM,
+                content="You are an expert analyst. Analyze recordings and related files to provide comprehensive insights and actionable recommendations."
+            )
+            
+            user_message = ChatMessage(
+                role=MessageRole.USER,
+                content=full_prompt
+            )
+            
+            chat_messages = [system_message, user_message]
+            
+            # Stream the response
+            logger.info("Starting streaming response for recording analysis")
+            self.streaming_started.emit()
+            
+            accumulated_text = ""
+            
+            try:
+                # Use streaming chat
+                response_stream = self.llm.stream_chat(chat_messages)
+                
+                for chunk in response_stream:
+                    if hasattr(chunk, 'delta') and chunk.delta:
+                        chunk_text = str(chunk.delta)
+                    elif hasattr(chunk, 'message') and hasattr(chunk.message, 'content'):
+                        chunk_text = str(chunk.message.content)
+                    else:
+                        chunk_text = str(chunk)
+                    
+                    if chunk_text:
+                        accumulated_text += chunk_text
+                        self.streaming_chunk_received.emit(chunk_text)
+                        yield chunk_text
+                        
+            except Exception as stream_error:
+                logger.warning(f"Streaming failed, falling back to regular chat: {stream_error}")
+                # Fallback to regular chat if streaming fails
+                response = self.llm.chat(chat_messages)
+                content = response.message.content if hasattr(response, 'message') else str(response)
+                accumulated_text = content
+                self.streaming_chunk_received.emit(content)
+                yield content
+            
+            logger.info(f"Recording analysis streaming completed, total length: {len(accumulated_text)}")
+            self.streaming_finished.emit(accumulated_text)
+            
+        except Exception as e:
+            error_msg = f"Error during recording analysis stream: {str(e)}"
+            logger.error(error_msg)
+            self.error_occurred.emit(error_msg)
+            yield f"**Error:** {error_msg}"

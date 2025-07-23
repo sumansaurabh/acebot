@@ -13,7 +13,8 @@ from PyQt6.QtWidgets import (
 
 from interview_corvus.config import settings
 from interview_corvus.core.hotkey_manager import HotkeyManager
-from interview_corvus.core.llm_service import LLMService
+from ..core.llm_service import LLMService
+from ..core.recording_service import RecordingService
 from interview_corvus.invisibility.invisibility_manager import InvisibilityManager
 from interview_corvus.screenshot.screenshot_manager import ScreenshotManager
 from interview_corvus.ui.settings_dialog import SettingsDialog
@@ -36,6 +37,32 @@ except ImportError:
     logger.warning("Web server dependencies not available. Web API will be disabled.")
 
 
+class RecordingStreamingThread(QThread):
+    """Thread for handling recording analysis streaming."""
+    chunk_received = pyqtSignal(str)
+    streaming_finished = pyqtSignal(str)
+    error_occurred = pyqtSignal(str)
+
+    def __init__(self, llm_service: LLMService, recording_data: dict, parent=None):
+        super().__init__(parent)
+        self.llm_service = llm_service
+        self.recording_data = recording_data
+        self.complete_text = ""
+
+    def run(self):
+        try:
+            for chunk in self.llm_service.get_recording_analysis_stream(self.recording_data):
+                if chunk:
+                    self.complete_text += chunk
+                    self.chunk_received.emit(chunk)
+            
+            self.streaming_finished.emit(self.complete_text)
+            
+        except Exception as e:
+            logger.error(f"Recording streaming error: {str(e)}")
+            self.error_occurred.emit(str(e))
+
+
 class MainWindow(QMainWindow):
     """
     Refactored main application window using separate components.
@@ -55,6 +82,7 @@ class MainWindow(QMainWindow):
         # Initialize services
         self.screenshot_manager = ScreenshotManager()
         self.llm_service = LLMService()
+        self.recording_service = RecordingService()
         self.styles = Styles()
 
         # Initialize web server (optional)
@@ -200,7 +228,9 @@ class MainWindow(QMainWindow):
         self.action_bar.reset_requested.connect(self.reset_chat_history)
         self.action_bar.settings_requested.connect(self.show_settings)
         self.action_bar.visibility_toggle_requested.connect(self.toggle_visibility)
-        self.action_bar.file_upload_requested.connect(self.show_file_upload_dialog)  # New connection
+        self.action_bar.file_upload_requested.connect(self.show_file_upload_dialog)
+        self.action_bar.recording_start_requested.connect(self.start_recording)
+        self.action_bar.recording_stop_requested.connect(self.stop_recording)
         if self.action_bar.web_server_button:
             self.action_bar.web_server_toggle_requested.connect(self.toggle_web_server)
 
@@ -505,6 +535,109 @@ class MainWindow(QMainWindow):
         """Handle successfully uploaded files."""
         logger.info(f"Successfully uploaded files: {[Path(fp).name for fp in file_paths]}")
         self.status_bar_manager.show_message(f"Successfully uploaded {len(file_paths)} files and saved to user settings.", 3000)
+
+    @pyqtSlot()
+    def start_recording(self):
+        """Start recording."""
+        try:
+            success = self.recording_service.start_recording()
+            if success:
+                self.action_bar.set_recording_state(True)
+                self.status_bar_manager.show_message("Recording started...", 2000)
+                logger.info("Recording started successfully")
+            else:
+                self.status_bar_manager.show_message("Failed to start recording", 3000)
+                logger.error("Failed to start recording")
+        except Exception as e:
+            error_msg = f"Error starting recording: {str(e)}"
+            logger.error(error_msg)
+            self.status_bar_manager.show_message(error_msg, 3000)
+
+    @pyqtSlot()
+    def stop_recording(self):
+        """Stop recording and process with LLM."""
+        try:
+            recording_path = self.recording_service.stop_recording()
+            if recording_path:
+                self.action_bar.set_recording_state(False)
+                self.status_bar_manager.show_message("Processing recording...", 3000)
+                logger.info(f"Recording stopped: {recording_path}")
+                
+                # Start processing the recording with streaming
+                self.process_recording_analysis(recording_path)
+            else:
+                self.status_bar_manager.show_message("Failed to stop recording", 3000)
+                logger.error("Failed to stop recording")
+                self.action_bar.set_recording_state(False)
+        except Exception as e:
+            error_msg = f"Error stopping recording: {str(e)}"
+            logger.error(error_msg)
+            self.status_bar_manager.show_message(error_msg, 3000)
+            self.action_bar.set_recording_state(False)
+
+    def process_recording_analysis(self, recording_path: str):
+        """Process recording analysis with streaming response."""
+        try:
+            # Prepare recording data
+            recording_data = self.recording_service.prepare_recording_data(recording_path)
+            if not recording_data:
+                self.status_bar_manager.show_message("Failed to prepare recording data", 3000)
+                return
+            
+            # Clear previous content and start streaming
+            self.content_display.clear_content()
+            self.solution_text = ""
+            self.processing_screenshot = True
+            self.action_bar.set_processing_state(True)
+            
+            # Start streaming thread
+            self.recording_streaming_thread = RecordingStreamingThread(
+                self.llm_service, recording_data, self
+            )
+            self.recording_streaming_thread.chunk_received.connect(self.on_recording_chunk_received)
+            self.recording_streaming_thread.streaming_finished.connect(self.on_recording_streaming_finished)
+            self.recording_streaming_thread.error_occurred.connect(self.on_recording_streaming_error)
+            self.recording_streaming_thread.start()
+            
+            # Clean up recording file
+            self.recording_service.cleanup_recording(recording_path)
+            
+        except Exception as e:
+            error_msg = f"Error processing recording: {str(e)}"
+            logger.error(error_msg)
+            self.status_bar_manager.show_message(error_msg, 3000)
+            self.processing_screenshot = False
+            self.action_bar.set_processing_state(False)
+
+    def on_recording_chunk_received(self, chunk: str):
+        """Handle received streaming chunk for recording analysis."""
+        if chunk:
+            self.solution_text += chunk
+            # Update display with streaming content
+            self.content_display.display_recording_content(self.solution_text)
+
+    def on_recording_streaming_finished(self, complete_text: str):
+        """Handle completion of recording streaming."""
+        logger.info("Recording analysis streaming finished")
+        self.solution_text = complete_text
+        
+        # Final update with complete content
+        self.content_display.display_recording_content(complete_text)
+        
+        # Update UI state
+        self.processing_screenshot = False
+        self.action_bar.set_processing_state(False)
+        self.action_bar.update_button_states(has_solution=True)
+        self.status_bar_manager.set_progress_text("Ready")
+        self.status_bar_manager.show_message(f"Recording analysis completed ({len(complete_text)} characters)", 3000)
+
+    def on_recording_streaming_error(self, error_msg: str):
+        """Handle recording streaming error."""
+        logger.error(f"Recording streaming error: {error_msg}")
+        self.processing_screenshot = False
+        self.action_bar.set_processing_state(False)
+        self.status_bar_manager.show_message(f"Recording analysis failed: {error_msg}", 5000)
+
     def _create_solution_thread(self, screenshot_paths, language):
         """Create a thread for solution generation."""
         class ScreenshotProcessingThread(QThread):
