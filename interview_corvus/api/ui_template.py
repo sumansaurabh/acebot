@@ -85,29 +85,24 @@ def get_main_ui_template() -> str:
             color: #666;
             min-height: 18px;
         }
-        .screenshot-count {
-            font-size: 12px;
-            font-weight: 600;
-            color: #3b82f6;
-            margin: 20px 0 16px 0;
-            text-align: center;
-            background: #eff6ff;
-            padding: 8px 16px;
-            border-radius: 20px;
-            display: inline-block;
-            width: fit-content;
-            margin-left: 50%;
-            transform: translateX(-50%);
+        .info-bar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin: 16px 0;
+            flex-wrap: wrap;
         }
         .language-selector {
-            text-align: center;
-            margin: 12px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         .language-selector label {
             font-size: 12px;
             font-weight: 600;
             color: #6b7280;
-            margin-right: 8px;
+            white-space: nowrap;
         }
         .language-selector select {
             padding: 4px 8px;
@@ -117,6 +112,16 @@ def get_main_ui_template() -> str:
             background: white;
             color: #374151;
             cursor: pointer;
+            min-width: 90px;
+        }
+        .screenshot-count {
+            font-size: 12px;
+            font-weight: 600;
+            color: #3b82f6;
+            background: #eff6ff;
+            padding: 6px 12px;
+            border-radius: 16px;
+            white-space: nowrap;
         }
         .loading-spinner {
             display: none;
@@ -263,15 +268,16 @@ def get_main_ui_template() -> str:
             .action-buttons { gap: 4px; max-width: 240px; }
             .action-btn { font-size: 18px; min-height: 36px; padding: 6px; }
             .action-btn::after { font-size: 8px; bottom: -14px; }
+            .info-bar { gap: 12px; margin: 12px 0; }
+            .language-selector label { font-size: 11px; }
+            .language-selector select { font-size: 11px; padding: 3px 6px; min-width: 80px; }
+            .screenshot-count { font-size: 11px; padding: 5px 10px; }
             .explanation { font-size: 12px; }
             .explanation h1 { font-size: 15px; }
             .explanation h2 { font-size: 14px; }
             .explanation h3 { font-size: 13px; }
             .explanation code { font-size: 11px; }
             .code-block { font-size: 11px; padding: 10px !important; }
-            .screenshot-count { font-size: 11px; padding: 6px 12px; }
-            .language-selector label { font-size: 11px; }
-            .language-selector select { font-size: 11px; padding: 3px 6px; }
         }
     </style>
 </head>
@@ -286,20 +292,22 @@ def get_main_ui_template() -> str:
             <button class="action-btn clear-btn" onclick="clearScreenshots()" id="clearBtn" data-label="clear" title="Clear Screenshots">🗑️</button>
             <button class="action-btn reset-btn" onclick="resetAll()" id="resetBtn" data-label="reset" title="Reset All">🔄</button>
         </div>
-        <div class="language-selector">
-            <label for="languageSelect">Language:</label>
-            <select id="languageSelect" onchange="changeLanguage(this.value)">
-                <option value="python">Python</option>
-                <option value="java">Java</option>
-                <option value="javascript">JavaScript</option>
-                <option value="c++">C++</option>
-                <option value="c#">C#</option>
-                <option value="go">Go</option>
-                <option value="rust">Rust</option>
-                <option value="ruby">Ruby</option>
-            </select>
+        <div class="info-bar">
+            <div class="language-selector">
+                <label for="languageSelect">Language:</label>
+                <select id="languageSelect" onchange="changeLanguage(this.value)">
+                    <option value="python">Python</option>
+                    <option value="java">Java</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="c++">C++</option>
+                    <option value="c#">C#</option>
+                    <option value="go">Go</option>
+                    <option value="rust">Rust</option>
+                    <option value="ruby">Ruby</option>
+                </select>
+            </div>
+            <div class="screenshot-count">📸 <span id="screenshotCount">0</span> screenshots</div>
         </div>
-        <div class="screenshot-count">📸 <span id="screenshotCount">0</span> screenshots</div>
         <div class="status-bar" id="statusBar">Ready</div>
         <div class="loading-spinner" id="loadingSpinner"></div>
         <div class="results-container" id="resultsContainer" style="display: none;">
