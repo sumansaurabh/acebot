@@ -61,6 +61,10 @@ def create_routes(app: FastAPI, api_instance: WebServerAPI) -> None:
     async def generate_solution(request: GenerateSolutionRequest):
         return api_instance.generate_solution_from_screenshots(request)
     
+    @app.get("/solution/current")
+    async def get_current_solutions():
+        return api_instance.get_current_solutions()
+    
     @app.post("/upload-solution", response_model=SolutionResponse)
     async def upload_and_solve(
         files: List[UploadFile] = File(...),

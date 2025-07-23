@@ -164,6 +164,9 @@ class WebServerAPI(QObject):
             
             print("✅ Web API: Solution generated successfully")
             
+            # Store the solution for persistence
+            self.llm_service._last_solution = solution_dict
+            
             return SolutionResponse(
                 success=True,
                 message="Solution generated successfully",
@@ -238,6 +241,9 @@ class WebServerAPI(QObject):
                 }
             
             print("✅ Web API: Code optimized successfully")
+            
+            # Store the optimization for persistence
+            self.llm_service._last_optimization = optimization_dict
             
             return OptimizationResponse(
                 success=True,
@@ -332,6 +338,9 @@ class WebServerAPI(QObject):
                 )
             
             self.screenshot_manager.clear_screenshots()
+            # Clear stored solutions
+            self.llm_service._last_solution = None
+            self.llm_service._last_optimization = None
             # Emit signal to update GUI
             self.screenshots_cleared.emit()
             return JSONResponse(
@@ -430,9 +439,45 @@ class WebServerAPI(QObject):
                 status_code=500
             )
     
-    def get_main_ui(self) -> HTMLResponse:
-        """Serve the main web UI."""
-        return HTMLResponse(content=get_main_ui_template())
+    def get_current_solutions(self) -> JSONResponse:
+        """Get the current session solutions if available."""
+        try:
+            if not self.gui_connected:
+                return JSONResponse(
+                    status_code=200,
+                    content={
+                        "success": True,
+                        "brute_solution": None,
+                        "optimized_solution": None,
+                        "message": "No GUI connected - no solutions available"
+                    }
+                )
+            
+            # Get current session data from the content display component
+            # Note: This is a simplified implementation - in a real scenario,
+            # you might want to store solutions in a more persistent way
+            current_session = getattr(self.llm_service, '_last_solution', None)
+            optimized_session = getattr(self.llm_service, '_last_optimization', None)
+            
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "success": True,
+                    "brute_solution": current_session,
+                    "optimized_solution": optimized_session,
+                    "message": "Current solutions retrieved"
+                }
+            )
+            
+        except Exception as e:
+            print(f"❌ Web API: Failed to get current solutions: {str(e)}")
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "success": False,
+                    "message": f"Failed to get current solutions: {str(e)}"
+                }
+            )
     
     def get_language(self) -> LanguageResponse:
         """Get current language settings."""
@@ -490,3 +535,7 @@ class WebServerAPI(QObject):
                 content={"success": False, "message": f"Failed to set language: {str(e)}"},
                 status_code=500
             )
+    
+    def get_main_ui(self) -> HTMLResponse:
+        """Get the main UI HTML page."""
+        return HTMLResponse(content=get_main_ui_template())

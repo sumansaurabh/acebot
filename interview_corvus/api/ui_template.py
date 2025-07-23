@@ -338,7 +338,34 @@ def get_main_ui_template() -> str:
     <script>
         const API_BASE = '';
         let bruteSolution = null;
+        let optimizedSolution = null;
         let isWindowOpen = true; // Track toggle state, default is open
+        
+        // Load existing solutions from backend
+        async function loadExistingSolutions() {
+            try {
+                // Check if there are existing solutions in the backend
+                const response = await fetch(`${API_BASE}/solution/current`);
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    // Load brute solution if it exists
+                    if (result.brute_solution) {
+                        bruteSolution = result.brute_solution;
+                        displayBruteSolution(result.brute_solution);
+                        document.getElementById('optimizeBtn').disabled = false;
+                    }
+                    
+                    // Load optimized solution if it exists
+                    if (result.optimized_solution) {
+                        optimizedSolution = result.optimized_solution;
+                        displayOptimizedSolution(result.optimized_solution);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load existing solutions:', error);
+            }
+        }
         
         function updateStatus(message, type = 'info') {
             const statusBar = document.getElementById('statusBar');
@@ -399,7 +426,10 @@ def get_main_ui_template() -> str:
                     // Enable/disable solve button based on screenshot availability
                     document.getElementById('solveBtn').disabled = count === 0;
                 })
-                .catch(() => { document.getElementById('screenshotCount').textContent = '0'; });
+                .catch(() => { 
+                    document.getElementById('screenshotCount').textContent = '0';
+                    document.getElementById('solveBtn').disabled = true;
+                });
         }
         async function captureScreen() {
             updateStatus('Capturing...'); showLoading(true);
@@ -461,6 +491,7 @@ def get_main_ui_template() -> str:
                 });
                 const result = await response.json();
                 if (response.ok && result.optimization) {
+                    optimizedSolution = result.optimization;
                     displayOptimizedSolution(result.optimization);
                     updateStatus('Optimized');
                 } else updateStatus('Error: ' + result.message);
@@ -481,6 +512,7 @@ def get_main_ui_template() -> str:
                     document.getElementById('bruteSection').style.display = 'none';
                     document.getElementById('optimizedSection').style.display = 'none';
                     bruteSolution = null;
+                    optimizedSolution = null;
                     document.getElementById('optimizeBtn').disabled = true;
                 } else updateStatus('Error: ' + result.message);
             } catch (error) { updateStatus('Connection error'); }
@@ -502,6 +534,7 @@ def get_main_ui_template() -> str:
                     document.getElementById('bruteSection').style.display = 'none';
                     document.getElementById('optimizedSection').style.display = 'none';
                     bruteSolution = null;
+                    optimizedSolution = null;
                     document.getElementById('optimizeBtn').disabled = true;
                 } else updateStatus('Error: ' + (result1.message || result2.message));
             } catch (error) { updateStatus('Connection error'); }
@@ -549,6 +582,10 @@ def get_main_ui_template() -> str:
         window.addEventListener('load', () => {
             document.getElementById('solveBtn').disabled = true;
             document.getElementById('optimizeBtn').disabled = true;
+            
+            // Load existing solutions from backend
+            loadExistingSolutions();
+            
             updateScreenshotCount();
             updateLanguageDropdown();
             updateStatus('Ready');

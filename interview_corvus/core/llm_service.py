@@ -65,6 +65,10 @@ class LLMService(QObject):
         self.chat_engine = SimpleChatEngine.from_defaults(
             llm=self.llm,
         )
+        
+        # Session storage for persistence
+        self._last_solution = None
+        self._last_optimization = None
 
     def reset_chat_history(self):
         """Reset the chat history."""
@@ -73,6 +77,9 @@ class LLMService(QObject):
         self.chat_engine = SimpleChatEngine.from_defaults(
             llm=self.llm,
         )
+        # Clear stored solutions
+        self._last_solution = None
+        self._last_optimization = None
 
     def get_code_optimization(
         self, code: str, language: str = None
