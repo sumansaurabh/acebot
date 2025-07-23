@@ -84,7 +84,28 @@ recording_data = recording_service.prepare_recording_data(recording_path)
 - **Timeout Protection**: 30-second limit prevents hanging
 - **Resource Cleanup**: Proper thread and loop management
 
-## Configuration
+## Current Status
+
+### ⚠️ **Important**: Audio Recording Implementation Needed
+
+The current issue you're experiencing (`corrupt or unsupported data`) occurs because the recording service was creating placeholder text files instead of actual audio files. 
+
+**What's happening:**
+1. Recording service creates a text file with "placeholder recording data"
+2. Deepgram tries to transcribe this text file as audio
+3. Deepgram rejects it as "corrupt or unsupported data"
+
+**Solution Implemented:**
+- Added PyAudio dependency for real audio recording
+- Implemented actual microphone recording functionality
+- Added fallback for systems without PyAudio
+
+**To fix this, you need to:**
+1. Install PyAudio: `poetry add pyaudio` (already added to pyproject.toml)
+2. For macOS, you may need: `brew install portaudio` first
+3. Test the recording workflow with `python test_recording_workflow.py`
+
+### 🎤 **Audio Recording Requirements**
 
 ### API Key Storage
 Currently hardcoded in `DeepgramService._get_deepgram_api_key()`:

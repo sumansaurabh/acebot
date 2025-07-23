@@ -3,9 +3,18 @@
 import json
 import os
 import tempfile
+import wave
+import threading
 from pathlib import Path
 from typing import Optional, Dict, Any, Generator
 import base64
+
+try:
+    import pyaudio
+    PYAUDIO_AVAILABLE = True
+except ImportError:
+    PYAUDIO_AVAILABLE = False
+    pyaudio = None
 
 from loguru import logger
 
@@ -23,8 +32,17 @@ class RecordingService:
         self.current_recording_path: Optional[str] = None
         self.is_recording = False
         
+        # Audio recording parameters
+        self.audio_format = pyaudio.paInt16 if PYAUDIO_AVAILABLE else None
+        self.channels = 1
+        self.rate = 16000  # 16kHz sample rate (good for speech)
+        self.chunk = 1024
+        self.audio_frames = []
+        self.audio_stream = None
+        self.pyaudio_instance = None
+        
     def start_recording(self) -> bool:
-        """Start recording (placeholder for actual recording implementation).
+        """Start recording audio from microphone.
         
         Returns:
             True if recording started successfully, False otherwise
@@ -32,26 +50,82 @@ class RecordingService:
         if self.is_recording:
             logger.warning("Recording already in progress")
             return False
+        
+        if not PYAUDIO_AVAILABLE:
+            logger.warning("PyAudio not available - creating silent audio file for testing")
+            # Create a silent audio file for testing purposes
+            try:
+                temp_dir = Path(tempfile.gettempdir()) / "interview_corvus_recordings"
+                temp_dir.mkdir(exist_ok=True)
+                self.current_recording_path = str(temp_dir / f"recording_{os.getpid()}.wav")
+                self.is_recording = True
+                logger.info(f"Fallback recording started (silent): {self.current_recording_path}")
+                return True
+            except Exception as e:
+                logger.error(f"Failed to start fallback recording: {e}")
+                return False
             
         try:
             # Create temporary file for recording
             temp_dir = Path(tempfile.gettempdir()) / "interview_corvus_recordings"
             temp_dir.mkdir(exist_ok=True)
             
-            # For now, we'll use a placeholder path
-            # In real implementation, this would start actual audio/screen recording
             self.current_recording_path = str(temp_dir / f"recording_{os.getpid()}.wav")
+            
+            # Initialize PyAudio
+            self.pyaudio_instance = pyaudio.PyAudio()
+            
+            # Open audio stream
+            self.audio_stream = self.pyaudio_instance.open(
+                format=self.audio_format,
+                channels=self.channels,
+                rate=self.rate,
+                input=True,
+                frames_per_buffer=self.chunk
+            )
+            
+            # Clear previous frames
+            self.audio_frames = []
             self.is_recording = True
             
-            logger.info(f"Recording started: {self.current_recording_path}")
+            # Start recording in a separate thread
+            self.recording_thread = threading.Thread(target=self._record_audio)
+            self.recording_thread.start()
+            
+            logger.info(f"Audio recording started: {self.current_recording_path}")
             return True
             
         except Exception as e:
             logger.error(f"Failed to start recording: {e}")
+            self._cleanup_recording()
             return False
     
+    def _record_audio(self):
+        """Record audio in a separate thread."""
+        try:
+            while self.is_recording and self.audio_stream:
+                data = self.audio_stream.read(self.chunk)
+                self.audio_frames.append(data)
+        except Exception as e:
+            logger.error(f"Error during audio recording: {e}")
+    
+    def _cleanup_recording(self):
+        """Clean up recording resources."""
+        try:
+            if self.audio_stream:
+                self.audio_stream.stop_stream()
+                self.audio_stream.close()
+                self.audio_stream = None
+                
+            if self.pyaudio_instance:
+                self.pyaudio_instance.terminate()
+                self.pyaudio_instance = None
+                
+        except Exception as e:
+            logger.error(f"Error cleaning up recording: {e}")
+    
     def stop_recording(self) -> Optional[str]:
-        """Stop recording and return the recording file path.
+        """Stop recording and save the audio file.
         
         Returns:
             Path to the recording file or None if failed
@@ -63,20 +137,60 @@ class RecordingService:
         try:
             self.is_recording = False
             recording_path = self.current_recording_path
+            
+            if not PYAUDIO_AVAILABLE:
+                # For fallback mode, create a simple WAV file
+                if recording_path:
+                    self._create_empty_wav_file(recording_path)
+                    logger.info(f"Fallback recording stopped: {recording_path}")
+                self.current_recording_path = None
+                return recording_path
+            
+            # Wait for recording thread to finish
+            if hasattr(self, 'recording_thread') and self.recording_thread.is_alive():
+                self.recording_thread.join(timeout=2.0)
+            
+            # Clean up audio resources
+            self._cleanup_recording()
+            
+            # Save audio data to WAV file
+            if recording_path and self.audio_frames:
+                with wave.open(recording_path, 'wb') as wf:
+                    wf.setnchannels(self.channels)
+                    wf.setsampwidth(2)  # 16-bit audio (2 bytes per sample)
+                    wf.setframerate(self.rate)
+                    wf.writeframes(b''.join(self.audio_frames))
+                
+                logger.info(f"Audio recording saved: {recording_path} ({len(self.audio_frames)} frames)")
+            else:
+                logger.warning("No audio data recorded or no recording path")
+                if recording_path:
+                    # Create an empty WAV file as fallback
+                    self._create_empty_wav_file(recording_path)
+            
             self.current_recording_path = None
+            self.audio_frames = []
             
-            # In real implementation, this would stop the actual recording
-            # For now, create a placeholder file
-            if recording_path and not os.path.exists(recording_path):
-                with open(recording_path, 'w') as f:
-                    f.write("placeholder recording data")
-            
-            logger.info(f"Recording stopped: {recording_path}")
             return recording_path
             
         except Exception as e:
             logger.error(f"Failed to stop recording: {e}")
+            self._cleanup_recording()
             return None
+    
+    def _create_empty_wav_file(self, file_path: str):
+        """Create an empty WAV file as fallback."""
+        try:
+            with wave.open(file_path, 'wb') as wf:
+                wf.setnchannels(self.channels)
+                wf.setsampwidth(2)  # 16-bit
+                wf.setframerate(self.rate)
+                # Write 1 second of silence
+                silence = b'\x00\x00' * self.rate
+                wf.writeframes(silence)
+            logger.info(f"Created empty WAV file: {file_path}")
+        except Exception as e:
+            logger.error(f"Failed to create empty WAV file: {e}")
     
     def get_uploaded_files_content(self) -> Optional[str]:
         """Get uploaded file content from user settings.

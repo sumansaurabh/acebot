@@ -803,29 +803,15 @@ Please provide your analysis in clear markdown format with appropriate headers a
                     logger.warning("No uploaded files found in user settings")
                     files_content = "=== No uploaded files found ===\nPlease upload files first before selecting them for analysis.\n"
             else:
-                logger.info("No selected file keys provided")
-                # Fallback to existing behavior if no selected files
-                file_processor = FileProcessor()
-                saved_files = file_processor.get_saved_files_content()
-                
-                if saved_files:
-                    # Combine content from all uploaded files
-                    combined_content = []
-                    for file_key, file_data in saved_files.items():
-                        if isinstance(file_data, dict) and 'content' in file_data:
-                            filename = file_data.get('filename', 'unknown')
-                            content = file_data.get('content', '')
-                            combined_content.append(f"=== File: {filename} ===\n{content}\n")
-                    
-                    if combined_content:
-                        files_content = "\n".join(combined_content)
-                        logger.info(f"Fallback: Retrieved {len(saved_files)} uploaded files with {len(files_content)} characters")
+                logger.info("No selected file keys provided - processing audio without additional files")
+                # Don't load any files if none are specifically selected
+                files_content = None
             
             # Create the analysis prompt
             prompt_parts = []
             
             # Base recording prompt
-            base_prompt = f"""Analyze the provided transcribed recording and any additional file content. Provide a comprehensive analysis in markdown format.
+            base_prompt = f"""Answer the technical questions from the transcribed recording directly and concisely. Provide the best technical answers as an expert would.
 
 Recording Transcript:
 {recording_content}
@@ -844,12 +830,19 @@ Additional File Content:
             
             # Final instructions
             prompt_parts.append("""
-Please provide your analysis in clear markdown format with appropriate headers and sections. Focus on:
-1. Key insights from the transcribed recording
-2. Technical questions asked and their answers
-3. Connections with any provided file content
-4. Actionable recommendations
-5. Summary of findings
+Please provide direct answers to the technical questions asked in the recording. Format your response as follows:
+
+**For each question identified:**
+1. **Question:** [Restate the question clearly]
+2. **Answer:** [Provide the best technical answer in bullet points]
+3. **Key Keywords:** [List 3-5 relevant technical keywords/concepts]
+4. **Additional Notes:** [Any important clarifications in bullet points]
+
+**Response Format:**
+- Use bullet points, not paragraphs
+- Be concise and technical
+- Focus on practical, actionable answers
+- Suggest relevant keywords for further study
 """)
             
             full_prompt = "\n".join(prompt_parts)
@@ -857,7 +850,7 @@ Please provide your analysis in clear markdown format with appropriate headers a
             # Create chat messages
             system_message = ChatMessage(
                 role=MessageRole.SYSTEM,
-                content="You are an expert technical interviewer who knows answers to all technical questions. Analyze transcribed recordings and respond to the questions asked."
+                content="You are the best technical expert who provides direct, concise answers to technical questions. Answer questions from transcribed recordings with bullet points and suggest relevant keywords for each topic."
             )
             
             user_message = ChatMessage(
