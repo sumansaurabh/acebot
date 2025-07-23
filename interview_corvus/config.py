@@ -209,7 +209,7 @@ If any background knowledge or assumptions are needed, state them explicitly. Us
 
             For the explanation, focus only on the key algorithmic approach and logic, not problem statement details.
             """,
-            "mcq": """
+            "mcq_solution": """
             
 You are an expert MCQ solver. You will be shown an image containing **one or more multiple-choice questions**. For each question in the image:
 
