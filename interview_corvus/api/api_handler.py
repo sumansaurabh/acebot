@@ -819,6 +819,20 @@ class WebServerAPI(QObject):
                 }
                 yield f"data: {json.dumps(completion_data)}\n\n"
                 
+                # Save recording analysis to backend storage (same as solve feature)
+                recording_solution = {
+                    "code": "",  # No code for recording analysis
+                    "language": "analysis",  # Mark as analysis
+                    "explanation": accumulated_text,  # The full markdown analysis
+                    "time_complexity": "N/A",
+                    "space_complexity": "N/A",
+                    "edge_cases": [],
+                    "alternative_approaches": None,
+                    "source": "recording"  # Mark source as recording
+                }
+                self.llm_service._last_solution = recording_solution
+                print("🔄 Recording analysis saved to backend storage for persistence")
+                
             except Exception as e:
                 error_data = {
                     'status': 'error',

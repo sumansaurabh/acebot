@@ -963,12 +963,32 @@ def get_main_ui_template() -> str:
             const explanationHtml = marked.parse(solution.explanation || 'No explanation provided.');
             document.getElementById('bruteExplanation').innerHTML = explanationHtml;
             
-            // Render syntax-highlighted code
-            document.getElementById('bruteCode').textContent = solution.code || '';
-            Prism.highlightElement(document.getElementById('bruteCode'));
-            
-            document.getElementById('bruteTimeComplexity').textContent = solution.time_complexity || '-';
-            document.getElementById('bruteSpaceComplexity').textContent = solution.space_complexity || '-';
+            // Only show code and complexity for actual code solutions, not recording analysis
+            if (solution.code && solution.source !== 'recording') {
+                // Render syntax-highlighted code
+                document.getElementById('bruteCode').textContent = solution.code;
+                Prism.highlightElement(document.getElementById('bruteCode'));
+                
+                document.getElementById('bruteTimeComplexity').textContent = solution.time_complexity || '-';
+                document.getElementById('bruteSpaceComplexity').textContent = solution.space_complexity || '-';
+                
+                // Show complexity info and enable optimize button
+                const complexityInfo = document.querySelector('#bruteSection .complexity-info');
+                if (complexityInfo) {
+                    complexityInfo.style.display = 'flex';
+                }
+                document.getElementById('optimizeBtn').disabled = false;
+            } else {
+                // Hide code and complexity for recording analysis
+                document.getElementById('bruteCode').textContent = '';
+                
+                const complexityInfo = document.querySelector('#bruteSection .complexity-info');
+                if (complexityInfo) {
+                    complexityInfo.style.display = 'none';
+                }
+                // Don't enable optimize for recording analysis
+                document.getElementById('optimizeBtn').disabled = true;
+            }
         }
         function displayOptimizedSolution(optimization) {
             document.getElementById('optimizedSection').style.display = 'block';
