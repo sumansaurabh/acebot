@@ -47,7 +47,8 @@ class MainWindow(QMainWindow):
         # Core managers
         self.invisibility_manager = invisibility_manager
         self.hotkey_manager = hotkey_manager
-        self.check_and_request_permissions()
+        # hotkey disabled, so no permissions for now
+        # self.check_and_request_permissions()
 
         # Initialize services
         self.screenshot_manager = ScreenshotManager()
@@ -133,14 +134,16 @@ class MainWindow(QMainWindow):
         """Set up the user interface with components."""
         # Set stylesheet
         self.setStyleSheet(self._get_minimal_stylesheet())
+        logger.info("Stylesheet applied")
 
         # Create central widget and main layout
         central_widget = QWidget()
         main_layout = QVBoxLayout()
         main_layout.setSpacing(0)
         main_layout.setContentsMargins(12, 4, 12, 12)
+        logger.info("Central widget and main layout created")
 
-                # Create and add action bar
+        # Create and add action bar
         self.action_bar = ActionBar(self)
         main_layout.addWidget(self.action_bar, 0)  # No stretch
         logger.info("Action bar created and added to layout")
@@ -153,30 +156,33 @@ class MainWindow(QMainWindow):
         # Create and add content display
         self.content_display = ContentDisplay(self)
         main_layout.addWidget(self.content_display, 1)  # stretch factor of 1
+        logger.info("Content display created and added to layout")
 
         # Set up main widget
         central_widget.setLayout(main_layout)
         self.setCentralWidget(central_widget)
+        logger.info("Central widget set up and assigned to main window")
 
         # Create menu manager and set up menus
         self.menu_manager = MenuManager(self)
         self.menu_manager.create_menu_bar()
         self.menu_manager.create_system_tray()
+        logger.info("Menu manager created")
 
         # Create status bar manager
         self.status_bar_manager = StatusBarManager(self)
         self.status_bar_manager.create_status_bar()
+        logger.info("Status bar manager created")
 
         # Update initial state
         self.screenshot_controls.update_thumbnails()
         self.action_bar.update_button_texts()
-
-        # Restore session data
-        self.content_display.restore_session_data()
+        logger.info("Initial state updated")
 
         # Update web server status if auto-started
         if WEB_SERVER_AVAILABLE and self.web_server_thread and self.web_server_thread.isRunning():
             self.status_bar_manager.update_web_server_status(True, self.web_server_port)
+            logger.info("Web server status updated")
 
     def connect_signals(self):
         """Connect all component signals to handlers."""
@@ -832,4 +838,4 @@ class MainWindow(QMainWindow):
     def showEvent(self, event):
         """Handle show events."""
         super().showEvent(event)
-        self.content_display.restore_session_data()
+        # self.content_display.restore_session_data()

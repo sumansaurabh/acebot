@@ -78,7 +78,8 @@ class WebServerThread(QThread):
                 self.app,
                 host=self.host,
                 port=self.port,
-                log_level="info"
+                log_level="warning",  # Only show warnings and errors, no access logs
+                access_log=False      # Disable HTTP access logging
             )
         except Exception as e:
             logger.error(f"❌ Failed to start web server: {e}")
