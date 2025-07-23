@@ -313,6 +313,7 @@ class Settings(BaseSettings):
             "rust",
             "ruby",
             "mysql",
+            "mcq"
         ]
     )
 

@@ -304,6 +304,7 @@ def get_main_ui_template() -> str:
                     <option value="go">Go</option>
                     <option value="rust">Rust</option>
                     <option value="ruby">Ruby</option>
+                    <option value="mcq">Mcq</option>
                 </select>
             </div>
             <div class="screenshot-count">📸 <span id="screenshotCount">0</span> screenshots</div>

@@ -274,6 +274,9 @@ class LLMService(QObject):
         try:
             structured = self.llm.as_structured_llm(output_cls=CodeSolution)
             response = structured.chat(chat_messages)
+
+            print(f"🔍 LLM Service: Received response type: {type(response)}")
+            print(response)
             
             # Handle different response formats from LlamaIndex structured LLM
             # First, try to get the structured object directly
