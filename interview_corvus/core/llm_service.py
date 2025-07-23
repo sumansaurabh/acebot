@@ -1,5 +1,6 @@
 import json
-from typing import List, Type, TypeVar, Union
+from pathlib import Path
+from typing import List, Type, TypeVar, Union, Generator, Optional
 
 from llama_index.core.base.llms.types import ChatMessage, ImageBlock, MessageRole
 from llama_index.core.chat_engine import SimpleChatEngine
@@ -10,8 +11,9 @@ from pydantic import BaseModel
 from PyQt6.QtCore import QObject, pyqtSignal
 
 from interview_corvus.config import settings
-from interview_corvus.core.models import CodeOptimization, CodeSolution, McqSolution
+from interview_corvus.core.models import CodeOptimization, CodeSolution, McqSolution, RecordingSolution
 from interview_corvus.core.prompt_manager import PromptManager
+from interview_corvus.core.file_processor import FileProcessor
 from interview_corvus.security.api_key_manager import APIKeyManager
 
 T = TypeVar("T", bound=BaseModel)
@@ -23,6 +25,11 @@ class LLMService(QObject):
     # Signals for responses
     completion_finished = pyqtSignal(object)
     error_occurred = pyqtSignal(str)
+    # Streaming signals
+    streaming_chunk_received = pyqtSignal(str)  # For streaming text chunks
+    streaming_started = pyqtSignal()  # When streaming begins
+    streaming_finished = pyqtSignal(str)  # When streaming completes with full text
+    
     llm: OpenAI
     def __init__(self):
         """Initialize the LLM service with configured settings."""
@@ -69,6 +76,9 @@ class LLMService(QObject):
         # Session storage for persistence
         self._last_solution = None
         self._last_optimization = None
+        
+        # Initialize file processor
+        self.file_processor = FileProcessor()
 
     def reset_chat_history(self):
         """Reset the chat history."""
@@ -393,3 +403,215 @@ class LLMService(QObject):
         except Exception as e:
             logger.error(f"Error processing structured response: {e}")
             return response.raw
+
+    def get_solution_from_recording(
+        self, file_paths: List[str], prompt: str = None, streaming: bool = True
+    ) -> Union[RecordingSolution, Generator[str, None, str]]:
+        """
+        Get a solution based on uploaded files and optional prompt with streaming support.
+
+        Args:
+            file_paths: List of paths to the uploaded files (max 2)
+            prompt: Optional custom prompt for the analysis
+            streaming: Whether to return streaming response or complete response
+
+        Returns:
+            If streaming=True: Generator yielding text chunks, final yield is complete text
+            If streaming=False: RecordingSolution object
+        """
+        logger.info(f"Processing recording solution for {len(file_paths)} files, streaming={streaming}")
+        
+        # Validate and process files
+        validation_errors = self.file_processor.validate_files_for_upload(file_paths)
+        if validation_errors:
+            error_msg = "File validation failed: " + "; ".join(validation_errors)
+            logger.error(error_msg)
+            if streaming:
+                return self._create_error_stream(error_msg)
+            else:
+                return RecordingSolution(
+                    solution=f"**Error:** {error_msg}",
+                    file_summary="File processing failed",
+                    confidence=0.0
+                )
+
+        # Process files to text
+        try:
+            combined_text, processing_errors = self.file_processor.process_multiple_files(file_paths)
+            
+            if processing_errors:
+                error_warnings = "\n".join([f"⚠️ {error}" for error in processing_errors])
+                logger.warning(f"File processing warnings: {processing_errors}")
+            else:
+                error_warnings = ""
+                
+            if not combined_text.strip():
+                error_msg = "No readable content found in the uploaded files"
+                logger.error(error_msg)
+                if streaming:
+                    return self._create_error_stream(error_msg)
+                else:
+                    return RecordingSolution(
+                        solution=f"**Error:** {error_msg}",
+                        file_summary="No content extracted",
+                        confidence=0.0
+                    )
+                    
+        except Exception as e:
+            error_msg = f"Failed to process files: {str(e)}"
+            logger.error(error_msg)
+            if streaming:
+                return self._create_error_stream(error_msg)
+            else:
+                return RecordingSolution(
+                    solution=f"**Error:** {error_msg}",
+                    file_summary="File processing failed",
+                    confidence=0.0
+                )
+
+        # Get the recording analysis prompt
+        prompt_manager = PromptManager()
+        
+        if prompt is None:
+            # Use default recording analysis prompt
+            system_prompt = prompt_manager.get_prompt(
+                "recording_solution", 
+                file_content=combined_text[:2000] + "..." if len(combined_text) > 2000 else combined_text
+            )
+        else:
+            # Use custom prompt with file content
+            system_prompt = f"{prompt}\n\nFile Content:\n{combined_text}"
+
+        # Create file summary for metadata
+        file_names = [Path(fp).name for fp in file_paths]
+        file_summary = f"Processed {len(file_paths)} files: {', '.join(file_names)}"
+        if error_warnings:
+            file_summary += f"\n\nProcessing warnings:\n{error_warnings}"
+
+        # Create chat messages
+        system_message = ChatMessage(
+            role=MessageRole.SYSTEM,
+            content=system_prompt,
+        )
+
+        user_message = ChatMessage(
+            role=MessageRole.USER,
+            content=f"Please analyze the provided file content and provide a comprehensive solution in markdown format. Files processed: {', '.join(file_names)}",
+        )
+
+        chat_messages = [system_message, user_message]
+
+        if streaming:
+            return self._stream_recording_response(chat_messages, file_summary)
+        else:
+            return self._get_complete_recording_response(chat_messages, file_summary)
+
+    def _create_error_stream(self, error_msg: str) -> Generator[str, None, str]:
+        """Create an error stream for streaming responses."""
+        error_markdown = f"**Error:** {error_msg}"
+        yield error_markdown
+        return error_markdown
+
+    def _stream_recording_response(self, chat_messages: List[ChatMessage], file_summary: str) -> Generator[str, None, str]:
+        """Stream the recording analysis response."""
+        try:
+            logger.info("Starting streaming recording analysis")
+            self.streaming_started.emit()
+            
+            # Use the LLM's stream method for real-time response
+            accumulated_text = ""
+            
+            # LlamaIndex streaming - this depends on the specific LLM implementation
+            try:
+                # For OpenAI, we can use stream_chat
+                response_stream = self.llm.stream_chat(chat_messages)
+                
+                for chunk in response_stream:
+                    if hasattr(chunk, 'delta') and chunk.delta:
+                        chunk_text = str(chunk.delta)
+                    elif hasattr(chunk, 'message') and hasattr(chunk.message, 'content'):
+                        chunk_text = str(chunk.message.content)
+                    else:
+                        chunk_text = str(chunk)
+                    
+                    if chunk_text:
+                        accumulated_text += chunk_text
+                        self.streaming_chunk_received.emit(chunk_text)
+                        yield chunk_text
+                        
+            except Exception as stream_error:
+                logger.warning(f"Streaming failed, falling back to regular chat: {stream_error}")
+                # Fallback to regular chat if streaming fails
+                response = self.llm.chat(chat_messages)
+                content = response.message.content if hasattr(response, 'message') else str(response)
+                accumulated_text = content
+                self.streaming_chunk_received.emit(content)
+                yield content
+            
+            logger.info(f"Streaming completed, total length: {len(accumulated_text)}")
+            self.streaming_finished.emit(accumulated_text)
+            return accumulated_text
+            
+        except Exception as e:
+            error_msg = f"Error during streaming recording analysis: {str(e)}"
+            logger.error(error_msg)
+            self.error_occurred.emit(error_msg)
+            error_response = f"**Error:** {error_msg}"
+            yield error_response
+            return error_response
+
+    def _get_complete_recording_response(self, chat_messages: List[ChatMessage], file_summary: str) -> RecordingSolution:
+        """Get complete recording analysis response (non-streaming)."""
+        try:
+            logger.info("Getting complete recording analysis response")
+            
+            # Try structured response first
+            try:
+                structured = self.llm.as_structured_llm(output_cls=RecordingSolution)
+                response = structured.chat(chat_messages)
+                
+                # Handle different response formats
+                if hasattr(response, 'message') and hasattr(response.message, 'content'):
+                    content = response.message.content
+                    if isinstance(content, RecordingSolution):
+                        return content
+                    
+                    # If content is a string, try to parse as JSON
+                    if isinstance(content, str):
+                        try:
+                            content_dict = json.loads(content)
+                            return RecordingSolution(**content_dict)
+                        except (json.JSONDecodeError, TypeError, ValueError):
+                            # Create response with the raw content
+                            return RecordingSolution(
+                                solution=content,
+                                file_summary=file_summary,
+                                confidence=0.8
+                            )
+                    
+                    # If content is a dict
+                    if isinstance(content, dict):
+                        content['file_summary'] = file_summary
+                        return RecordingSolution(**content)
+                        
+            except Exception as structured_error:
+                logger.warning(f"Structured LLM failed: {structured_error}")
+                
+            # Fallback to regular chat
+            response = self.llm.chat(chat_messages)
+            content = response.message.content if hasattr(response, 'message') else str(response)
+            
+            return RecordingSolution(
+                solution=content,
+                file_summary=file_summary,
+                confidence=0.7
+            )
+            
+        except Exception as e:
+            error_msg = f"Error during recording analysis: {str(e)}"
+            logger.error(error_msg)
+            return RecordingSolution(
+                solution=f"**Error:** {error_msg}",
+                file_summary=file_summary,
+                confidence=0.0
+            )

@@ -4,6 +4,7 @@ This version breaks down the original large MainWindow class into manageable com
 """
 
 import platform
+from pathlib import Path
 from loguru import logger
 from PyQt6.QtCore import QEvent, Qt, QThread, QTimer, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import (
@@ -16,6 +17,7 @@ from interview_corvus.core.llm_service import LLMService
 from interview_corvus.invisibility.invisibility_manager import InvisibilityManager
 from interview_corvus.screenshot.screenshot_manager import ScreenshotManager
 from interview_corvus.ui.settings_dialog import SettingsDialog
+from interview_corvus.ui.file_upload_dialog import SimpleFileUploadDialog
 from interview_corvus.ui.styles import Styles, Theme
 
 # Import our new components
@@ -198,6 +200,7 @@ class MainWindow(QMainWindow):
         self.action_bar.reset_requested.connect(self.reset_chat_history)
         self.action_bar.settings_requested.connect(self.show_settings)
         self.action_bar.visibility_toggle_requested.connect(self.toggle_visibility)
+        self.action_bar.file_upload_requested.connect(self.show_file_upload_dialog)  # New connection
         if self.action_bar.web_server_button:
             self.action_bar.web_server_toggle_requested.connect(self.toggle_web_server)
 
@@ -491,6 +494,17 @@ class MainWindow(QMainWindow):
         self.optimization_thread.error_occurred.connect(self.on_processing_error)
         self.optimization_thread.start()
 
+    @pyqtSlot()
+    def show_file_upload_dialog(self):
+        """Show file upload dialog for uploading files and saving content."""
+        dialog = SimpleFileUploadDialog(self)
+        dialog.files_uploaded.connect(self.handle_files_uploaded)
+        dialog.exec()
+
+    def handle_files_uploaded(self, file_paths):
+        """Handle successfully uploaded files."""
+        logger.info(f"Successfully uploaded files: {[Path(fp).name for fp in file_paths]}")
+        self.status_bar_manager.show_message(f"Successfully uploaded {len(file_paths)} files and saved to user settings.", 3000)
     def _create_solution_thread(self, screenshot_paths, language):
         """Create a thread for solution generation."""
         class ScreenshotProcessingThread(QThread):

@@ -33,6 +33,14 @@ class McqSolution(BaseModel):
     solution: str = Field(..., description="The list of all questions and the answer and the explanation in markdown format")
 
 
+class RecordingSolution(BaseModel):
+    """Structured model for recording-based solution responses."""
+
+    solution: str = Field(..., description="Complete solution in markdown format based on recording analysis")
+    file_summary: Optional[str] = Field(None, description="Summary of the uploaded files content")
+    confidence: Optional[float] = Field(None, description="Confidence score of the analysis (0.0 to 1.0)")
+
+
 class CodeOptimization(BaseModel):
     """Structured model for code optimization responses."""
 

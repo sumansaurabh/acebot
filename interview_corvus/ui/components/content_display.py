@@ -213,9 +213,15 @@ class ContentDisplay(QWidget):
             self.explanation_text.setMarkdown(solution.explanation)
             self.time_complexity.setText(solution.time_complexity)
             self.space_complexity.setText(solution.space_complexity)
-        elif hasattr(solution, 'solution'):
+        elif hasattr(solution, 'solution') and not hasattr(solution, 'file_summary'):
             # McqSolution
             self.code_editor.setPlainText("")  # No code for MCQ
+            self.explanation_text.setMarkdown(solution.solution)
+            self.time_complexity.setText("N/A")
+            self.space_complexity.setText("N/A")
+        elif hasattr(solution, 'solution') and hasattr(solution, 'file_summary'):
+            # RecordingSolution - display as markdown
+            self.code_editor.setPlainText("")  # No specific code for recording
             self.explanation_text.setMarkdown(solution.solution)
             self.time_complexity.setText("N/A")
             self.space_complexity.setText("N/A")
@@ -231,6 +237,17 @@ class ContentDisplay(QWidget):
             self.time_complexity.setText("N/A")
             self.space_complexity.setText("N/A")
         
+        self._is_optimized = False
+        self.save_session_data()
+
+    def display_recording_content(self, content: str):
+        """Display recording analysis content with streaming support."""
+        # Clear code editor for recording content
+        self.code_editor.setPlainText("")
+        # Display content as markdown in explanation area
+        self.explanation_text.setMarkdown(content)
+        self.time_complexity.setText("N/A")
+        self.space_complexity.setText("N/A")
         self._is_optimized = False
         self.save_session_data()
         
