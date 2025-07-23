@@ -21,13 +21,13 @@ def get_main_ui_template() -> str:
         body { font-family: system-ui, sans-serif; font-size: 15px; color: #222; }
         .main-content { max-width: 800px; margin: 0 auto; padding: 12px 0 0 0; }
         .action-buttons {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            display: flex;
+            justify-content: center;
             gap: 6px;
             margin-bottom: 28px;
-            max-width: 280px;
-            margin-left: auto;
-            margin-right: auto;
+            flex-wrap: wrap;
+            width: 100%;
+            max-width: 800px;
         }
         .left-buttons {
             display: flex;
@@ -43,14 +43,16 @@ def get_main_ui_template() -> str:
             border-radius: 6px;
             font-size: 20px;
             cursor: pointer;
-            min-height: 40px;
+            min-height: 50px;
+            flex: 1;
             transition: all 0.2s ease;
             box-shadow: 0 2px 6px rgba(0,0,0,0.12);
             display: flex;
             align-items: center;
             justify-content: center;
-            aspect-ratio: 1;
             position: relative;
+            max-width: 120px;
+            aspect-ratio: 1;
         }
         .action-btn::after {
             content: attr(data-label);
@@ -73,8 +75,6 @@ def get_main_ui_template() -> str:
         .optimize-btn:hover { background: #d97706; transform: translateY(-2px); }
         .toggle-btn { background: #8b5cf6; color: white; }
         .toggle-btn:hover { background: #7c3aed; transform: translateY(-2px); }
-        .clear-btn { background: #ef4444; color: white; }
-        .clear-btn:hover { background: #dc2626; transform: translateY(-2px); }
         .reset-btn { background: #6b7280; color: white; }
         .reset-btn:hover { background: #4b5563; transform: translateY(-2px); }
         .record-btn { background: #ec4899; color: white; }
@@ -293,8 +293,19 @@ def get_main_ui_template() -> str:
         }
         @media (max-width: 600px) {
             .main-content { padding: 8px 16px 0 16px; }
-            .action-buttons { gap: 4px; max-width: 240px; margin-bottom: 24px; }
-            .action-btn { font-size: 18px; min-height: 36px; padding: 6px; }
+            .action-buttons { 
+                gap: 4px; 
+                margin-bottom: 24px; 
+                padding: 0 8px;
+            }
+            .action-btn { 
+                font-size: 18px; 
+                min-height: 36px; 
+                padding: 6px;
+                max-width: none;
+                flex: 1;
+                aspect-ratio: 1;
+            }
             .action-btn::after { font-size: 8px; bottom: -14px; }
             .info-bar { gap: 12px; margin: 20px 0 16px 0; }
             .language-selector label { font-size: 11px; }
@@ -317,7 +328,6 @@ def get_main_ui_template() -> str:
             <button class="action-btn optimize-btn" onclick="optimizeBest()" id="optimizeBtn" data-label="optimize" title="Optimize Solution"><i class="fas fa-bolt"></i></button>
             <button class="action-btn record-btn" onclick="recordScreen()" id="recordBtn" data-label="record" title="Record Screen"><i class="fas fa-video"></i></button>
             <button class="action-btn toggle-btn" onclick="toggleWindow()" id="toggleBtn" data-label="toggle" title="Toggle Window"><i class="fas fa-eye"></i></button>
-            <button class="action-btn clear-btn" onclick="clearScreenshots()" id="clearBtn" data-label="clear" title="Clear Screenshots"><i class="fas fa-trash"></i></button>
             <button class="action-btn reset-btn" onclick="resetAll()" id="resetBtn" data-label="reset" title="Reset All"><i class="fas fa-redo"></i></button>
         </div>
         <div class="info-bar">
