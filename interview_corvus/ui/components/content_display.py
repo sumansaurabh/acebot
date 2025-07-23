@@ -206,11 +206,31 @@ class ContentDisplay(QWidget):
         
     def display_solution(self, solution):
         """Display a new solution."""
-        return
-        self.code_editor.setPlainText(solution.code)
-        self.explanation_text.setMarkdown(solution.explanation)
-        self.time_complexity.setText(solution.time_complexity)
-        self.space_complexity.setText(solution.space_complexity)
+        # Handle different solution types
+        if hasattr(solution, 'code'):
+            # CodeSolution
+            self.code_editor.setPlainText(solution.code)
+            self.explanation_text.setMarkdown(solution.explanation)
+            self.time_complexity.setText(solution.time_complexity)
+            self.space_complexity.setText(solution.space_complexity)
+        elif hasattr(solution, 'solution'):
+            # McqSolution
+            self.code_editor.setPlainText("")  # No code for MCQ
+            self.explanation_text.setMarkdown(solution.solution)
+            self.time_complexity.setText("N/A")
+            self.space_complexity.setText("N/A")
+        else:
+            # Fallback for unknown solution types
+            logger.warning(f"Unknown solution type: {type(solution)}")
+            if hasattr(solution, '__dict__'):
+                solution_text = str(solution.__dict__)
+            else:
+                solution_text = str(solution)
+            self.code_editor.setPlainText(solution_text)
+            self.explanation_text.setMarkdown("")
+            self.time_complexity.setText("N/A")
+            self.space_complexity.setText("N/A")
+        
         self._is_optimized = False
         self.save_session_data()
         
@@ -252,7 +272,6 @@ class ContentDisplay(QWidget):
         
     def save_session_data(self):
         """Save current session data."""
-        return
         self.current_session = {
             "code": self.code_editor.toPlainText(),
             "explanation": self.explanation_text.toMarkdown(),
@@ -264,7 +283,6 @@ class ContentDisplay(QWidget):
         
     def restore_session_data(self):
         """Restore session data to UI components."""
-        return
         if self.current_session["code"]:
             self.code_editor.setPlainText(self.current_session["code"])
             self.explanation_text.setMarkdown(self.current_session["explanation"])

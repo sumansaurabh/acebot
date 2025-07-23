@@ -43,16 +43,19 @@ class ActionBar(QWidget):
         self.generate_button = QPushButton("🚀 Solve")
         self.generate_button.setToolTip(f"Generate Solution ({settings.hotkeys.generate_solution_key})")
         self.generate_button.setFixedSize(90, 35)
+        self.generate_button.setEnabled(False)  # Initially disabled until screenshots are available
         layout.addWidget(self.generate_button)
         
         self.optimize_button = QPushButton("⚡ Optimize")
         self.optimize_button.setToolTip(f"Optimize Solution ({settings.hotkeys.optimize_solution_key})")
         self.optimize_button.setFixedSize(90, 35)
+        self.optimize_button.setEnabled(False)  # Initially disabled until solution is generated
         layout.addWidget(self.optimize_button)
         
         self.copy_button = QPushButton("📋 Copy")
         self.copy_button.setFixedSize(90, 35)
         self.copy_button.setToolTip("Copy Solution")
+        self.copy_button.setEnabled(False)  # Initially disabled until solution is generated
         layout.addWidget(self.copy_button)
         
         reset_button = QPushButton("🔄 Reset")
@@ -120,6 +123,12 @@ class ActionBar(QWidget):
         """Enable/disable buttons based on processing state."""
         self.generate_button.setEnabled(not processing)
         self.optimize_button.setEnabled(not processing)
+        
+    def update_button_states(self, has_screenshots: bool = False, has_solution: bool = False):
+        """Update button enabled states based on available content."""
+        self.generate_button.setEnabled(has_screenshots)
+        self.optimize_button.setEnabled(has_solution)
+        self.copy_button.setEnabled(has_solution)
         
     def update_button_texts(self):
         """Update button tooltips to reflect current hotkey settings."""

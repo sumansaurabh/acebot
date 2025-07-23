@@ -33,7 +33,7 @@ class UISettings(BaseSettings):
     default_window_size: Dict[str, int] = Field(
         default_factory=lambda: {"width": 600, "height": 400}
     )
-    always_on_top: bool = True  # Default to always on top
+    always_on_top: bool = False  # Default to always on top
     model_config = SettingsConfigDict(env_prefix="INTERVIEW_CORVUS_UI_")
 
 

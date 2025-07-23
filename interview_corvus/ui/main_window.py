@@ -419,6 +419,11 @@ class MainWindow(QMainWindow):
         screenshot_count = len(self.screenshot_manager.get_all_screenshots())
         if screenshot_count > 0:
             self.screenshot_controls.select_screenshot(screenshot_count - 1)
+            
+        # Update action bar button states - enable generate button when screenshots are available
+        has_screenshots = len(self.screenshot_manager.get_all_screenshots()) > 0
+        has_solution = bool(self.solution_text.strip())
+        self.action_bar.update_button_states(has_screenshots=has_screenshots, has_solution=has_solution)
 
     @pyqtSlot()
     def generate_solution(self):
@@ -563,6 +568,20 @@ class MainWindow(QMainWindow):
         self.status_bar_manager.set_progress_text("Idle")
 
         self.content_display.display_solution(solution)
+        
+        # Extract solution text for button state management
+        if hasattr(solution, 'code'):
+            self.solution_text = solution.code
+        elif hasattr(solution, 'solution'):
+            self.solution_text = solution.solution
+        else:
+            self.solution_text = str(solution)
+        
+        # Update button states to enable optimize and copy buttons
+        has_screenshots = len(self.screenshot_manager.get_all_screenshots()) > 0
+        has_solution = bool(self.solution_text.strip())
+        self.action_bar.update_button_states(has_screenshots=has_screenshots, has_solution=has_solution)
+        
         self.status_bar_manager.show_message("Solution generated")
         logger.info("Solution generated successfully")
 
@@ -574,6 +593,13 @@ class MainWindow(QMainWindow):
         self.status_bar_manager.set_progress_text("Idle")
 
         self.content_display.display_optimization(optimization)
+        self.solution_text = optimization.optimized_code if hasattr(optimization, 'optimized_code') else str(optimization)
+        
+        # Update button states
+        has_screenshots = len(self.screenshot_manager.get_all_screenshots()) > 0
+        has_solution = bool(self.solution_text.strip())
+        self.action_bar.update_button_states(has_screenshots=has_screenshots, has_solution=has_solution)
+        
         self.status_bar_manager.show_message("Solution optimized")
         logger.info("Solution optimized successfully")
 
