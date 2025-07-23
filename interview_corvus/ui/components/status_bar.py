@@ -121,10 +121,7 @@ class StatusBarManager(QObject):
         if self.network_ips_widget:
             self.status_bar.addPermanentWidget(self.network_ips_widget)
         
-        # App title in the middle
-        self.app_title_label = QLabel("🤖 AceBot")
-        self.app_title_label.setStyleSheet("color: #4A90E2; font-weight: bold; font-size: 12px; padding: 0 16px;")
-        self.status_bar.addPermanentWidget(self.app_title_label)
+        
         
         # Web server status (if available)
         try:
@@ -134,6 +131,11 @@ class StatusBarManager(QObject):
             self.status_bar.addPermanentWidget(self.web_server_status)
         except ImportError:
             logger.debug("Web server not available, skipping status widget")
+
+        # App title in the middle
+        self.app_title_label = QLabel("🤖 AceBot")
+        self.app_title_label.setStyleSheet("color: #4A90E2; font-weight: bold; font-size: 12px; padding: 0 16px;")
+        self.status_bar.addPermanentWidget(self.app_title_label)
             
         return self.status_bar
         
@@ -156,7 +158,7 @@ class StatusBarManager(QObject):
         if self.web_server_status:
             if is_running:
                 port_text = f":{port}" if port else ""
-                self.web_server_status.setText(f"🌐 API{port_text}: On")
+                self.web_server_status.setText(f"🌐 API: On")
                 self.web_server_status.setStyleSheet("color: #51cf66; font-weight: bold; font-size: 12px;")
             else:
                 self.web_server_status.setText("🌐 API: Off")
