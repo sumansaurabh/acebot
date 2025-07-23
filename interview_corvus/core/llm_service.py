@@ -736,10 +736,10 @@ Please provide your analysis in clear markdown format with appropriate headers a
             yield f"**Error:** {error_msg}"
 
     def get_recording_analysis_stream(self, recording_data: dict) -> Generator[str, None, None]:
-        """Get streaming analysis for recording data.
+        """Get streaming analysis for recording data with Deepgram transcription.
         
         Args:
-            recording_data: Dictionary containing recording information
+            recording_data: Dictionary containing recording information with transcribed content
             
         Yields:
             Streaming response chunks from LLM
@@ -751,6 +751,22 @@ Please provide your analysis in clear markdown format with appropriate headers a
             recording_content = recording_data.get('content', 'No recording content available')
             recording_metadata = recording_data.get('metadata', {})
             selected_file_keys = recording_data.get('selected_file_keys', [])
+            
+            # Check if recording content is valid (not a failure message)
+            if recording_content.startswith('[') and ('failed' in recording_content.lower() or 'unavailable' in recording_content.lower()):
+                error_msg = f"Recording transcription failed: {recording_content}"
+                logger.error(error_msg)
+                yield f"**Error:** {error_msg}"
+                return
+            
+            # Check if we have meaningful content to analyze
+            if not recording_content or recording_content.strip() == 'No recording content available':
+                error_msg = "No valid recording content available for analysis"
+                logger.error(error_msg)
+                yield f"**Error:** {error_msg}"
+                return
+            
+            logger.info(f"Processing recording with content length: {len(recording_content)} characters")
             
             # Process selected files only
             files_content = None
@@ -809,9 +825,9 @@ Please provide your analysis in clear markdown format with appropriate headers a
             prompt_parts = []
             
             # Base recording prompt
-            base_prompt = f"""Analyze the provided recording and any additional file content. Provide a comprehensive analysis in markdown format.
+            base_prompt = f"""Analyze the provided transcribed recording and any additional file content. Provide a comprehensive analysis in markdown format.
 
-Recording Content:
+Recording Transcript:
 {recording_content}
 
 Recording Metadata:
@@ -829,10 +845,11 @@ Additional File Content:
             # Final instructions
             prompt_parts.append("""
 Please provide your analysis in clear markdown format with appropriate headers and sections. Focus on:
-1. Key insights from the recording
-2. Connections with any provided file content
-3. Actionable recommendations
-4. Summary of findings
+1. Key insights from the transcribed recording
+2. Technical questions asked and their answers
+3. Connections with any provided file content
+4. Actionable recommendations
+5. Summary of findings
 """)
             
             full_prompt = "\n".join(prompt_parts)
@@ -840,7 +857,7 @@ Please provide your analysis in clear markdown format with appropriate headers a
             # Create chat messages
             system_message = ChatMessage(
                 role=MessageRole.SYSTEM,
-                content="You are an expert analyst. Analyze recordings and related files to provide comprehensive insights and actionable recommendations."
+                content="You are an expert technical interviewer who knows answers to all technical questions. Analyze transcribed recordings and respond to the questions asked."
             )
             
             user_message = ChatMessage(

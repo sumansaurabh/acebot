@@ -260,7 +260,6 @@ Explanation: The mitochondria generate most of the cell’s energy through respi
             """,
             "recording_solution": """
             You are an expert programming mentor and technical interviewer. You have been provided with files that likely contain:
-            - Code samples
             - Documentation
             - Problem descriptions  
             - Interview questions

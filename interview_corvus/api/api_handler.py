@@ -9,6 +9,7 @@ import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from loguru import logger
 from PyQt6.QtCore import QObject, pyqtSignal
 from fastapi.responses import JSONResponse, HTMLResponse
 
@@ -21,6 +22,9 @@ from .ui_template import get_main_ui_template
 if TYPE_CHECKING:
     from interview_corvus.core.llm_service import LLMService
     from interview_corvus.screenshot.screenshot_manager import ScreenshotManager
+
+# Import Deepgram service
+from interview_corvus.core.deepgram_service import DeepgramService
 
 
 class WebServerAPI(QObject):
@@ -51,9 +55,11 @@ class WebServerAPI(QObject):
         super().__init__()
         self.llm_service = llm_service
         self.screenshot_manager = screenshot_manager
+        self.deepgram_service = DeepgramService()
         self.gui_connected = llm_service is not None and screenshot_manager is not None
         
         print(f"🌐 Web API initialized (GUI connected: {self.gui_connected})")
+        print(f"🎤 Deepgram service available: {self.deepgram_service.is_available()}")
     
     def set_services(self, llm_service: 'LLMService', screenshot_manager: 'ScreenshotManager'):
         """Set the shared services from the GUI application."""
@@ -688,14 +694,53 @@ class WebServerAPI(QObject):
                     with open(temp_file, "wb") as f:
                         f.write(audio_bytes)
                     
+                    # Transcribe audio using Deepgram
+                    transcript_content = ""
+                    transcript_confidence = 0.0
+                    transcription_metadata = {}
+                    transcription_success = False
+                    
+                    if self.deepgram_service.is_available():
+                        logger.info(f"Transcribing mobile recording: {temp_file.name}")
+                        transcription_result = self.deepgram_service.transcribe_audio(str(temp_file))
+                        
+                        if transcription_result['success']:
+                            transcript_content = transcription_result['transcript']
+                            transcript_confidence = transcription_result['confidence']
+                            transcription_metadata = transcription_result.get('metadata', {})
+                            transcription_success = True
+                            logger.info(f"✅ Mobile transcription successful: {len(transcript_content)} characters")
+                        else:
+                            transcript_content = f"[Mobile transcription failed: {transcription_result.get('error', 'Unknown error')}]"
+                            logger.error(f"Mobile transcription failed: {transcription_result.get('error')}")
+                    else:
+                        transcript_content = f"[Mobile Recording: {temp_file.name}, Size: {len(audio_bytes)} bytes - Deepgram service unavailable]"
+                        logger.warning("Deepgram service not available for mobile recording")
+                    
+                    # Only proceed if transcription was successful or if we have selected files
+                    if not transcription_success and not request.selected_file_keys:
+                        return JSONResponse(
+                            status_code=400,
+                            content={
+                                "success": False, 
+                                "message": "Transcription failed and no files selected for analysis",
+                                "error": transcript_content
+                            }
+                        )
+                    
                     # Process the recording with selected files
                     recording_data = {
-                        'content': f"[Mobile Recording: {temp_file.name}, Size: {len(audio_bytes)} bytes - Audio transcription would go here]",
+                        'content': transcript_content,
                         'metadata': {
                             'filename': temp_file.name,
                             'size': len(audio_bytes),
                             'type': 'mobile_audio',
-                            'format': 'wav'
+                            'format': 'wav',
+                            'transcription': {
+                                'confidence': transcript_confidence,
+                                'service': 'deepgram' if self.deepgram_service.is_available() else 'none',
+                                **transcription_metadata
+                            }
                         },
                         'selected_file_keys': request.selected_file_keys or []
                     }

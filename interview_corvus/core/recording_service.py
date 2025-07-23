@@ -10,6 +10,7 @@ import base64
 from loguru import logger
 
 from interview_corvus.core.file_processor import FileProcessor
+from interview_corvus.core.deepgram_service import DeepgramService
 
 
 class RecordingService:
@@ -18,6 +19,7 @@ class RecordingService:
     def __init__(self):
         """Initialize the recording service."""
         self.file_processor = FileProcessor()
+        self.deepgram_service = DeepgramService()
         self.current_recording_path: Optional[str] = None
         self.is_recording = False
         
@@ -126,16 +128,40 @@ class RecordingService:
             file_size = os.path.getsize(recording_path)
             file_name = Path(recording_path).name
             
-            # For now, return a description since we don't have actual audio processing
-            # In real implementation, this would encode the audio file or transcribe it
+            # Transcribe audio using Deepgram
+            transcript_content = ""
+            transcript_confidence = 0.0
+            transcription_metadata = {}
+            
+            if self.deepgram_service.is_available():
+                logger.info(f"Transcribing audio file: {file_name}")
+                transcription_result = self.deepgram_service.transcribe_audio(recording_path)
+                
+                if transcription_result['success']:
+                    transcript_content = transcription_result['transcript']
+                    transcript_confidence = transcription_result['confidence']
+                    transcription_metadata = transcription_result.get('metadata', {})
+                    logger.info(f"✅ Transcription successful: {len(transcript_content)} characters")
+                else:
+                    transcript_content = f"[Transcription failed: {transcription_result.get('error', 'Unknown error')}]"
+                    logger.error(f"Transcription failed: {transcription_result.get('error')}")
+            else:
+                transcript_content = f"[Recording: {file_name}, Size: {file_size} bytes - Deepgram service unavailable]"
+                logger.warning("Deepgram service not available, using placeholder content")
+            
+            # Create recording data with actual transcript or fallback message
             recording_data = {
-                'content': f"[Recording: {file_name}, Size: {file_size} bytes - Audio transcription would go here]",
+                'content': transcript_content,
                 'metadata': {
                     'filename': file_name,
                     'size': file_size,
                     'path': recording_path,
                     'format': 'wav',
-                    'duration': 'unknown'
+                    'transcription': {
+                        'confidence': transcript_confidence,
+                        'service': 'deepgram' if self.deepgram_service.is_available() else 'none',
+                        **transcription_metadata
+                    }
                 }
             }
             
@@ -160,7 +186,7 @@ class RecordingService:
         prompt_parts = []
         
         # Base recording prompt
-        base_prompt = """Analyze the provided recording and any additional file content. Provide a comprehensive analysis in markdown format.
+        base_prompt = """Analyze the provided recording and any additional file content and answer the question in the recording
 
 Recording Data:
 {recording_data}
