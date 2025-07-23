@@ -68,12 +68,27 @@ class StateResponse(BaseModel):
     current_optimization: Optional[Dict[str, Any]] = None
     current_language: str
     has_screenshots: bool
+    selected_files: List[str] = Field(default_factory=list, description="List of selected file keys")
+
+
+class FileSelectionRequest(BaseModel):
+    """Request model for managing file selection."""
+    file_key: str = Field(..., description="Key of the file to add/remove from selection")
+    action: str = Field(..., description="Action to perform: add, remove, or clear")
+
+
+class FileSelectionResponse(BaseModel):
+    """Response model for file selection operations."""
+    success: bool
+    message: str
+    available_files: Dict[str, Dict[str, Any]] = Field(default_factory=dict, description="Available files with selection status")
 
 
 class RecordingStartRequest(BaseModel):
     """Request model for starting recording."""
     audio_data: Optional[str] = Field(default=None, description="Base64 encoded audio data (for mobile)")
     recording_type: str = Field(default="audio", description="Type of recording: audio, screen, or mobile")
+    selected_file_keys: List[str] = Field(default_factory=list, description="List of selected file keys to analyze")
 
 
 class RecordingResponse(BaseModel):

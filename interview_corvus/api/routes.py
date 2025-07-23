@@ -14,7 +14,8 @@ from .models import (
     GenerateSolutionRequest, OptimizeSolutionRequest, SolutionResponse,
     OptimizationResponse, HealthResponse, ScreenshotListResponse,
     LanguageResponse, LanguageUpdateRequest, StateResponse,
-    RecordingStartRequest, RecordingResponse, RecordingAnalysisRequest
+    RecordingStartRequest, RecordingResponse, RecordingAnalysisRequest,
+    FileSelectionRequest, FileSelectionResponse
 )
 from .api_handler import WebServerAPI
 
@@ -124,3 +125,14 @@ def create_routes(app: FastAPI, api_instance: WebServerAPI) -> None:
                 "Access-Control-Allow-Headers": "*",
             }
         )
+
+    # File selection endpoints
+    @app.get("/files/available", response_model=FileSelectionResponse)
+    async def get_available_files():
+        """Get the list of available files and their selection status."""
+        return api_instance.get_selected_files()
+
+    @app.post("/files/manage", response_model=FileSelectionResponse)
+    async def manage_file_selection(request: FileSelectionRequest):
+        """Add, remove, or clear selected files."""
+        return api_instance.manage_file_selection(request)

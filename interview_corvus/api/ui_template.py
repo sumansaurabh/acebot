@@ -291,6 +291,81 @@ def get_main_ui_template() -> str:
             0%, 100% { opacity: 1; }
             50% { opacity: 0.7; }
         }
+
+        /* File Selection Section Styles */
+        .file-selection-section {
+            margin: 20px 0;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            background: #fafafa;
+        }
+        
+        .file-selection-section .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .available-files-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .file-checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            margin-bottom: 4px;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        
+        .file-checkbox-item:hover {
+            background: #f0f8ff;
+        }
+        
+        .file-checkbox-item input[type="checkbox"] {
+            margin-right: 8px;
+            cursor: pointer;
+        }
+        
+        .file-checkbox-item .file-name {
+            flex: 1;
+            word-break: break-all;
+            color: #333;
+        }
+        
+        .file-selection-empty {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 20px;
+        }
+        
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 12px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            background: #dc3545;
+            color: white;
+            transition: background 0.2s ease;
+        }
+        
+        .btn-small:hover {
+            background: #c82333;
+        }
+
         @media (max-width: 600px) {
             .main-content { padding: 8px 16px 0 16px; }
             .action-buttons { 
@@ -317,6 +392,12 @@ def get_main_ui_template() -> str:
             .explanation h3 { font-size: 13px; }
             .explanation code { font-size: 11px; }
             .code-block { font-size: 11px; padding: 10px !important; }
+            
+            /* Mobile file selection styles */
+            .file-selection-section { margin: 16px 0; padding: 12px; }
+            .file-checkbox-item { padding: 6px 8px; font-size: 12px; }
+            .file-checkbox-item .file-name { font-size: 12px; }
+            .btn-small { padding: 3px 6px; font-size: 11px; }
         }
     </style>
 </head>
@@ -347,6 +428,18 @@ def get_main_ui_template() -> str:
             </div>
             <div class="screenshot-count"><i class="fas fa-camera"></i> <span id="screenshotCount">0</span> screenshots</div>
         </div>
+        
+        <!-- File Selection Section -->
+        <div class="file-selection-section" id="fileSelectionSection">
+            <div class="section-header">
+                <i class="fas fa-file-alt"></i> Selected Files for Analysis
+                <button class="btn-small" onclick="clearAllFiles()" title="Clear all selections"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="available-files-list" id="availableFilesList">
+                <!-- Dynamic file list will be populated here -->
+            </div>
+        </div>
+        
         <div class="status-bar" id="statusBar">Ready</div>
         <div class="loading-spinner" id="loadingSpinner"></div>
         <div class="results-container" id="resultsContainer" style="display: none;">
@@ -382,6 +475,10 @@ def get_main_ui_template() -> str:
         let mediaRecorder = null;
         let audioChunks = [];
         let isRecording = false;
+        
+        // File management variables
+        let availableFiles = {};
+        let selectedFileKeys = [];
         
         // Load existing solutions from backend
         async function loadExistingSolutions() {
@@ -499,6 +596,12 @@ def get_main_ui_template() -> str:
                 return;
             }
             
+            // Check if files are selected
+            if (selectedFileKeys.length === 0) {
+                updateStatus('Please select files before recording');
+                return;
+            }
+            
             // Check if browser supports media recording
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 updateStatus('Recording not supported in this browser');
@@ -570,19 +673,20 @@ def get_main_ui_template() -> str:
                 // Convert blob to base64
                 const base64Audio = await blobToBase64(audioBlob);
                 
-                // Send to server
+                // Send to server with selected files
                 const response = await fetch(`${API_BASE}/recording/mobile`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         audio_data: base64Audio.split(',')[1], // Remove data:audio/wav;base64, prefix
-                        recording_type: 'mobile'
+                        recording_type: 'mobile',
+                        selected_file_keys: selectedFileKeys // Include selected file keys
                     })
                 });
                 
                 const result = await response.json();
                 if (response.ok && result.success) {
-                    updateStatus('Recording received, starting analysis...');
+                    updateStatus(`Recording received, analyzing ${selectedFileKeys.length} selected files...`);
                     // Start streaming analysis
                     await startRecordingAnalysisStream();
                 } else {
@@ -799,12 +903,114 @@ def get_main_ui_template() -> str:
                 })
                 .catch(() => updateStatus('Toggle failed'));
         }
+
+        // File management functions
+        async function loadAvailableFiles() {
+            try {
+                const response = await fetch(`${API_BASE}/files/available`);
+                const data = await response.json();
+                if (data.success) {
+                    availableFiles = data.available_files || {};
+                    selectedFileKeys = Object.keys(availableFiles).filter(key => availableFiles[key].selected);
+                    renderAvailableFiles();
+                }
+            } catch (error) {
+                console.error('Error loading available files:', error);
+            }
+        }
+
+        function renderAvailableFiles() {
+            const filesList = document.getElementById('availableFilesList');
+            
+            if (Object.keys(availableFiles).length === 0) {
+                filesList.innerHTML = '<div class="file-selection-empty">No files available. Please upload files first using the desktop application.</div>';
+                return;
+            }
+
+            filesList.innerHTML = Object.keys(availableFiles).map(fileKey => {
+                const fileInfo = availableFiles[fileKey];
+                const isSelected = selectedFileKeys.includes(fileKey);
+                return `
+                    <div class="file-checkbox-item" onclick="toggleFileSelection('${fileKey}')">
+                        <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleFileSelection('${fileKey}')" onclick="event.stopPropagation()">
+                        <div class="file-name" title="${fileInfo.filename}">${fileInfo.filename}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function toggleFileSelection(fileKey) {
+            try {
+                const isCurrentlySelected = selectedFileKeys.includes(fileKey);
+                const action = isCurrentlySelected ? 'remove' : 'add';
+                
+                const response = await fetch(`${API_BASE}/files/manage`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        file_key: fileKey,
+                        action: action
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    availableFiles = result.available_files || {};
+                    selectedFileKeys = Object.keys(availableFiles).filter(key => availableFiles[key].selected);
+                    renderAvailableFiles();
+                    updateStatus(result.message);
+                } else {
+                    updateStatus(`Error: ${result.message}`);
+                }
+            } catch (error) {
+                console.error('Error toggling file selection:', error);
+                updateStatus('Error updating file selection');
+            }
+        }
+
+        async function clearAllFiles() {
+            if (selectedFileKeys.length === 0) return;
+            
+            if (!confirm('Are you sure you want to clear all file selections?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/files/manage`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        file_key: '',
+                        action: 'clear'
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    availableFiles = result.available_files || {};
+                    selectedFileKeys = [];
+                    renderAvailableFiles();
+                    updateStatus('All file selections cleared');
+                }
+            } catch (error) {
+                console.error('Error clearing files:', error);
+                updateStatus('Error clearing file selections');
+            }
+        }
+
         window.addEventListener('load', () => {
             document.getElementById('solveBtn').disabled = true;
             document.getElementById('optimizeBtn').disabled = true;
             
             // Load existing solutions from backend
             loadExistingSolutions();
+            
+            // Initialize file management
+            loadAvailableFiles();
             
             updateScreenshotCount();
             updateLanguageDropdown();

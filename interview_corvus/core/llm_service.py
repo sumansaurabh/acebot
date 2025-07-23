@@ -750,24 +750,60 @@ Please provide your analysis in clear markdown format with appropriate headers a
             # Extract recording content from the data
             recording_content = recording_data.get('content', 'No recording content available')
             recording_metadata = recording_data.get('metadata', {})
+            selected_file_keys = recording_data.get('selected_file_keys', [])
             
-            # Get file processor instance for uploaded files
-            file_processor = FileProcessor()
-            saved_files = file_processor.get_saved_files_content()
+            # Process selected files only
             files_content = None
             
-            if saved_files:
-                # Combine content from all uploaded files
-                combined_content = []
-                for file_key, file_data in saved_files.items():
-                    if isinstance(file_data, dict) and 'content' in file_data:
-                        filename = file_data.get('filename', 'unknown')
-                        content = file_data.get('content', '')
-                        combined_content.append(f"=== File: {filename} ===\n{content}\n")
+            if selected_file_keys:
+                logger.info(f"Processing {len(selected_file_keys)} selected file keys")
                 
-                if combined_content:
-                    files_content = "\n".join(combined_content)
-                    logger.info(f"Retrieved {len(saved_files)} uploaded files with {len(files_content)} characters")
+                # Get file processor instance to access uploaded files
+                file_processor = FileProcessor()
+                saved_files = file_processor.get_saved_files_content()
+                
+                if saved_files:
+                    combined_content = []
+                    
+                    for file_key in selected_file_keys:
+                        if file_key in saved_files:
+                            file_data = saved_files[file_key]
+                            if isinstance(file_data, dict) and 'content' in file_data:
+                                filename = file_data.get('filename', 'unknown')
+                                content = file_data.get('content', '')
+                                combined_content.append(f"=== File: {filename} (Key: {file_key}) ===\n{content}\n")
+                                logger.info(f"Loaded selected file: {filename} ({len(content)} characters)")
+                            else:
+                                logger.warning(f"Selected file key has invalid data structure: {file_key}")
+                                combined_content.append(f"=== File: {file_key} ===\n[INVALID FILE DATA STRUCTURE]\n")
+                        else:
+                            logger.warning(f"Selected file key not found in uploaded files: {file_key}")
+                            combined_content.append(f"=== File: {file_key} ===\n[FILE KEY NOT FOUND]\n")
+                    
+                    if combined_content:
+                        files_content = "\n".join(combined_content)
+                        logger.info(f"Successfully processed {len(selected_file_keys)} selected files with {len(files_content)} total characters")
+                else:
+                    logger.warning("No uploaded files found in user settings")
+                    files_content = "=== No uploaded files found ===\nPlease upload files first before selecting them for analysis.\n"
+            else:
+                logger.info("No selected file keys provided")
+                # Fallback to existing behavior if no selected files
+                file_processor = FileProcessor()
+                saved_files = file_processor.get_saved_files_content()
+                
+                if saved_files:
+                    # Combine content from all uploaded files
+                    combined_content = []
+                    for file_key, file_data in saved_files.items():
+                        if isinstance(file_data, dict) and 'content' in file_data:
+                            filename = file_data.get('filename', 'unknown')
+                            content = file_data.get('content', '')
+                            combined_content.append(f"=== File: {filename} ===\n{content}\n")
+                    
+                    if combined_content:
+                        files_content = "\n".join(combined_content)
+                        logger.info(f"Fallback: Retrieved {len(saved_files)} uploaded files with {len(files_content)} characters")
             
             # Create the analysis prompt
             prompt_parts = []

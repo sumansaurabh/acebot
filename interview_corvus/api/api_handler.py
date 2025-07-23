@@ -650,7 +650,8 @@ class WebServerAPI(QObject):
                 current_solution=solution_dict,
                 current_optimization=optimization_dict,
                 current_language=current_language,
-                has_screenshots=has_screenshots
+                has_screenshots=has_screenshots,
+                selected_files=settings.get_selected_file_keys()
             )
         except Exception as e:
             return StateResponse(
@@ -659,7 +660,8 @@ class WebServerAPI(QObject):
                 current_solution=None,
                 current_optimization=None,
                 current_language="python",
-                has_screenshots=False
+                has_screenshots=False,
+                selected_files=[]
             )
 
     # Recording methods
@@ -686,7 +688,7 @@ class WebServerAPI(QObject):
                     with open(temp_file, "wb") as f:
                         f.write(audio_bytes)
                     
-                    # Process the recording
+                    # Process the recording with selected files
                     recording_data = {
                         'content': f"[Mobile Recording: {temp_file.name}, Size: {len(audio_bytes)} bytes - Audio transcription would go here]",
                         'metadata': {
@@ -694,7 +696,8 @@ class WebServerAPI(QObject):
                             'size': len(audio_bytes),
                             'type': 'mobile_audio',
                             'format': 'wav'
-                        }
+                        },
+                        'selected_file_keys': request.selected_file_keys or []
                     }
                     
                     # Store for streaming
@@ -783,3 +786,68 @@ class WebServerAPI(QObject):
             
         except Exception as e:
             yield f"data: {{'error': 'Streaming failed: {str(e)}'}}\n\n"
+
+    # File selection methods
+    def get_selected_files(self):
+        """Get the list of currently selected files."""
+        from .models import FileSelectionResponse
+        from interview_corvus.config import settings
+        
+        try:
+            return FileSelectionResponse(
+                success=True,
+                message="Available files retrieved successfully",
+                available_files=settings.get_available_files()
+            )
+        except Exception as e:
+            return FileSelectionResponse(
+                success=False,
+                message=f"Failed to get available files: {str(e)}",
+                available_files={}
+            )
+
+    def manage_file_selection(self, request):
+        """Add, remove, or clear selected files."""
+        from .models import FileSelectionResponse
+        from interview_corvus.config import settings
+        
+        try:
+            if request.action == "add":
+                # Validate file key exists
+                available_files = settings.get_available_files()
+                if request.file_key not in available_files:
+                    return FileSelectionResponse(
+                        success=False,
+                        message="File key does not exist",
+                        available_files=settings.get_available_files()
+                    )
+                settings.add_selected_file(request.file_key)
+                message = f"File selected: {available_files[request.file_key]['filename']}"
+                
+            elif request.action == "remove":
+                settings.remove_selected_file(request.file_key)
+                message = f"File unselected"
+                
+            elif request.action == "clear":
+                settings.clear_selected_files()
+                message = "All files unselected"
+                
+            else:
+                return FileSelectionResponse(
+                    success=False,
+                    message="Invalid action. Use 'add', 'remove', or 'clear'",
+                    available_files=settings.get_available_files()
+                )
+            
+            return FileSelectionResponse(
+                success=True,
+                message=message,
+                available_files=settings.get_available_files()
+            )
+            
+        except Exception as e:
+            return FileSelectionResponse(
+                success=False,
+                message=f"Failed to manage file selection: {str(e)}",
+                available_files=settings.get_available_files()
+            )

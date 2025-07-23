@@ -350,6 +350,9 @@ class Settings(BaseSettings):
         ]
     )
 
+    # Selected file keys for recording/analysis (references to uploaded_files keys)
+    selected_file_keys: List[str] = Field(default_factory=list)
+
     # Sub-settings
     llm: LLMSettings = Field(default_factory=LLMSettings)
     ui: UISettings = Field(default_factory=UISettings)
@@ -376,6 +379,7 @@ class Settings(BaseSettings):
 
         user_settings = {
             "default_language": self.default_language,
+            "selected_file_keys": self.selected_file_keys,
             "llm": {
                 "model": self.llm.model,
                 "temperature": self.llm.temperature,
@@ -416,6 +420,9 @@ class Settings(BaseSettings):
 
             if "default_language" in user_settings:
                 self.default_language = user_settings["default_language"]
+
+            if "selected_file_keys" in user_settings:
+                self.selected_file_keys = user_settings["selected_file_keys"]
 
             if "llm" in user_settings:
                 llm_settings = user_settings["llm"]
@@ -468,6 +475,55 @@ class Settings(BaseSettings):
 
         except Exception as e:
             logger.info(f"Error loading user settings: {e}")
+
+    def add_selected_file(self, file_key: str):
+        """Add a file key to the selected files list."""
+        if file_key not in self.selected_file_keys:
+            self.selected_file_keys.append(file_key)
+            self.save_user_settings()
+
+    def remove_selected_file(self, file_key: str):
+        """Remove a file key from the selected files list."""
+        if file_key in self.selected_file_keys:
+            self.selected_file_keys.remove(file_key)
+            self.save_user_settings()
+
+    def clear_selected_files(self):
+        """Clear all selected files."""
+        self.selected_file_keys.clear()
+        self.save_user_settings()
+
+    def get_selected_file_keys(self) -> List[str]:
+        """Get the list of selected file keys."""
+        return self.selected_file_keys.copy()
+
+    def get_available_files(self) -> Dict[str, Dict[str, str]]:
+        """Get available uploaded files from user settings."""
+        settings_path = self.app_data_dir / "user_settings.json"
+        
+        if not settings_path.exists():
+            return {}
+        
+        try:
+            with open(settings_path, "r") as f:
+                user_settings = json.load(f)
+            
+            uploaded_files = user_settings.get("uploaded_files", {})
+            
+            # Return simplified file info for UI
+            available_files = {}
+            for file_key, file_data in uploaded_files.items():
+                if isinstance(file_data, dict):
+                    available_files[file_key] = {
+                        "filename": file_data.get("filename", "unknown"),
+                        "selected": file_key in self.selected_file_keys
+                    }
+            
+            return available_files
+            
+        except Exception as e:
+            logger.error(f"Error getting available files: {e}")
+            return {}
 
 
 # Create global settings instance
