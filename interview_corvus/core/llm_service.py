@@ -23,7 +23,7 @@ class LLMService(QObject):
     # Signals for responses
     completion_finished = pyqtSignal(object)
     error_occurred = pyqtSignal(str)
-
+    llm: OpenAI
     def __init__(self):
         """Initialize the LLM service with configured settings."""
         super().__init__()

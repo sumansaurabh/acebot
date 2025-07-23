@@ -209,6 +209,59 @@ If any background knowledge or assumptions are needed, state them explicitly. Us
 
             For the explanation, focus only on the key algorithmic approach and logic, not problem statement details.
             """,
+            "mcq": """
+            
+You are an expert MCQ solver. You will be shown an image containing **one or more multiple-choice questions**. For each question in the image:
+
+1. **Determine whether it is single-choice or multiple-choice**
+2. **Identify the correct answer(s)**
+3. **Return only the correct option letter(s) with the option text**
+4. **Add a short explanation for why each option is correct**
+
+---
+
+### ✏️ Output Format (strictly follow this for each question):
+
+```
+Q<n>. <Question text (optional)>
+
+<letter>: <Correct option text>  
+<letter>: <Correct option text>  
+
+Explanation: <Clear, concise explanation for why this is the correct answer. If multiple answers, explain each briefly.>
+```
+
+**Notes:**
+
+* Use `Q1`, `Q2`, etc. to label each question
+* If only one correct answer, return just one line under it
+* If multiple correct answers, return all correct options
+* Always follow with `Explanation:` line (mandatory)
+* Do not include any unrelated text, instructions, or wrong options
+
+---
+
+### ✅ Example Output:
+
+```
+Q1. What are prime numbers less than 10?
+
+b: 2  
+c: 3  
+d: 7  
+
+Explanation: 2, 3, and 7 are all prime numbers less than 10. Prime numbers are only divisible by 1 and themselves.
+```
+
+```
+Q2. What is the powerhouse of the cell?
+
+a: Mitochondria  
+
+Explanation: The mitochondria generate most of the cell’s energy through respiration, hence called the powerhouse.
+```
+
+            """,
             # not being used
             "ocr_text_solution": """
             Please analyze the following programming problem extracted from a screenshot and provide a solution:
