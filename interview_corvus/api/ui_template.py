@@ -13,6 +13,7 @@ def get_main_ui_template() -> str:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, minimum-scale=1.0, maximum-scale=5.0">
     <title>🤖 AceBot</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
     <style>
@@ -284,13 +285,13 @@ def get_main_ui_template() -> str:
 <body>
     <div class="main-content">
         <div class="action-buttons">
-            <button class="action-btn capture-btn" onclick="captureScreen()" id="captureBtn" data-label="capture" title="Capture Screen">📷</button>
-            <button class="action-btn record-btn" onclick="recordScreen()" id="recordBtn" data-label="record" title="Record Screen">🎥</button>
-            <button class="action-btn solve-btn" onclick="solveBrute()" id="solveBtn" data-label="solve" title="Solve Problem">🧠</button>
-            <button class="action-btn optimize-btn" onclick="optimizeBest()" id="optimizeBtn" data-label="optimize" title="Optimize Solution">⚡</button>
-            <button class="action-btn toggle-btn" onclick="toggleWindow()" id="toggleBtn" data-label="toggle" title="Toggle Window">👁️</button>
-            <button class="action-btn clear-btn" onclick="clearScreenshots()" id="clearBtn" data-label="clear" title="Clear Screenshots">🗑️</button>
-            <button class="action-btn reset-btn" onclick="resetAll()" id="resetBtn" data-label="reset" title="Reset All">🔄</button>
+            <button class="action-btn capture-btn" onclick="captureScreen()" id="captureBtn" data-label="capture" title="Capture Screen"><i class="fas fa-camera"></i></button>
+            <button class="action-btn solve-btn" onclick="solveBrute()" id="solveBtn" data-label="solve" title="Solve Problem"><i class="fas fa-brain"></i></button>
+            <button class="action-btn optimize-btn" onclick="optimizeBest()" id="optimizeBtn" data-label="optimize" title="Optimize Solution"><i class="fas fa-bolt"></i></button>
+            <button class="action-btn record-btn" onclick="recordScreen()" id="recordBtn" data-label="record" title="Record Screen"><i class="fas fa-video"></i></button>
+            <button class="action-btn toggle-btn" onclick="toggleWindow()" id="toggleBtn" data-label="toggle" title="Toggle Window"><i class="fas fa-eye"></i></button>
+            <button class="action-btn clear-btn" onclick="clearScreenshots()" id="clearBtn" data-label="clear" title="Clear Screenshots"><i class="fas fa-trash"></i></button>
+            <button class="action-btn reset-btn" onclick="resetAll()" id="resetBtn" data-label="reset" title="Reset All"><i class="fas fa-redo"></i></button>
         </div>
         <div class="info-bar">
             <div class="language-selector">
@@ -307,27 +308,27 @@ def get_main_ui_template() -> str:
                     <option value="mcq">Mcq</option>
                 </select>
             </div>
-            <div class="screenshot-count">📸 <span id="screenshotCount">0</span> screenshots</div>
+            <div class="screenshot-count"><i class="fas fa-camera"></i> <span id="screenshotCount">0</span> screenshots</div>
         </div>
         <div class="status-bar" id="statusBar">Ready</div>
         <div class="loading-spinner" id="loadingSpinner"></div>
         <div class="results-container" id="resultsContainer" style="display: none;">
             <div class="result-section" id="bruteSection" style="display: none;">
-                <div class="section-header brute-header">💡 Initial Solution</div>
+                <div class="section-header brute-header"><i class="fas fa-lightbulb"></i> Initial Solution</div>
                 <div class="explanation" id="bruteExplanation"></div>
                 <pre class="code-block language-python"><code id="bruteCode"></code></pre>
                 <div class="complexity-info">
-                    <div class="complexity-item">⏱️ Time: <span id="bruteTimeComplexity">-</span></div>
-                    <div class="complexity-item">💾 Space: <span id="bruteSpaceComplexity">-</span></div>
+                    <div class="complexity-item"><i class="fas fa-clock"></i> Time: <span id="bruteTimeComplexity">-</span></div>
+                    <div class="complexity-item"><i class="fas fa-memory"></i> Space: <span id="bruteSpaceComplexity">-</span></div>
                 </div>
             </div>
             <div class="result-section" id="optimizedSection" style="display: none;">
-                <div class="section-header optimized-header">🚀 Optimized Solution</div>
+                <div class="section-header optimized-header"><i class="fas fa-rocket"></i> Optimized Solution</div>
                 <div class="explanation" id="optimizedExplanation"></div>
                 <pre class="code-block language-python"><code id="optimizedCode"></code></pre>
                 <div class="complexity-info">
-                    <div class="complexity-item">⏱️ Time: <span id="optimizedTimeComplexity">-</span></div>
-                    <div class="complexity-item">💾 Space: <span id="optimizedSpaceComplexity">-</span></div>
+                    <div class="complexity-item"><i class="fas fa-clock"></i> Time: <span id="optimizedTimeComplexity">-</span></div>
+                    <div class="complexity-item"><i class="fas fa-memory"></i> Space: <span id="optimizedSpaceComplexity">-</span></div>
                 </div>
             </div>
         </div>
@@ -540,7 +541,7 @@ def get_main_ui_template() -> str:
                 .then(() => {
                     isWindowOpen = !isWindowOpen;
                     const toggleBtn = document.getElementById('toggleBtn');
-                    toggleBtn.textContent = isWindowOpen ? '👁️' : '🙈 ྀི';
+                    toggleBtn.innerHTML = isWindowOpen ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
                     updateStatus('Toggled');
                 })
                 .catch(() => updateStatus('Toggle failed'));
