@@ -126,15 +126,30 @@ class WebServerAPI(QObject):
             
             # Safely convert to dictionary for JSON response
             try:
-                solution_dict = {
-                    "code": getattr(solution, 'code', ''),
-                    "language": getattr(solution, 'language', request.language),
-                    "explanation": getattr(solution, 'explanation', 'No explanation provided.'),
-                    "time_complexity": getattr(solution, 'time_complexity', 'N/A'),
-                    "space_complexity": getattr(solution, 'space_complexity', 'N/A'),
-                    "edge_cases": getattr(solution, 'edge_cases', []) or [],
-                    "alternative_approaches": getattr(solution, 'alternative_approaches', None)
-                }
+                if request.language != "mcq":
+                    # Handle regular code solutions
+                    solution_dict = {
+                        "code": getattr(solution, 'code', ''),
+                        "language": getattr(solution, 'language', request.language),
+                        "explanation": getattr(solution, 'explanation', 'No explanation provided.'),
+                        "time_complexity": getattr(solution, 'time_complexity', 'N/A'),
+                        "space_complexity": getattr(solution, 'space_complexity', 'N/A'),
+                        "edge_cases": getattr(solution, 'edge_cases', []) or [],
+                        "alternative_approaches": getattr(solution, 'alternative_approaches', None)
+                    }
+                else:
+                    # Handle MCQ solutions - transpose MCQ data into explanation format
+                    result = getattr(solution, 'solution', 'No question provided.')
+                    
+                    solution_dict = {
+                        "code": "",  # Put the full MCQ in the code field
+                        "language": "mcq",
+                        "explanation": result,  # Also put it in explanation for consistency
+                        "time_complexity": "N/A",
+                        "space_complexity": "N/A",
+                        "edge_cases": [],
+                        "alternative_approaches": None
+                    }
             except Exception as attr_error:
                 print(f"❌ Web API: Error accessing solution attributes: {attr_error}")
                 # Fallback: try to convert directly if it's already a dict

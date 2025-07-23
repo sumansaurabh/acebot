@@ -27,6 +27,12 @@ class CodeSolution(BaseModel):
     )
 
 
+class McqSolution(BaseModel):
+    """Structured model for MCQ solution responses."""
+
+    solution: str = Field(..., description="The list of all questions and the answer and the explanation in markdown format")
+
+
 class CodeOptimization(BaseModel):
     """Structured model for code optimization responses."""
 
