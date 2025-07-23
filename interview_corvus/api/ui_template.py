@@ -20,37 +20,64 @@ def get_main_ui_template() -> str:
         body { font-family: system-ui, sans-serif; font-size: 15px; color: #222; }
         .main-content { max-width: 800px; margin: 0 auto; padding: 12px 0 0 0; }
         .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+            max-width: 280px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .left-buttons {
             display: flex;
-            flex-direction: row;
-            flex-wrap: wrap;
-            gap: 4px;
-            margin-bottom: 14px;
-            justify-content: flex-start;
+            gap: 8px;
+        }
+        .right-buttons {
+            display: flex;
+            gap: 8px;
         }
         .action-btn {
-            padding: 8px 16px;
+            padding: 12px;
             border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 600;
+            border-radius: 8px;
+            font-size: 18px;
             cursor: pointer;
-            min-width: 70px;
-            min-height: 32px;
-            transition: background 0.15s, box-shadow 0.15s;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            min-height: 48px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            aspect-ratio: 1;
+            position: relative;
         }
-        .capture-btn { background: #4caf50; color: #fff; }
-        .capture-btn:hover { background: #388e3c; }
-        .solve-btn { background: #2196f3; color: #fff; }
-        .solve-btn:hover { background: #1565c0; }
-        .optimize-btn { background: #ff9800; color: #fff; }
-        .optimize-btn:hover { background: #ef6c00; }
-        .toggle-btn { background: #9c27b0; color: #fff; }
-        .toggle-btn:hover { background: #6d1b7b; }
-        .clear-btn { background: #e53935; color: #fff; }
-        .clear-btn:hover { background: #b71c1c; }
-        .reset-btn { background: #607d8b; color: #fff; }
-        .reset-btn:hover { background: #37474f; }
+        .action-btn::after {
+            content: attr(data-label);
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #6b7280;
+            opacity: 0.8;
+        }
+        .capture-btn { background: #10b981; color: white; }
+        .capture-btn:hover { background: #059669; transform: translateY(-2px); }
+        .solve-btn { background: #3b82f6; color: white; }
+        .solve-btn:hover { background: #2563eb; transform: translateY(-2px); }
+        .optimize-btn { background: #f59e0b; color: white; }
+        .optimize-btn:hover { background: #d97706; transform: translateY(-2px); }
+        .toggle-btn { background: #8b5cf6; color: white; }
+        .toggle-btn:hover { background: #7c3aed; transform: translateY(-2px); }
+        .clear-btn { background: #ef4444; color: white; }
+        .clear-btn:hover { background: #dc2626; transform: translateY(-2px); }
+        .reset-btn { background: #6b7280; color: white; }
+        .reset-btn:hover { background: #4b5563; transform: translateY(-2px); }
+        .record-btn { background: #ec4899; color: white; }
+        .record-btn:hover { background: #db2777; transform: translateY(-2px); }
         .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .status-bar {
             font-size: 13px;
@@ -59,10 +86,18 @@ def get_main_ui_template() -> str:
             min-height: 18px;
         }
         .screenshot-count {
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 600;
-            color: #2196f3;
-            margin-bottom: 10px;
+            color: #3b82f6;
+            margin: 20px 0 16px 0;
+            text-align: center;
+            background: #eff6ff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            display: inline-block;
+            width: fit-content;
+            margin-left: 50%;
+            transform: translateX(-50%);
         }
         .loading-spinner {
             display: none;
@@ -205,28 +240,32 @@ def get_main_ui_template() -> str:
         .complexity-info { display: flex; gap: 10px; font-size: 12px; margin: 5px 0; }
         .complexity-item { background: #fff; border: 1px solid #eee; border-radius: 4px; padding: 3px 8px; }
         @media (max-width: 600px) {
-            .main-content { padding: 6px 0 0 0; }
-            .action-btn { font-size: 14px; min-width: 70px; min-height: 32px; padding: 7px 10px; }
-            .explanation { font-size: 11px; }
-            .explanation h1 { font-size: 14px; }
-            .explanation h2 { font-size: 13px; }
-            .explanation h3 { font-size: 12px; }
-            .explanation code { font-size: 10px; }
-            .code-block { font-size: 10px; padding: 12px !important; }
+            .main-content { padding: 8px 16px 0 16px; }
+            .action-buttons { gap: 6px; max-width: 240px; }
+            .action-btn { font-size: 16px; min-height: 44px; padding: 10px; }
+            .action-btn::after { font-size: 9px; bottom: -18px; }
+            .explanation { font-size: 12px; }
+            .explanation h1 { font-size: 15px; }
+            .explanation h2 { font-size: 14px; }
+            .explanation h3 { font-size: 13px; }
+            .explanation code { font-size: 11px; }
+            .code-block { font-size: 11px; padding: 10px !important; }
+            .screenshot-count { font-size: 11px; padding: 6px 12px; }
         }
     </style>
 </head>
 <body>
     <div class="main-content">
-        <div class="screenshot-count">Screenshots: <span id="screenshotCount">0</span></div>
         <div class="action-buttons">
-            <button class="action-btn capture-btn" onclick="captureScreen()" id="captureBtn">Capture</button>
-            <button class="action-btn solve-btn" onclick="solveBrute()" id="solveBtn">Solve</button>
-            <button class="action-btn optimize-btn" onclick="optimizeBest()" id="optimizeBtn">Optimize</button>
-            <button class="action-btn toggle-btn" onclick="toggleWindow()" id="toggleBtn">Toggle</button>
-            <button class="action-btn clear-btn" onclick="clearScreenshots()" id="clearBtn">Clear</button>
-            <button class="action-btn reset-btn" onclick="resetAll()" id="resetBtn">Reset</button>
+            <button class="action-btn capture-btn" onclick="captureScreen()" id="captureBtn" data-label="capture" title="Capture Screen">📷</button>
+            <button class="action-btn record-btn" onclick="recordScreen()" id="recordBtn" data-label="record" title="Record Screen">🎥</button>
+            <button class="action-btn solve-btn" onclick="solveBrute()" id="solveBtn" data-label="solve" title="Solve Problem">🧠</button>
+            <button class="action-btn optimize-btn" onclick="optimizeBest()" id="optimizeBtn" data-label="optimize" title="Optimize Solution">⚡</button>
+            <button class="action-btn toggle-btn" onclick="toggleWindow()" id="toggleBtn" data-label="toggle" title="Toggle Window">👁️</button>
+            <button class="action-btn clear-btn" onclick="clearScreenshots()" id="clearBtn" data-label="clear" title="Clear Screenshots">🗑️</button>
+            <button class="action-btn reset-btn" onclick="resetAll()" id="resetBtn" data-label="reset" title="Reset All">🔄</button>
         </div>
+        <div class="screenshot-count">📸 <span id="screenshotCount">0</span> screenshots</div>
         <div class="status-bar" id="statusBar">Ready</div>
         <div class="loading-spinner" id="loadingSpinner"></div>
         <div class="results-container" id="resultsContainer" style="display: none;">
@@ -291,6 +330,17 @@ def get_main_ui_template() -> str:
                     document.getElementById('solveBtn').disabled = newCount === 0;
                 } else updateStatus('Error: ' + result.message);
             } catch (error) { updateStatus('Connection error'); }
+            finally { showLoading(false); }
+        }
+        async function recordScreen() {
+            updateStatus('Recording...'); showLoading(true);
+            try {
+                const response = await fetch(`${API_BASE}/screen/record`, { method: 'POST' });
+                const result = await response.json();
+                if (response.ok) {
+                    updateStatus('Recording started');
+                } else updateStatus('Error: ' + result.message);
+            } catch (error) { updateStatus('Recording failed'); }
             finally { showLoading(false); }
         }
         async function solveBrute() {
