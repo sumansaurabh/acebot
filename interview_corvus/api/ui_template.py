@@ -596,12 +596,6 @@ def get_main_ui_template() -> str:
                 return;
             }
             
-            // Check if files are selected
-            if (selectedFileKeys.length === 0) {
-                updateStatus('Please select files before recording');
-                return;
-            }
-            
             // Check if browser supports media recording
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 updateStatus('Recording not supported in this browser');
@@ -686,7 +680,11 @@ def get_main_ui_template() -> str:
                 
                 const result = await response.json();
                 if (response.ok && result.success) {
-                    updateStatus(`Recording received, analyzing ${selectedFileKeys.length} selected files...`);
+                    if (selectedFileKeys.length > 0) {
+                        updateStatus(`Recording received, analyzing ${selectedFileKeys.length} selected files...`);
+                    } else {
+                        updateStatus('Recording received, providing generic analysis...');
+                    }
                     // Start streaming analysis
                     await startRecordingAnalysisStream();
                 } else {
@@ -705,7 +703,12 @@ def get_main_ui_template() -> str:
                 // Clear previous results
                 document.getElementById('resultsContainer').style.display = 'block';
                 document.getElementById('bruteSection').style.display = 'block';
-                document.getElementById('bruteExplanation').innerHTML = '<div class="streaming-content">Starting analysis...</div>';
+                
+                if (selectedFileKeys.length > 0) {
+                    document.getElementById('bruteExplanation').innerHTML = '<div class="streaming-content">Analyzing selected files...</div>';
+                } else {
+                    document.getElementById('bruteExplanation').innerHTML = '<div class="streaming-content">Providing generic analysis...</div>';
+                }
                 document.getElementById('bruteCode').textContent = '';
                 
                 // Start Server-Sent Events stream
@@ -724,7 +727,11 @@ def get_main_ui_template() -> str:
                         }
                         
                         if (data.status === 'starting_analysis') {
-                            updateStatus('Analysis starting...');
+                            if (selectedFileKeys.length > 0) {
+                                updateStatus('File analysis starting...');
+                            } else {
+                                updateStatus('Generic analysis starting...');
+                            }
                             return;
                         }
                         
@@ -737,7 +744,11 @@ def get_main_ui_template() -> str:
                             document.getElementById('bruteExplanation').innerHTML = explanationHtml;
                             
                             // Update status
-                            updateStatus(`Analyzing... (${data.total_length} characters)`);
+                            if (selectedFileKeys.length > 0) {
+                                updateStatus(`Analyzing files... (${data.total_length} characters)`);
+                            } else {
+                                updateStatus(`Providing analysis... (${data.total_length} characters)`);
+                            }
                         }
                         
                         if (data.status === 'completed') {
@@ -745,7 +756,11 @@ def get_main_ui_template() -> str:
                             const explanationHtml = marked.parse(data.complete_text);
                             document.getElementById('bruteExplanation').innerHTML = explanationHtml;
                             
-                            updateStatus(`Recording analysis completed (${data.final_length} characters)`);
+                            if (selectedFileKeys.length > 0) {
+                                updateStatus(`File analysis completed (${data.final_length} characters)`);
+                            } else {
+                                updateStatus(`Generic analysis completed (${data.final_length} characters)`);
+                            }
                             showLoading(false);
                             eventSource.close();
                         }
