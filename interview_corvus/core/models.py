@@ -11,7 +11,7 @@ class CodeSolution(BaseModel):
     code: str = Field(..., description="Complete code solution")
     language: str = Field(..., description="Programming language of the solution or the question type")
     explanation: str = Field(
-        ..., description="Concise explanation of the core solution approach and key logic"
+        ..., description="Concise explanation of the core solution approach and key logic in points. In the first point show all the keywords related to this question and subsequent points should elaborate on the approach again in points."
     )
     time_complexity: str = Field(
         ..., description="Time complexity analysis (e.g., O(n), O(log n), etc.)"

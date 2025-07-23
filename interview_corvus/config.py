@@ -194,8 +194,8 @@ class PromptTemplates(BaseSettings):
 
 
             Your response should include:
-            1. Complete code solution
-            2. Concise approach explanation focusing only on the core solution strategy
+            1. Complete code solution in the provided {language} language.
+            2. Concise explanation of the core solution approach and key logic in points. In the first point show all the keywords related to this question and subsequent points should elaborate on the approach again in points
             3. **Add very heavy documentation of the code**
             4. Analysis of time complexity (Big O notation)
             5. Analysis of space complexity (Big O notation)
