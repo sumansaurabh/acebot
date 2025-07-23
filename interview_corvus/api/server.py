@@ -6,6 +6,7 @@ Handles FastAPI server creation and execution.
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
+from loguru import logger
 
 # Add the project root to the Python path
 project_root = Path(__file__).parent.parent.parent
@@ -22,6 +23,7 @@ except ImportError as e:
 
 from .api_handler import WebServerAPI
 from .routes import create_routes
+from .network_utils import print_server_info
 
 if TYPE_CHECKING:
     pass
@@ -55,14 +57,9 @@ class WebServerThread(QThread):
     def run(self):
         """Run the FastAPI server."""
         try:
-            print("=" * 60)
-            print("🌐 AceBot Integrated Web Server")
-            print("=" * 60)
-            print(f"🚀 Server: http://{self.host}:{self.port}")
-            print(f"📚 API Documentation: http://{self.host}:{self.port}/docs")
-            print(f"📖 ReDoc Documentation: http://{self.host}:{self.port}/redoc")
+            # Print comprehensive server information
+            print_server_info(self.host, self.port, "AceBot")
             print(f"🔗 GUI Connected: {self.api_instance.gui_connected}")
-            print("=" * 60)
             print("Available endpoints:")
             print("  GET  /health                 - Health check")
             print("  GET  /screenshots            - List screenshots")
@@ -84,4 +81,5 @@ class WebServerThread(QThread):
                 log_level="info"
             )
         except Exception as e:
+            logger.error(f"❌ Failed to start web server: {e}")
             print(f"❌ Failed to start web server: {e}")

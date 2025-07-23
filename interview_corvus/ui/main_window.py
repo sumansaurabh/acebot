@@ -99,13 +99,13 @@ class MainWindow(QMainWindow):
     def _initialize_web_server(self):
         """Initialize the optional web server."""
         try:
-            self.web_api, self.web_server_thread = create_integrated_web_server(
+            self.web_api, self.web_server_thread, actual_port = create_integrated_web_server(
                 llm_service=self.llm_service,
                 screenshot_manager=self.screenshot_manager,
                 host="0.0.0.0",
-                port=8000
+                port=26262  # Changed from 8000 to 26262 as requested
             )
-            logger.info("✅ Web server initialized successfully")
+            logger.info(f"✅ Web server initialized successfully on port {actual_port}")
 
             # Connect web server signals
             self.web_api.screenshot_capture_requested.connect(self.take_screenshot)
@@ -118,7 +118,7 @@ class MainWindow(QMainWindow):
             # Auto-start the web server
             if self.web_server_thread:
                 self.web_server_thread.start()
-                logger.info("🚀 Web server auto-started on http://0.0.0.0:8000")
+                logger.info(f"🚀 Web server auto-started on port {actual_port}")
 
         except Exception as e:
             logger.error(f"❌ Failed to initialize web server: {e}")

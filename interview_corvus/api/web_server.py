@@ -6,7 +6,8 @@ Main entry point that creates and configures the web server components.
 
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Tuple
+from loguru import logger
 
 # Add the project root to the Python path
 project_root = Path(__file__).parent.parent.parent
@@ -14,6 +15,7 @@ sys.path.insert(0, str(project_root))
 
 from .api_handler import WebServerAPI
 from .server import WebServerThread
+from .network_utils import find_available_port, get_local_ip_addresses, print_server_info
 
 if TYPE_CHECKING:
     from interview_corvus.core.llm_service import LLMService
@@ -24,21 +26,47 @@ def create_integrated_web_server(
     llm_service: 'LLMService' = None, 
     screenshot_manager: 'ScreenshotManager' = None,
     host: str = "0.0.0.0",
-    port: int = 8000
-) -> tuple[WebServerAPI, WebServerThread]:
+    port: int = 26262,
+    auto_find_port: bool = True
+) -> Tuple[WebServerAPI, WebServerThread, int]:
     """
     Create an integrated web server that works with the GUI application.
+    Automatically finds available port and discovers local network addresses.
     
     Args:
         llm_service: The LLM service from the GUI
         screenshot_manager: The screenshot manager from the GUI
-        host: Host to bind to
-        port: Port to bind to
+        host: Host to bind to (default: "0.0.0.0" for all interfaces)
+        port: Preferred port to bind to (default: 26262)
+        auto_find_port: Whether to automatically find an available port if preferred is taken
     
     Returns:
-        Tuple of (API instance, Server thread)
-    """
-    api_instance = WebServerAPI(llm_service, screenshot_manager)
-    server_thread = WebServerThread(api_instance, host, port)
+        Tuple of (API instance, Server thread, actual port used)
     
-    return api_instance, server_thread
+    Raises:
+        RuntimeError: If no available port could be found
+    """
+    actual_port = port
+    
+    if auto_find_port:
+        # Try to find an available port starting from the preferred port
+        found_port = find_available_port(host, port)
+        if found_port is None:
+            raise RuntimeError(f"Could not find available port starting from {port}")
+        actual_port = found_port
+        
+        if actual_port != port:
+            logger.info(f"Port {port} was not available, using port {actual_port} instead")
+    
+    # Get and log local IP addresses for user reference
+    local_ips = get_local_ip_addresses()
+    logger.info(f"Local IP addresses discovered: {local_ips}")
+    
+    # Create API and server instances
+    api_instance = WebServerAPI(llm_service, screenshot_manager)
+    server_thread = WebServerThread(api_instance, host, actual_port)
+    
+    # Log server setup information
+    logger.info(f"Web server configured on {host}:{actual_port}")
+    
+    return api_instance, server_thread, actual_port

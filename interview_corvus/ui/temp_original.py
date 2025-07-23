@@ -137,13 +137,13 @@ class MainWindow(QMainWindow):
         self.web_server_thread = None
         if WEB_SERVER_AVAILABLE:
             try:
-                self.web_api, self.web_server_thread = create_integrated_web_server(
+                self.web_api, self.web_server_thread, actual_port = create_integrated_web_server(
                     llm_service=self.llm_service,
                     screenshot_manager=self.screenshot_manager,
                     host="0.0.0.0",
-                    port=8000
+                    port=26262
                 )
-                logger.info("✅ Web server initialized successfully")
+                logger.info(f"✅ Web server initialized successfully on port {actual_port}")
                 
                 # Connect web server signals immediately
                 self.web_api.screenshot_capture_requested.connect(self.take_screenshot)
