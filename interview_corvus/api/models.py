@@ -45,3 +45,16 @@ class ScreenshotListResponse(BaseModel):
     success: bool
     message: str
     screenshots: List[Dict[str, Any]]
+
+
+class LanguageResponse(BaseModel):
+    """Response model for language settings."""
+    success: bool
+    message: str
+    current_language: str
+    available_languages: List[str]
+
+
+class LanguageUpdateRequest(BaseModel):
+    """Request model for updating language."""
+    language: str = Field(..., description="Programming language to set as default")

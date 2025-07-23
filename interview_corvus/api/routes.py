@@ -12,7 +12,8 @@ from fastapi.responses import JSONResponse, HTMLResponse
 
 from .models import (
     GenerateSolutionRequest, OptimizeSolutionRequest, SolutionResponse,
-    OptimizationResponse, HealthResponse, ScreenshotListResponse
+    OptimizationResponse, HealthResponse, ScreenshotListResponse,
+    LanguageResponse, LanguageUpdateRequest
 )
 from .api_handler import WebServerAPI
 
@@ -116,3 +117,12 @@ def create_routes(app: FastAPI, api_instance: WebServerAPI) -> None:
     @app.post("/window/toggle")
     async def toggle_window():
         return api_instance.toggle_window()
+    
+    # Language endpoints
+    @app.get("/language", response_model=LanguageResponse)
+    async def get_language():
+        return api_instance.get_language()
+    
+    @app.put("/language")
+    async def set_language(request: LanguageUpdateRequest):
+        return api_instance.set_language(request)

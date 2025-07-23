@@ -116,6 +116,7 @@ class MainWindow(QMainWindow):
             self.web_api.window_show_requested.connect(self.show)
             self.web_api.window_hide_requested.connect(self.hide)
             self.web_api.window_toggle_requested.connect(self.toggle_visibility)
+            self.web_api.language_changed.connect(self.on_language_changed_from_web)
 
             # Auto-start the web server
             if self.web_server_thread:
@@ -586,6 +587,22 @@ class MainWindow(QMainWindow):
         """Handle language selection changes."""
         settings.default_language = language
         self.status_bar_manager.show_message(f"Solution language set to {language}")
+        settings.save_user_settings()
+        
+    @pyqtSlot(str)
+    def on_language_changed_from_web(self, language: str):
+        """Handle language changes from web API."""
+        # Update the GUI language dropdown to match web selection
+        index = self.screenshot_controls.language_combo.findText(language)
+        if index >= 0:
+            # Block signals temporarily to prevent recursive calls
+            self.screenshot_controls.language_combo.blockSignals(True)
+            self.screenshot_controls.language_combo.setCurrentIndex(index)
+            self.screenshot_controls.language_combo.blockSignals(False)
+        
+        # Update settings and show message
+        settings.default_language = language
+        self.status_bar_manager.show_message(f"Language updated from web to {language}")
         settings.save_user_settings()
 
     def on_code_changed(self):

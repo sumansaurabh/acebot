@@ -99,6 +99,25 @@ def get_main_ui_template() -> str:
             margin-left: 50%;
             transform: translateX(-50%);
         }
+        .language-selector {
+            text-align: center;
+            margin: 12px 0;
+        }
+        .language-selector label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #6b7280;
+            margin-right: 8px;
+        }
+        .language-selector select {
+            padding: 4px 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 12px;
+            background: white;
+            color: #374151;
+            cursor: pointer;
+        }
         .loading-spinner {
             display: none;
             width: 22px;
@@ -251,6 +270,8 @@ def get_main_ui_template() -> str:
             .explanation code { font-size: 11px; }
             .code-block { font-size: 11px; padding: 10px !important; }
             .screenshot-count { font-size: 11px; padding: 6px 12px; }
+            .language-selector label { font-size: 11px; }
+            .language-selector select { font-size: 11px; padding: 3px 6px; }
         }
     </style>
 </head>
@@ -264,6 +285,19 @@ def get_main_ui_template() -> str:
             <button class="action-btn toggle-btn" onclick="toggleWindow()" id="toggleBtn" data-label="toggle" title="Toggle Window">👁️</button>
             <button class="action-btn clear-btn" onclick="clearScreenshots()" id="clearBtn" data-label="clear" title="Clear Screenshots">🗑️</button>
             <button class="action-btn reset-btn" onclick="resetAll()" id="resetBtn" data-label="reset" title="Reset All">🔄</button>
+        </div>
+        <div class="language-selector">
+            <label for="languageSelect">Language:</label>
+            <select id="languageSelect" onchange="changeLanguage(this.value)">
+                <option value="python">Python</option>
+                <option value="java">Java</option>
+                <option value="javascript">JavaScript</option>
+                <option value="c++">C++</option>
+                <option value="c#">C#</option>
+                <option value="go">Go</option>
+                <option value="rust">Rust</option>
+                <option value="ruby">Ruby</option>
+            </select>
         </div>
         <div class="screenshot-count">📸 <span id="screenshotCount">0</span> screenshots</div>
         <div class="status-bar" id="statusBar">Ready</div>
@@ -303,6 +337,48 @@ def get_main_ui_template() -> str:
         function showLoading(show = true) {
             const spinner = document.getElementById('loadingSpinner');
             spinner.style.display = show ? 'block' : 'none';
+        }
+        function updateLanguageDropdown() {
+            fetch(`${API_BASE}/language`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const languageSelect = document.getElementById('languageSelect');
+                        // Clear existing options
+                        languageSelect.innerHTML = '';
+                        
+                        // Add available languages
+                        data.available_languages.forEach(lang => {
+                            const option = document.createElement('option');
+                            option.value = lang;
+                            option.textContent = lang.charAt(0).toUpperCase() + lang.slice(1);
+                            if (lang === data.current_language) {
+                                option.selected = true;
+                            }
+                            languageSelect.appendChild(option);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Failed to load language settings:', error);
+                });
+        }
+        async function changeLanguage(language) {
+            try {
+                const response = await fetch(`${API_BASE}/language`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ language: language })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    updateStatus(`Language set to ${language}`);
+                } else {
+                    updateStatus(`Error: ${result.message}`);
+                }
+            } catch (error) {
+                updateStatus('Failed to change language');
+            }
         }
         function updateScreenshotCount() {
             fetch(`${API_BASE}/screenshots`)
@@ -348,9 +424,12 @@ def get_main_ui_template() -> str:
         async function solveBrute() {
             updateStatus('Solving...'); showLoading(true);
             try {
+                const languageSelect = document.getElementById('languageSelect');
+                const selectedLanguage = languageSelect.value;
+                
                 const response = await fetch(`${API_BASE}/solution`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ language: 'Python' })
+                    body: JSON.stringify({ language: selectedLanguage })
                 });
                 const result = await response.json();
                 if (response.ok && result.solution) {
@@ -461,9 +540,11 @@ def get_main_ui_template() -> str:
             document.getElementById('solveBtn').disabled = true;
             document.getElementById('optimizeBtn').disabled = true;
             updateScreenshotCount();
+            updateLanguageDropdown();
             updateStatus('Ready');
         });
         setInterval(updateScreenshotCount, 5000);
+        setInterval(updateLanguageDropdown, 10000); // Update language every 10 seconds
     </script>
 </body>
 </html>

@@ -14,7 +14,7 @@ from fastapi.responses import JSONResponse, HTMLResponse
 
 from .models import (
     GenerateSolutionRequest, OptimizeSolutionRequest, SolutionResponse, 
-    OptimizationResponse, ScreenshotListResponse
+    OptimizationResponse, ScreenshotListResponse, LanguageResponse, LanguageUpdateRequest
 )
 from .ui_template import get_main_ui_template
 
@@ -35,6 +35,7 @@ class WebServerAPI(QObject):
     window_show_requested = pyqtSignal()
     window_hide_requested = pyqtSignal()
     window_toggle_requested = pyqtSignal()
+    language_changed = pyqtSignal(str)  # new language
     
     def __init__(self, llm_service: 'LLMService' = None, screenshot_manager: 'ScreenshotManager' = None):
         """Initialize the web API with shared services."""
@@ -417,3 +418,60 @@ class WebServerAPI(QObject):
     def get_main_ui(self) -> HTMLResponse:
         """Serve the main web UI."""
         return HTMLResponse(content=get_main_ui_template())
+    
+    def get_language(self) -> LanguageResponse:
+        """Get current language settings."""
+        try:
+            from interview_corvus.config import settings
+            
+            return LanguageResponse(
+                success=True,
+                message="Language settings retrieved successfully",
+                current_language=settings.default_language,
+                available_languages=settings.available_languages
+            )
+            
+        except Exception as e:
+            return LanguageResponse(
+                success=False,
+                message=f"Failed to get language settings: {str(e)}",
+                current_language="python",
+                available_languages=["python"]
+            )
+    
+    def set_language(self, request: LanguageUpdateRequest) -> JSONResponse:
+        """Set the current programming language."""
+        try:
+            from interview_corvus.config import settings
+            
+            # Validate language is in available languages
+            if request.language not in settings.available_languages:
+                return JSONResponse(
+                    content={
+                        "success": False, 
+                        "message": f"Invalid language '{request.language}'. Available languages: {settings.available_languages}"
+                    },
+                    status_code=400
+                )
+            
+            # Update language in settings
+            settings.default_language = request.language
+            settings.save_user_settings()
+            
+            # Emit signal to update GUI if connected
+            if self.gui_connected:
+                self.language_changed.emit(request.language)
+            
+            return JSONResponse(
+                content={
+                    "success": True, 
+                    "message": f"Language set to {request.language}",
+                    "current_language": request.language
+                }
+            )
+            
+        except Exception as e:
+            return JSONResponse(
+                content={"success": False, "message": f"Failed to set language: {str(e)}"},
+                status_code=500
+            )
