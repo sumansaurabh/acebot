@@ -160,18 +160,32 @@ def get_main_ui_template() -> str:
             line-height: 1.6;
             margin: 12px 0; 
             color: #24292e;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
         .explanation h1, .explanation h2, .explanation h3 {
             color: #24292e;
             margin-top: 16px;
             margin-bottom: 8px;
+            word-wrap: break-word;
         }
         .explanation h1 { font-size: 18px; }
         .explanation h2 { font-size: 16px; }
         .explanation h3 { font-size: 14px; }
-        .explanation p { margin: 8px 0; }
-        .explanation ul, .explanation ol { margin: 8px 0 8px 20px; }
-        .explanation li { margin: 4px 0; }
+        .explanation p { 
+            margin: 8px 0; 
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        .explanation ul, .explanation ol { 
+            margin: 8px 0 8px 20px; 
+            padding-left: 0;
+        }
+        .explanation li { 
+            margin: 4px 0; 
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
         .explanation code {
             background: #f6f8fa;
             border: 1px solid #e1e4e8;
@@ -179,12 +193,15 @@ def get_main_ui_template() -> str:
             padding: 2px 4px;
             font-size: 13px;
             font-family: Monaco, "Cascadia Code", "Fira Code", monospace;
+            word-break: break-all;
+            white-space: pre-wrap;
         }
         .explanation blockquote {
             border-left: 4px solid #dfe2e5;
             padding-left: 16px;
             margin-left: 0;
             color: #6a737d;
+            word-wrap: break-word;
         }
         
         .code-block { 
@@ -367,11 +384,11 @@ def get_main_ui_template() -> str:
         }
 
         @media (max-width: 600px) {
-            .main-content { padding: 8px 16px 0 16px; }
+            .main-content { padding: 8px 12px 0 12px; }
             .action-buttons { 
                 gap: 4px; 
                 margin-bottom: 24px; 
-                padding: 0 8px;
+                padding: 0 4px;
             }
             .action-btn { 
                 font-size: 18px; 
@@ -386,15 +403,74 @@ def get_main_ui_template() -> str:
             .language-selector label { font-size: 11px; }
             .language-selector select { font-size: 11px; padding: 3px 6px; min-width: 80px; }
             .screenshot-count { font-size: 11px; padding: 5px 10px; }
-            .explanation { font-size: 12px; }
-            .explanation h1 { font-size: 15px; }
-            .explanation h2 { font-size: 14px; }
-            .explanation h3 { font-size: 13px; }
-            .explanation code { font-size: 11px; }
-            .code-block { font-size: 11px; padding: 10px !important; }
+            
+            /* Result sections mobile optimization */
+            .result-section { 
+                padding: 12px 8px; 
+                margin-bottom: 12px;
+                border-radius: 6px;
+            }
+            .section-header {
+                font-size: 14px;
+                margin-bottom: 8px;
+                padding-bottom: 6px;
+            }
+            
+            .explanation { 
+                font-size: 12px; 
+                line-height: 1.5;
+                margin: 8px 0;
+                padding: 0 4px;
+            }
+            .explanation h1 { 
+                font-size: 15px; 
+                margin-top: 12px;
+                margin-bottom: 6px;
+            }
+            .explanation h2 { 
+                font-size: 14px; 
+                margin-top: 10px;
+                margin-bottom: 5px;
+            }
+            .explanation h3 { 
+                font-size: 13px; 
+                margin-top: 8px;
+                margin-bottom: 4px;
+            }
+            .explanation p {
+                margin: 6px 0;
+                text-align: left;
+            }
+            .explanation ul, .explanation ol { 
+                margin: 6px 0 6px 12px; 
+                padding-left: 0;
+            }
+            .explanation li {
+                margin: 2px 0;
+                padding-left: 0;
+            }
+            .explanation code { 
+                font-size: 11px; 
+                padding: 1px 3px;
+                word-break: break-all;
+                white-space: pre-wrap;
+            }
+            .explanation blockquote {
+                padding-left: 8px;
+                margin: 6px 0;
+                font-size: 11px;
+            }
+            .code-block { 
+                font-size: 11px; 
+                padding: 8px !important; 
+                margin: 8px 0 !important;
+                overflow-x: auto;
+                white-space: pre-wrap;
+                word-break: break-all;
+            }
             
             /* Mobile file selection styles */
-            .file-selection-section { margin: 16px 0; padding: 12px; }
+            .file-selection-section { margin: 16px 0; padding: 12px 8px; }
             .file-checkbox-item { padding: 6px 8px; font-size: 12px; }
             .file-checkbox-item .file-name { font-size: 12px; }
             .btn-small { padding: 3px 6px; font-size: 11px; }
