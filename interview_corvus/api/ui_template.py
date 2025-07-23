@@ -21,8 +21,8 @@ def get_main_ui_template() -> str:
         .main-content { max-width: 800px; margin: 0 auto; padding: 12px 0 0 0; }
         .action-buttons {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
             margin-bottom: 12px;
             max-width: 280px;
             margin-left: auto;
@@ -37,14 +37,14 @@ def get_main_ui_template() -> str:
             gap: 8px;
         }
         .action-btn {
-            padding: 12px;
+            padding: 8px;
             border: none;
-            border-radius: 8px;
-            font-size: 18px;
+            border-radius: 6px;
+            font-size: 20px;
             cursor: pointer;
-            min-height: 48px;
+            min-height: 40px;
             transition: all 0.2s ease;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.12);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -54,10 +54,10 @@ def get_main_ui_template() -> str:
         .action-btn::after {
             content: attr(data-label);
             position: absolute;
-            bottom: -20px;
+            bottom: -16px;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -241,9 +241,9 @@ def get_main_ui_template() -> str:
         .complexity-item { background: #fff; border: 1px solid #eee; border-radius: 4px; padding: 3px 8px; }
         @media (max-width: 600px) {
             .main-content { padding: 8px 16px 0 16px; }
-            .action-buttons { gap: 6px; max-width: 240px; }
-            .action-btn { font-size: 16px; min-height: 44px; padding: 10px; }
-            .action-btn::after { font-size: 9px; bottom: -18px; }
+            .action-buttons { gap: 4px; max-width: 240px; }
+            .action-btn { font-size: 18px; min-height: 36px; padding: 6px; }
+            .action-btn::after { font-size: 8px; bottom: -14px; }
             .explanation { font-size: 12px; }
             .explanation h1 { font-size: 15px; }
             .explanation h2 { font-size: 14px; }
@@ -294,6 +294,8 @@ def get_main_ui_template() -> str:
     <script>
         const API_BASE = '';
         let bruteSolution = null;
+        let isWindowOpen = true; // Track toggle state, default is open
+        
         function updateStatus(message, type = 'info') {
             const statusBar = document.getElementById('statusBar');
             statusBar.textContent = message;
@@ -447,7 +449,12 @@ def get_main_ui_template() -> str:
         }
         function toggleWindow() {
             fetch(`${API_BASE}/window/toggle`, { method: 'POST' })
-                .then(() => updateStatus('Toggled'))
+                .then(() => {
+                    isWindowOpen = !isWindowOpen;
+                    const toggleBtn = document.getElementById('toggleBtn');
+                    toggleBtn.textContent = isWindowOpen ? '👁️' : '�';
+                    updateStatus('Toggled');
+                })
                 .catch(() => updateStatus('Toggle failed'));
         }
         window.addEventListener('load', () => {
