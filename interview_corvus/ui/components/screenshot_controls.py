@@ -48,24 +48,27 @@ class ScreenshotControls(QWidget):
         # Set size policy to prevent collapse
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         
-        # Add styling to make the controls visible
+        # Simplified styling to prevent interference with dropdowns
         self.setStyleSheet("""
             ScreenshotControls {
                 background-color: #ffffff;
                 border-bottom: 1px solid #e1e4e8;
                 padding: 4px;
             }
-            /* Ensure child widgets don't inherit restrictive styles */
-            ScreenshotControls > QWidget {
-                background: transparent;
-            }
         """)
+        
+        # Ensure this widget doesn't interfere with child widget events
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, False)
+        self.setMouseTracking(False)
         
     def create_screenshots_section(self):
         """Create the screenshots preview section."""
         screenshots_group = QWidget()
         screenshots_layout = QVBoxLayout(screenshots_group)
         screenshots_layout.setContentsMargins(0, 4, 0, 4)
+        
+        # Ensure the screenshots widget doesn't block events
+        screenshots_group.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, False)
         
         # Header
         screenshots_header = QHBoxLayout()
@@ -99,6 +102,9 @@ class ScreenshotControls(QWidget):
         controls_layout.setContentsMargins(8, 4, 0, 4)
         controls_layout.setSpacing(8)
         
+        # Ensure the controls widget doesn't block events
+        controls_group.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, False)
+        
         # Language selection
         language_layout = QHBoxLayout()
         language_layout.setSpacing(6)
@@ -111,38 +117,14 @@ class ScreenshotControls(QWidget):
         index = self.language_combo.findText(settings.default_language)
         if index >= 0:
             self.language_combo.setCurrentIndex(index)
-        self.language_combo.setMinimumWidth(120)
-        self.language_combo.setMaximumWidth(200)  # Increased max width
-        self.language_combo.setMinimumHeight(28)
-        self.language_combo.setMaximumHeight(32)  # Use max height instead of fixed
-        # Ensure dropdown can expand properly
+        self.language_combo.setMinimumWidth(100)
+        self.language_combo.setMaximumWidth(130)
+        self.language_combo.setFixedHeight(28)
+        # Ensure dropdown can expand properly and is clickable
         self.language_combo.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
-        self.language_combo.setStyleSheet("""
-            QComboBox {
-                padding: 4px 8px;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                background-color: white;
-            }
-            QComboBox:hover {
-                border-color: #4A90E2;
-            }
-            QComboBox::drop-down {
-                border: none;
-                width: 20px;
-            }
-            QComboBox::down-arrow {
-                width: 12px;
-                height: 12px;
-            }
-            QComboBox QAbstractItemView {
-                border: 1px solid #ddd;
-                background-color: white;
-                selection-background-color: #4A90E2;
-                selection-color: white;
-                outline: none;
-            }
-        """)
+        # Remove any potential blocking styles and ensure clickability
+        self.language_combo.setAttribute(Qt.WidgetAttribute.WA_AcceptTouchEvents, False)
+        self.language_combo.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
         language_layout.addWidget(self.language_combo)
         controls_layout.addLayout(language_layout)
         
@@ -155,38 +137,14 @@ class ScreenshotControls(QWidget):
         
         self.screen_combo = QComboBox()
         self.update_screen_list()
-        self.screen_combo.setMinimumWidth(120)
-        self.screen_combo.setMaximumWidth(200)  # Increased max width
-        self.screen_combo.setMinimumHeight(28)
-        self.screen_combo.setMaximumHeight(32)  # Use max height instead of fixed
-        # Ensure dropdown can expand properly
+        self.screen_combo.setMinimumWidth(150)
+        self.screen_combo.setMaximumWidth(200)
+        self.screen_combo.setFixedHeight(28)
+        # Ensure dropdown can expand properly and is clickable
         self.screen_combo.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
-        self.screen_combo.setStyleSheet("""
-            QComboBox {
-                padding: 4px 8px;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                background-color: white;
-            }
-            QComboBox:hover {
-                border-color: #4A90E2;
-            }
-            QComboBox::drop-down {
-                border: none;
-                width: 20px;
-            }
-            QComboBox::down-arrow {
-                width: 12px;
-                height: 12px;
-            }
-            QComboBox QAbstractItemView {
-                border: 1px solid #ddd;
-                background-color: white;
-                selection-background-color: #4A90E2;
-                selection-color: white;
-                outline: none;
-            }
-        """)
+        # Remove any potential blocking styles and ensure clickability
+        self.screen_combo.setAttribute(Qt.WidgetAttribute.WA_AcceptTouchEvents, False)
+        self.screen_combo.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
         monitor_layout.addWidget(self.screen_combo)
         controls_layout.addLayout(monitor_layout)
         
@@ -196,6 +154,12 @@ class ScreenshotControls(QWidget):
     def connect_signals(self):
         """Connect internal signals."""
         self.language_combo.currentTextChanged.connect(self.language_changed.emit)
+        
+        # Ensure dropdowns can receive focus and click events
+        self.language_combo.setEnabled(True)
+        self.screen_combo.setEnabled(True)
+        
+        # Connect screen events
         QApplication.instance().screenAdded.connect(self.update_screen_list)
         QApplication.instance().screenRemoved.connect(self.update_screen_list)
         
