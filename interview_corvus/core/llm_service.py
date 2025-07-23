@@ -237,9 +237,14 @@ class LLMService(QObject):
         prompt_manager = PromptManager()
 
         # Get the screenshot prompt with language
-        prompt_text = prompt_manager.get_prompt(
-            "screenshot_solution", language=language
-        )
+        if language == "mcq":
+            prompt_text = prompt_manager.get_prompt(
+                "mcq_solution", language="mcq"
+            )
+        else:
+            prompt_text = prompt_manager.get_prompt(
+                "screenshot_solution", language=language
+            )
 
         logger.info(f"Processing {len(screenshot_paths)} screenshots")
 
