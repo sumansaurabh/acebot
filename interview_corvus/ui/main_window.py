@@ -57,6 +57,7 @@ class MainWindow(QMainWindow):
         # Initialize web server (optional)
         self.web_api = None
         self.web_server_thread = None
+        self.web_server_port = None
         if WEB_SERVER_AVAILABLE:
             self._initialize_web_server()
 
@@ -105,6 +106,7 @@ class MainWindow(QMainWindow):
                 host="0.0.0.0",
                 port=26262  # Changed from 8000 to 26262 as requested
             )
+            self.web_server_port = actual_port  # Store the actual port used
             logger.info(f"✅ Web server initialized successfully on port {actual_port}")
 
             # Connect web server signals
@@ -124,6 +126,7 @@ class MainWindow(QMainWindow):
             logger.error(f"❌ Failed to initialize web server: {e}")
             self.web_api = None
             self.web_server_thread = None
+            self.web_server_port = None
 
     def init_ui(self):
         """Set up the user interface with components."""
@@ -172,7 +175,7 @@ class MainWindow(QMainWindow):
 
         # Update web server status if auto-started
         if WEB_SERVER_AVAILABLE and self.web_server_thread and self.web_server_thread.isRunning():
-            self.status_bar_manager.update_web_server_status(True)
+            self.status_bar_manager.update_web_server_status(True, self.web_server_port)
 
     def connect_signals(self):
         """Connect all component signals to handlers."""
@@ -699,7 +702,7 @@ class MainWindow(QMainWindow):
         else:
             if self.web_server_thread:
                 self.web_server_thread.start()
-                self.status_bar_manager.update_web_server_status(True)
+                self.status_bar_manager.update_web_server_status(True, self.web_server_port)
                 self.status_bar_manager.show_message("Web server started")
 
     # Dialog methods

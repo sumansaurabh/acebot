@@ -23,7 +23,9 @@ def get_local_ip_addresses() -> List[str]:
         # Method 1: Connect to external address to get primary local IP
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.connect(("8.8.8.8", 80))
-        primary_ip = sock.getsockname()[0]
+        sockname = sock.getsockname()
+        print(sockname)
+        primary_ip = sockname[0]
         sock.close()
         
         if primary_ip and primary_ip not in ip_addresses:
