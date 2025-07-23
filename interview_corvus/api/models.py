@@ -58,3 +58,13 @@ class LanguageResponse(BaseModel):
 class LanguageUpdateRequest(BaseModel):
     """Request model for updating language."""
     language: str = Field(..., description="Programming language to set as default")
+
+
+class StateResponse(BaseModel):
+    """Response model for current application state."""
+    success: bool
+    message: str
+    current_solution: Optional[Dict[str, Any]] = None
+    current_optimization: Optional[Dict[str, Any]] = None
+    current_language: str
+    has_screenshots: bool

@@ -118,6 +118,10 @@ class MainWindow(QMainWindow):
             self.web_api.window_hide_requested.connect(self.hide)
             self.web_api.window_toggle_requested.connect(self.toggle_visibility)
             self.web_api.language_changed.connect(self.on_language_changed_from_web)
+            
+            # Connect bidirectional solution synchronization signals
+            self.web_api.solution_generated_from_web.connect(self.on_solution_ready)
+            self.web_api.optimization_generated_from_web.connect(self.on_optimization_ready)
 
             # Auto-start the web server
             if self.web_server_thread:
@@ -582,6 +586,10 @@ class MainWindow(QMainWindow):
         has_solution = bool(self.solution_text.strip())
         self.action_bar.update_button_states(has_screenshots=has_screenshots, has_solution=has_solution)
         
+        # Update web API state if connected
+        if self.web_api:
+            self.web_api.update_solution_from_gui(solution)
+        
         self.status_bar_manager.show_message("Solution generated")
         logger.info("Solution generated successfully")
 
@@ -600,6 +608,10 @@ class MainWindow(QMainWindow):
         has_solution = bool(self.solution_text.strip())
         self.action_bar.update_button_states(has_screenshots=has_screenshots, has_solution=has_solution)
         
+        # Update web API state if connected
+        if self.web_api:
+            self.web_api.update_optimization_from_gui(optimization)
+        
         self.status_bar_manager.show_message("Solution optimized")
         logger.info("Solution optimized successfully")
 
@@ -616,12 +628,11 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(str)
     def on_language_changed(self, language: str):
-        """Handle language selection changes."""
-        settings.default_language = language
-        self.status_bar_manager.show_message(f"Solution language set to {language}")
-        settings.save_user_settings()
-        
-    @pyqtSlot(str)
+        """Handle language change from screenshot controls."""
+        logger.info(f"Language changed to: {language}")
+        # Update web API state if connected
+        if self.web_api:
+            self.web_api.update_language_from_gui(language)    @pyqtSlot(str)
     def on_language_changed_from_web(self, language: str):
         """Handle language changes from web API."""
         # Update the GUI language dropdown to match web selection

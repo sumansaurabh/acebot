@@ -37,6 +37,10 @@ class WebServerAPI(QObject):
     window_toggle_requested = pyqtSignal()
     language_changed = pyqtSignal(str)  # new language
     
+    # New signals for solution synchronization
+    solution_generated_from_web = pyqtSignal(object)  # solution object
+    optimization_generated_from_web = pyqtSignal(object)  # optimization object
+    
     def __init__(self, llm_service: 'LLMService' = None, screenshot_manager: 'ScreenshotManager' = None):
         """Initialize the web API with shared services."""
         super().__init__()
@@ -52,6 +56,58 @@ class WebServerAPI(QObject):
         self.screenshot_manager = screenshot_manager
         self.gui_connected = True
         print("🔗 GUI services connected to Web API")
+    
+    # State synchronization methods
+    def update_solution_from_gui(self, solution):
+        """Update the current solution from GUI - stored in LLM service."""
+        # Convert solution object to dictionary for JSON serialization
+        try:
+            if hasattr(solution, 'model_dump'):
+                solution_dict = solution.model_dump()
+            elif hasattr(solution, '__dict__'):
+                solution_dict = solution.__dict__
+            else:
+                solution_dict = {"raw": str(solution)}
+            self.llm_service._last_solution = solution_dict
+        except Exception as e:
+            print(f"❌ Web API: Failed to serialize solution from GUI: {e}")
+            self.llm_service._last_solution = {"raw": str(solution)}
+        print("🔄 Web API: Solution updated from GUI")
+    
+    def update_optimization_from_gui(self, optimization):
+        """Update the current optimization from GUI - stored in LLM service."""
+        # Convert optimization object to dictionary for JSON serialization
+        try:
+            if hasattr(optimization, 'model_dump'):
+                optimization_dict = optimization.model_dump()
+            elif hasattr(optimization, '__dict__'):
+                optimization_dict = optimization.__dict__
+            else:
+                optimization_dict = {"raw": str(optimization)}
+            self.llm_service._last_optimization = optimization_dict
+        except Exception as e:
+            print(f"❌ Web API: Failed to serialize optimization from GUI: {e}")
+            self.llm_service._last_optimization = {"raw": str(optimization)}
+        print("🔄 Web API: Optimization updated from GUI")
+    
+    def update_language_from_gui(self, language: str):
+        """Update the current language from GUI."""
+        from interview_corvus.config import settings
+        settings.default_language = language
+        print(f"🔄 Web API: Language updated from GUI to {language}")
+    
+    def get_current_solution(self):
+        """Get the current solution for web interface."""
+        return getattr(self.llm_service, '_last_solution', None)
+    
+    def get_current_optimization(self):
+        """Get the current optimization for web interface."""
+        return getattr(self.llm_service, '_last_optimization', None)
+    
+    def get_current_language(self):
+        """Get the current language for web interface."""
+        from interview_corvus.config import settings
+        return settings.default_language
     
     def generate_solution_from_screenshots(self, request: GenerateSolutionRequest) -> SolutionResponse:
         """Generate solution from available screenshots."""
@@ -164,8 +220,9 @@ class WebServerAPI(QObject):
             
             print("✅ Web API: Solution generated successfully")
             
-            # Store the solution for persistence
+            # Store the solution in LLM service as dictionary and emit signal for GUI sync
             self.llm_service._last_solution = solution_dict
+            self.solution_generated_from_web.emit(solution)
             
             return SolutionResponse(
                 success=True,
@@ -242,8 +299,9 @@ class WebServerAPI(QObject):
             
             print("✅ Web API: Code optimized successfully")
             
-            # Store the optimization for persistence
+            # Store the optimization in LLM service as dictionary and emit signal for GUI sync
             self.llm_service._last_optimization = optimization_dict
+            self.optimization_generated_from_web.emit(optimization)
             
             return OptimizationResponse(
                 success=True,
@@ -453,9 +511,7 @@ class WebServerAPI(QObject):
                     }
                 )
             
-            # Get current session data from the content display component
-            # Note: This is a simplified implementation - in a real scenario,
-            # you might want to store solutions in a more persistent way
+            # Get current session data from LLM service (should be dictionaries)
             current_session = getattr(self.llm_service, '_last_solution', None)
             optimized_session = getattr(self.llm_service, '_last_optimization', None)
             
@@ -539,3 +595,64 @@ class WebServerAPI(QObject):
     def get_main_ui(self) -> HTMLResponse:
         """Get the main UI HTML page."""
         return HTMLResponse(content=get_main_ui_template())
+    
+    def get_current_state(self):
+        """Get the current application state for synchronization."""
+        from .models import StateResponse
+        
+        try:
+            # Get current solution and optimization from LLM service (already dictionaries)
+            current_solution = getattr(self.llm_service, '_last_solution', None)
+            current_optimization = getattr(self.llm_service, '_last_optimization', None)
+            
+            # Convert solution to dict if it exists and isn't already a dict
+            solution_dict = None
+            if current_solution:
+                if isinstance(current_solution, dict):
+                    solution_dict = current_solution
+                elif hasattr(current_solution, 'model_dump'):
+                    solution_dict = current_solution.model_dump()
+                elif hasattr(current_solution, '__dict__'):
+                    solution_dict = current_solution.__dict__
+                else:
+                    solution_dict = {"raw": str(current_solution)}
+            
+            # Convert optimization to dict if it exists and isn't already a dict
+            optimization_dict = None
+            if current_optimization:
+                if isinstance(current_optimization, dict):
+                    optimization_dict = current_optimization
+                elif hasattr(current_optimization, 'model_dump'):
+                    optimization_dict = current_optimization.model_dump()
+                elif hasattr(current_optimization, '__dict__'):
+                    optimization_dict = current_optimization.__dict__
+                else:
+                    optimization_dict = {"raw": str(current_optimization)}
+            
+            # Check if there are screenshots available
+            has_screenshots = False
+            if self.gui_connected and self.screenshot_manager:
+                screenshots = self.screenshot_manager.get_all_screenshots()
+                has_screenshots = len(screenshots) > 0
+            
+            # Get current language
+            from interview_corvus.config import settings
+            current_language = settings.default_language
+            
+            return StateResponse(
+                success=True,
+                message="Current state retrieved successfully",
+                current_solution=solution_dict,
+                current_optimization=optimization_dict,
+                current_language=current_language,
+                has_screenshots=has_screenshots
+            )
+        except Exception as e:
+            return StateResponse(
+                success=False,
+                message=f"Failed to get current state: {str(e)}",
+                current_solution=None,
+                current_optimization=None,
+                current_language="python",
+                has_screenshots=False
+            )

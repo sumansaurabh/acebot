@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse, HTMLResponse
 from .models import (
     GenerateSolutionRequest, OptimizeSolutionRequest, SolutionResponse,
     OptimizationResponse, HealthResponse, ScreenshotListResponse,
-    LanguageResponse, LanguageUpdateRequest
+    LanguageResponse, LanguageUpdateRequest, StateResponse
 )
 from .api_handler import WebServerAPI
 
@@ -130,3 +130,9 @@ def create_routes(app: FastAPI, api_instance: WebServerAPI) -> None:
     @app.put("/language")
     async def set_language(request: LanguageUpdateRequest):
         return api_instance.set_language(request)
+    
+    # State synchronization endpoint
+    @app.get("/state", response_model=StateResponse)
+    async def get_current_state():
+        """Get current application state for synchronization."""
+        return api_instance.get_current_state()
