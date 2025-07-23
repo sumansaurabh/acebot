@@ -1,30 +1,13 @@
-import platform
-import re
+"""
+Refactored Main Window using separate components.
+This version breaks down the original large MainWindow class into manageable components.
+"""
 
+import platform
 from loguru import logger
-from PyQt6.QtCore import QEvent, QSize, Qt, QThread, QTimer, pyqtSignal, pyqtSlot
-from PyQt6.QtGui import QAction, QFont, QIcon, QKeySequence, QSyntaxHighlighter, QTextCharFormat, QTextDocument, QColor, QPixmap
+from PyQt6.QtCore import QEvent, Qt, QThread, QTimer, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import (
-    QApplication,
-    QCheckBox,
-    QComboBox,
-    QHBoxLayout,
-    QLabel,
-    QMainWindow,
-    QMenu,
-    QMessageBox,
-    QPlainTextEdit,
-    QPushButton,
-    QScrollArea,
-    QSlider,
-    QSplitter,
-    QStatusBar,
-    QSystemTrayIcon,
-    QTabWidget,
-    QTextEdit,
-    QVBoxLayout,
-    QWidget,
-    QDialog,
+    QApplication, QMainWindow, QVBoxLayout, QWidget, QMessageBox, QDialog
 )
 
 from interview_corvus.config import settings
@@ -35,6 +18,13 @@ from interview_corvus.screenshot.screenshot_manager import ScreenshotManager
 from interview_corvus.ui.settings_dialog import SettingsDialog
 from interview_corvus.ui.styles import Styles, Theme
 
+# Import our new components
+from interview_corvus.ui.components.action_bar import ActionBar
+from interview_corvus.ui.components.screenshot_controls import ScreenshotControls
+from interview_corvus.ui.components.content_display import ContentDisplay
+from interview_corvus.ui.components.menu_manager import MenuManager
+from interview_corvus.ui.components.status_bar import StatusBarManager
+
 # Try to import web server (optional dependency)
 try:
     from interview_corvus.api.web_server import create_integrated_web_server
@@ -44,90 +34,23 @@ except ImportError:
     logger.warning("Web server dependencies not available. Web API will be disabled.")
 
 
-class PythonSyntaxHighlighter(QSyntaxHighlighter):
-    """Syntax highlighter for Python code."""
-    
-    def __init__(self, document: QTextDocument):
-        super().__init__(document)
-        
-        # Define highlighting rules
-        self.highlighting_rules = []
-        
-        # Keyword format
-        keyword_format = QTextCharFormat()
-        keyword_format.setForeground(QColor(86, 156, 214))  # Blue
-        keyword_format.setFontWeight(QFont.Weight.Bold)
-        keywords = [
-            'and', 'as', 'assert', 'break', 'class', 'continue', 'def',
-            'del', 'elif', 'else', 'except', 'exec', 'finally', 'for',
-            'from', 'global', 'if', 'import', 'in', 'is', 'lambda',
-            'not', 'or', 'pass', 'print', 'raise', 'return', 'try',
-            'while', 'with', 'yield', 'None', 'True', 'False'
-        ]
-        for keyword in keywords:
-            pattern = f'\\b{keyword}\\b'
-            self.highlighting_rules.append((re.compile(pattern), keyword_format))
-        
-        # String format
-        string_format = QTextCharFormat()
-        string_format.setForeground(QColor(206, 145, 120))  # Orange
-        self.highlighting_rules.append((re.compile(r'".*?"'), string_format))
-        self.highlighting_rules.append((re.compile(r"'.*?'"), string_format))
-        
-        # Comment format
-        comment_format = QTextCharFormat()
-        comment_format.setForeground(QColor(106, 153, 85))  # Green
-        comment_format.setFontItalic(True)
-        self.highlighting_rules.append((re.compile(r'#.*'), comment_format))
-        
-        # Number format
-        number_format = QTextCharFormat()
-        number_format.setForeground(QColor(181, 206, 168))  # Light green
-        self.highlighting_rules.append((re.compile(r'\b\d+\b'), number_format))
-        
-        # Function format
-        function_format = QTextCharFormat()
-        function_format.setForeground(QColor(220, 220, 170))  # Yellow
-        self.highlighting_rules.append((re.compile(r'\bdef\s+(\w+)'), function_format))
-        
-        # Class format
-        class_format = QTextCharFormat()
-        class_format.setForeground(QColor(78, 201, 176))  # Cyan
-        class_format.setFontWeight(QFont.Weight.Bold)
-        self.highlighting_rules.append((re.compile(r'\bclass\s+(\w+)'), class_format))
-        
-    def highlightBlock(self, text: str):
-        """Apply syntax highlighting to a block of text."""
-        for pattern, format_obj in self.highlighting_rules:
-            for match in pattern.finditer(text):
-                start = match.start()
-                length = match.end() - start
-                self.setFormat(start, length, format_obj)
-
-
 class MainWindow(QMainWindow):
     """
-    Main application window with unified interface.
-    Handles user interactions and coordinates between components.
+    Refactored main application window using separate components.
+    Handles coordination between components and core application logic.
     """
 
-    def __init__(
-        self, invisibility_manager: InvisibilityManager, hotkey_manager: HotkeyManager
-    ):
-        """
-        Initialize the main window.
-
-        Args:
-            invisibility_manager: Manager for invisibility features
-            hotkey_manager: Manager for hotkey handling
-        """
+    def __init__(self, invisibility_manager: InvisibilityManager, hotkey_manager: HotkeyManager):
+        """Initialize the main window with component-based architecture."""
         super().__init__()
 
+        # Core managers
         self.invisibility_manager = invisibility_manager
         self.hotkey_manager = hotkey_manager
-        self.check_and_request_permissions()
+        # hotkey disabled, so no permissions for now
+        # self.check_and_request_permissions()
 
-        # Initialize other components
+        # Initialize services
         self.screenshot_manager = ScreenshotManager()
         self.llm_service = LLMService()
         self.styles = Styles()
@@ -135,34 +58,9 @@ class MainWindow(QMainWindow):
         # Initialize web server (optional)
         self.web_api = None
         self.web_server_thread = None
+        self.web_server_port = None
         if WEB_SERVER_AVAILABLE:
-            try:
-                self.web_api, self.web_server_thread = create_integrated_web_server(
-                    llm_service=self.llm_service,
-                    screenshot_manager=self.screenshot_manager,
-                    host="0.0.0.0",
-                    port=8000
-                )
-                logger.info("✅ Web server initialized successfully")
-                
-                # Connect web server signals immediately
-                self.web_api.screenshot_capture_requested.connect(self.take_screenshot)
-                self.web_api.screenshots_cleared.connect(self.clear_screenshots)
-                self.web_api.chat_history_reset.connect(self.reset_chat_history)
-                self.web_api.window_show_requested.connect(self.show)
-                self.web_api.window_hide_requested.connect(self.hide)
-                self.web_api.window_toggle_requested.connect(self.toggle_visibility)
-                
-                # Auto-start the web server
-                if self.web_server_thread:
-                    self.web_server_thread.start()
-                    logger.info("🚀 Web server auto-started on http://0.0.0.0:8000 (accessible from all interfaces)")
-                    # Will update button text in init_ui after button is created
-                    
-            except Exception as e:
-                logger.error(f"❌ Failed to initialize web server: {e}")
-                self.web_api = None
-                self.web_server_thread = None
+            self._initialize_web_server()
 
         # Connect LLM service signals
         self.llm_service.completion_finished.connect(self.on_solution_ready)
@@ -171,326 +69,176 @@ class MainWindow(QMainWindow):
         # Processing state
         self.processing_screenshot = False
         self.solution_text = ""
-        
-        # Session state to persist generated code and explanations
-        self.current_session = {
-            "code": "",
-            "explanation": "",
-            "time_complexity": "N/A",
-            "space_complexity": "N/A",
-            "is_optimized": False
-        }
-        
+
         # Auto-save timer for session persistence
         self.session_save_timer = QTimer()
         self.session_save_timer.setSingleShot(True)
-        self.session_save_timer.timeout.connect(self.save_session_data)
-        self._is_optimized = False
+        self.session_save_timer.timeout.connect(self._save_session_data)
 
-        # Set up UI
+        # Set up UI with components
         self.init_ui()
 
-        # Connect signals to slots
+        # Connect all signals
         self.connect_signals()
 
         # Set window properties
         self.setWindowTitle(settings.app_name)
-        self.resize(1000, 700)  # Better default size for unified interface
-        self.setMinimumSize(800, 600)  # Set minimum size
+        self.resize(1000, 700)
+        self.setMinimumSize(800, 600)
 
-        # Initialize opacity to 100%
+        # Initialize opacity and always on top
         self.set_opacity(1.0)
-
-        # Set always on top flag
         self.set_always_on_top(settings.ui.always_on_top)
 
-        # Set this window handle for the invisibility manager
+        # Set window handle for invisibility manager
         self.invisibility_manager.set_window_handle(self)
-        logger.info(
-            f"Window visibility at startup: {self.invisibility_manager.is_visible}"
-        )
+        logger.info(f"Window visibility at startup: {self.invisibility_manager.is_visible}")
 
-        # Register hotkeys now that the window is created
+        # Register hotkeys
         self.hotkey_manager.register_hotkeys(self)
         self.installEventFilter(self.hotkey_manager)
 
-    def init_ui(self):
-        """Set up the minimalistic user interface."""
-        # Set modern dark stylesheet
-        self.setStyleSheet(self._get_minimal_stylesheet())
+    def _initialize_web_server(self):
+        """Initialize the optional web server."""
+        try:
+            self.web_api, self.web_server_thread, actual_port = create_integrated_web_server(
+                llm_service=self.llm_service,
+                screenshot_manager=self.screenshot_manager,
+                host="0.0.0.0",
+                port=26262  # Changed from 8000 to 26262 as requested
+            )
+            self.web_server_port = actual_port  # Store the actual port used
+            logger.info(f"✅ Web server initialized successfully on port {actual_port}")
 
-        # Create central widget and layout
+            # Connect web server signals
+            self.web_api.screenshot_capture_requested.connect(self.take_screenshot)
+            self.web_api.screenshots_cleared.connect(self.clear_screenshots)
+            self.web_api.chat_history_reset.connect(self.reset_chat_history)
+            self.web_api.window_show_requested.connect(self.show)
+            self.web_api.window_hide_requested.connect(self.hide)
+            self.web_api.window_toggle_requested.connect(self.toggle_visibility)
+            self.web_api.language_changed.connect(self.on_language_changed_from_web)
+            
+            # Connect bidirectional solution synchronization signals
+            self.web_api.solution_generated_from_web.connect(self.on_solution_ready)
+            self.web_api.optimization_generated_from_web.connect(self.on_optimization_ready)
+
+            # Auto-start the web server
+            if self.web_server_thread:
+                self.web_server_thread.start()
+                logger.info(f"🚀 Web server auto-started on port {actual_port}")
+
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize web server: {e}")
+            self.web_api = None
+            self.web_server_thread = None
+            self.web_server_port = None
+
+    def init_ui(self):
+        """Set up the user interface with components."""
+        # Set stylesheet
+        self.setStyleSheet(self._get_minimal_stylesheet())
+        logger.info("Stylesheet applied")
+
+        # Create central widget and main layout
         central_widget = QWidget()
         main_layout = QVBoxLayout()
-        main_layout.setSpacing(8)
-        main_layout.setContentsMargins(12, 12, 12, 12)
+        main_layout.setSpacing(0)
+        main_layout.setContentsMargins(12, 4, 12, 12)
+        logger.info("Central widget and main layout created")
 
-        # Compact header
-        header_layout = QHBoxLayout()
-        header_layout.setSpacing(16)
+        # Create and add action bar
+        self.action_bar = ActionBar(self)
+        main_layout.addWidget(self.action_bar, 0)  # No stretch
+        logger.info("Action bar created and added to layout")
 
-        # App title with icon
-        title_container = QHBoxLayout()
-        title_label = QLabel("🤖 AceBot")
-        title_label.setStyleSheet("""
-            font-size: 20px; 
-            font-weight: bold; 
-            color: #4A90E2;
-            padding: 8px;
-            margin-right: 16px;
-        """)
-        title_container.addWidget(title_label)
-        
-        # Language selection - compact
-        lang_label = QLabel("🌐 Language:")
-        lang_label.setStyleSheet("font-weight: bold; color: #666; margin-right: 6px; font-size: 12px;")
-        title_container.addWidget(lang_label)
-        
-        self.language_combo = QComboBox()
-        self.language_combo.addItems(settings.available_languages)
-        index = self.language_combo.findText(settings.default_language)
-        if index >= 0:
-            self.language_combo.setCurrentIndex(index)
-        self.language_combo.setMinimumWidth(100)
-        self.language_combo.setMaximumWidth(130)
-        self.language_combo.setFixedHeight(28)
-        title_container.addWidget(self.language_combo)
-        
-        # Monitor selection - next to language
-        monitor_label = QLabel("📺 Monitor:")
-        monitor_label.setStyleSheet("font-weight: bold; color: #666; margin-left: 16px; margin-right: 6px; font-size: 12px;")
-        title_container.addWidget(monitor_label)
-        
-        self.screen_combo = QComboBox()
-        self.update_screen_list()
-        self.screen_combo.setMinimumWidth(150)
-        self.screen_combo.setMaximumWidth(200)
-        self.screen_combo.setFixedHeight(28)
-        title_container.addWidget(self.screen_combo)
-        title_container.addStretch()
-        
-        header_layout.addLayout(title_container)
+        # Create and add screenshot controls
+        self.screenshot_controls = ScreenshotControls(self.screenshot_manager, self)
+        main_layout.addWidget(self.screenshot_controls, 0)  # No stretch
+        logger.info("Screenshot controls created and added to layout")
 
-        # Minimal controls on the right
-        controls_right = QHBoxLayout()
-        controls_right.setSpacing(6)
-        
-        # Settings button - icon only
-        settings_button = QPushButton("⚙️ Settings")
-        settings_button.setFixedSize(80, 32)
-        settings_button.clicked.connect(self.show_settings)
-        settings_button.setToolTip("Settings")
-        controls_right.addWidget(settings_button)
-
-        # Visibility toggle - icon only
-        self.visibility_button = QPushButton("👁️ Hide")
-        self.visibility_button.setFixedSize(70, 32)
-        self.visibility_button.clicked.connect(self.toggle_visibility)
-        self.visibility_button.setToolTip(f"Toggle Visibility ({settings.hotkeys.toggle_visibility_key})")
-        controls_right.addWidget(self.visibility_button)
-
-        # Web server toggle (if available)
-        if WEB_SERVER_AVAILABLE:
-            self.web_server_button = QPushButton("🌐 API")
-            self.web_server_button.setFixedSize(70, 32)
-            self.web_server_button.clicked.connect(self.toggle_web_server)
-            self.web_server_button.setToolTip("Toggle Web API Server")
-            controls_right.addWidget(self.web_server_button)
-
-        header_layout.addLayout(controls_right)
-        main_layout.addLayout(header_layout)
-
-        # Main action buttons - horizontal layout for compactness
-        action_layout = QHBoxLayout()
-        action_layout.setSpacing(6)
-
-        # Screenshot button
-        self.screenshot_button = QPushButton("📸 Capture")
-        self.screenshot_button.clicked.connect(self.take_screenshot)
-        self.screenshot_button.setToolTip(f"Take Screenshot ({settings.hotkeys.screenshot_key})")
-        self.screenshot_button.setFixedSize(90, 35)
-        action_layout.addWidget(self.screenshot_button)
-
-        # Generate solution button
-        self.generate_button = QPushButton("🚀 Solve")
-        self.generate_button.clicked.connect(self.generate_solution)
-        self.generate_button.setToolTip(f"Generate Solution ({settings.hotkeys.generate_solution_key})")
-        self.generate_button.setFixedSize(90, 35)
-        action_layout.addWidget(self.generate_button)
-
-        # Optimize button
-        self.optimize_button = QPushButton("⚡ Optimize")
-        self.optimize_button.clicked.connect(self.optimize_solution)
-        self.optimize_button.setToolTip(f"Optimize Solution ({settings.hotkeys.optimize_solution_key})")
-        self.optimize_button.setFixedSize(90, 35)
-        action_layout.addWidget(self.optimize_button)
-
-        # Copy button
-        self.copy_button = QPushButton("📋 Copy")
-        self.copy_button.setFixedSize(50, 35)
-        self.copy_button.clicked.connect(self.copy_solution)
-        self.copy_button.setToolTip("Copy Solution")
-        action_layout.addWidget(self.copy_button)
-
-        # Reset All button
-        reset_button = QPushButton("🔄 Reset")
-        reset_button.setFixedSize(85, 35)
-        reset_button.clicked.connect(self.reset_chat_history)
-        reset_button.setToolTip(f"Reset All ({settings.hotkeys.reset_history_key})")
-        action_layout.addWidget(reset_button)
-
-        main_layout.addLayout(action_layout)
-
-        # Screenshots preview - compact horizontal
-        screenshots_group = QWidget()
-        screenshots_layout = QVBoxLayout(screenshots_group)
-        screenshots_layout.setContentsMargins(0, 4, 0, 4)
-
-        screenshots_header = QHBoxLayout()
-        screenshots_label = QLabel("📷 Screenshots:")
-        screenshots_label.setStyleSheet("font-weight: bold; color: #666; font-size: 12px;")
-        screenshots_header.addWidget(screenshots_label)
-        screenshots_header.addStretch()
-
-        screenshots_layout.addLayout(screenshots_header)
-
-        # Compact thumbnails container
-        self.thumbnails_container = QWidget()
-        self.thumbnails_layout = QHBoxLayout(self.thumbnails_container)
-        self.thumbnails_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self.thumbnails_layout.setContentsMargins(2, 2, 2, 2)
-        self.thumbnails_layout.setSpacing(6)
-
-        thumbnails_scroll = QScrollArea()
-        thumbnails_scroll.setWidgetResizable(True)
-        thumbnails_scroll.setWidget(self.thumbnails_container)
-        thumbnails_scroll.setFixedHeight(50)  # Even smaller fixed height
-        thumbnails_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        thumbnails_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-
-        screenshots_layout.addWidget(thumbnails_scroll)
-        main_layout.addWidget(screenshots_group)
-
-        # Content area - side by side layout instead of tabs
-        content_splitter = QSplitter(Qt.Orientation.Horizontal)
-        content_splitter.setChildrenCollapsible(False)
-        
-        # Set minimum size for content area to expand properly
-        content_splitter.setMinimumHeight(400)
-
-        # Code section
-        code_widget = QWidget()
-        code_layout = QVBoxLayout(code_widget)
-        code_layout.setContentsMargins(4, 4, 4, 4)
-        
-        code_header = QLabel("💻 Code")
-        code_header.setStyleSheet("font-weight: bold; color: #4A90E2; font-size: 14px; padding: 4px;")
-        code_layout.addWidget(code_header)
-
-        self.code_editor = QPlainTextEdit()
-        self.code_editor.setReadOnly(True)
-        font = QFont("Fira Code", 11)
-        if not font.exactMatch():
-            font = QFont("Consolas", 11)
-        if not font.exactMatch():
-            font = QFont("Monaco", 11)
-        self.code_editor.setFont(font)
-        
-        self.setup_syntax_highlighting()
-        self.code_editor.setPlaceholderText("Generated code will appear here...")
-        
-        code_layout.addWidget(self.code_editor)
-        content_splitter.addWidget(code_widget)
-
-        # Info section
-        info_widget = QWidget()
-        info_layout = QVBoxLayout(info_widget)
-        info_layout.setContentsMargins(4, 4, 4, 4)
-        
-        info_header = QLabel("📝 Explanation")
-        info_header.setStyleSheet("font-weight: bold; color: #4A90E2; font-size: 14px; padding: 4px;")
-        info_layout.addWidget(info_header)
-
-        self.explanation_text = QTextEdit()
-        self.explanation_text.setReadOnly(True)
-        self.explanation_text.setAcceptRichText(True)
-        self.explanation_text.setMarkdown("")
-        
-        self.explanation_text.setPlaceholderText("Solution explanation will appear here...")
-        info_layout.addWidget(self.explanation_text)
-
-        # Complexity info - compact horizontal layout
-        complexity_container = QWidget()
-        complexity_layout = QHBoxLayout(complexity_container)
-        complexity_layout.setContentsMargins(0, 8, 0, 0)
-        complexity_layout.setSpacing(16)
-
-        time_label = QLabel("⏱️ Time:")
-        time_label.setStyleSheet("font-weight: bold; color: #666; font-size: 12px;")
-        self.time_complexity = QLabel("N/A")
-        self.time_complexity.setStyleSheet("color: #4A90E2; font-weight: bold; font-size: 12px;")
-        
-        space_label = QLabel("💾 Space:")
-        space_label.setStyleSheet("font-weight: bold; color: #666; font-size: 12px;")
-        self.space_complexity = QLabel("N/A")
-        self.space_complexity.setStyleSheet("color: #4A90E2; font-weight: bold; font-size: 12px;")
-
-        complexity_layout.addWidget(time_label)
-        complexity_layout.addWidget(self.time_complexity)
-        complexity_layout.addStretch()
-        complexity_layout.addWidget(space_label)
-        complexity_layout.addWidget(self.space_complexity)
-
-        info_layout.addWidget(complexity_container)
-        content_splitter.addWidget(info_widget)
-        
-        # Set ratio: 70% code, 30% info
-        content_splitter.setSizes([70, 30])
-        
-        # Add with stretch factor so it expands to fill available space
-        main_layout.addWidget(content_splitter, 1)  # stretch factor of 1
-
-        # Minimal status bar
-        self.status_bar = QStatusBar()
-        self.setStatusBar(self.status_bar)
-        self.status_bar.showMessage("Ready")
-
-        # Progress indicator
-        self.progress_label = QLabel("Idle")
-        self.progress_label.setStyleSheet("color: #4A90E2; font-weight: bold; font-size: 11px;")
-        self.status_bar.addPermanentWidget(self.progress_label)
-
-        # Web server status (if available)
-        if WEB_SERVER_AVAILABLE:
-            self.web_server_status = QLabel("🌐 API: Off")
-            self.web_server_status.setStyleSheet("color: #ff6b6b; font-weight: bold; font-size: 12px;")
-            self.status_bar.addPermanentWidget(self.web_server_status)
+        # Create and add content display
+        self.content_display = ContentDisplay(self)
+        main_layout.addWidget(self.content_display, 1)  # stretch factor of 1
+        logger.info("Content display created and added to layout")
 
         # Set up main widget
         central_widget.setLayout(main_layout)
         self.setCentralWidget(central_widget)
+        logger.info("Central widget set up and assigned to main window")
 
-        # Create menu bar
-        self._create_menu_bar()
+        # Create menu manager and set up menus
+        self.menu_manager = MenuManager(self)
+        self.menu_manager.create_menu_bar()
+        self.menu_manager.create_system_tray()
+        logger.info("Menu manager created")
 
-        # Create system tray
-        self._create_system_tray()
+        # Create status bar manager
+        self.status_bar_manager = StatusBarManager(self)
+        self.status_bar_manager.create_status_bar()
+        logger.info("Status bar manager created")
 
-        # Initialize selected screenshot index
-        self.selected_screenshot_index = -1
+        # Update initial state
+        self.screenshot_controls.update_thumbnails()
+        self.action_bar.update_button_texts()
+        logger.info("Initial state updated")
 
-        # Update thumbnails
-        self.update_thumbnails()
-        self.update_button_texts()
-        
-        # Restore session data if available
-        self.restore_session_data()
-        
-        # Update web server button state if auto-started
+        # Update web server status if auto-started
         if WEB_SERVER_AVAILABLE and self.web_server_thread and self.web_server_thread.isRunning():
-            if hasattr(self, 'web_server_status'):
-                self.web_server_status.setText("🌐 API: On")
-                self.web_server_status.setStyleSheet("color: #51cf66;")
+            self.status_bar_manager.update_web_server_status(True, self.web_server_port)
+            logger.info("Web server status updated")
+
+    def connect_signals(self):
+        """Connect all component signals to handlers."""
+        # Action bar signals
+        self.action_bar.screenshot_requested.connect(self.take_screenshot)
+        self.action_bar.generate_requested.connect(self.generate_solution)
+        self.action_bar.optimize_requested.connect(self.optimize_solution)
+        self.action_bar.copy_requested.connect(self.copy_solution)
+        self.action_bar.reset_requested.connect(self.reset_chat_history)
+        self.action_bar.settings_requested.connect(self.show_settings)
+        self.action_bar.visibility_toggle_requested.connect(self.toggle_visibility)
+        if self.action_bar.web_server_button:
+            self.action_bar.web_server_toggle_requested.connect(self.toggle_web_server)
+
+        # Screenshot controls signals
+        self.screenshot_controls.screenshot_selected.connect(self._on_screenshot_selected)
+        self.screenshot_controls.language_changed.connect(self.on_language_changed)
+
+        # Content display signals
+        self.content_display.code_changed.connect(self.on_code_changed)
+
+        # Menu manager signals
+        self.menu_manager.take_screenshot_triggered.connect(self.take_screenshot)
+        self.menu_manager.generate_solution_triggered.connect(self.generate_solution)
+        self.menu_manager.optimize_solution_triggered.connect(self.optimize_solution)
+        self.menu_manager.reset_history_triggered.connect(self.reset_chat_history)
+        self.menu_manager.toggle_visibility_triggered.connect(self.toggle_visibility)
+        self.menu_manager.show_settings_triggered.connect(self.show_settings)
+        self.menu_manager.show_about_triggered.connect(self._show_about)
+        self.menu_manager.show_shortcuts_triggered.connect(self._show_shortcuts)
+        self.menu_manager.set_theme_triggered.connect(self.set_theme)
+        self.menu_manager.toggle_always_on_top_triggered.connect(self.set_always_on_top)
+        self.menu_manager.close_app_triggered.connect(self.close)
+
+        # Hotkey manager signals
+        self.hotkey_manager.screenshot_triggered.connect(self.take_screenshot)
+        self.hotkey_manager.solution_triggered.connect(self.generate_solution)
+        self.hotkey_manager.visibility_triggered.connect(self.toggle_visibility)
+        self.hotkey_manager.move_window_triggered.connect(self.move_window)
+        self.hotkey_manager.panic_triggered.connect(self.activate_panic_mode)
+        self.hotkey_manager.optimize_solution_triggered.connect(self.optimize_solution)
+        self.hotkey_manager.reset_history_triggered.connect(self.reset_chat_history)
+
+        # Invisibility manager signals
+        self.invisibility_manager.visibility_changed.connect(self.on_visibility_changed)
+        self.invisibility_manager.screen_sharing_detected.connect(self.on_screen_sharing_detected)
+
+        # Screen change signals
+        QApplication.instance().screenAdded.connect(self.screenshot_controls.update_screen_list)
+        QApplication.instance().screenRemoved.connect(self.screenshot_controls.update_screen_list)
+
+        logger.info("Connected all component signals")
 
     def _get_minimal_stylesheet(self):
         """Get the minimal modern stylesheet."""
@@ -641,407 +389,17 @@ class MainWindow(QMainWindow):
         }
         """
 
-    def setup_syntax_highlighting(self):
-        """Set up Python syntax highlighting for the code editor."""
-        self.syntax_highlighter = PythonSyntaxHighlighter(self.code_editor.document())
-
-    def _create_menu_bar(self):
-        """Create the application menu bar."""
-        menubar = self.menuBar()
-
-        # File menu
-        file_menu = menubar.addMenu("&File")
-
-        take_screenshot_action = QAction(
-            f"Take Screenshot ({settings.hotkeys.screenshot_key})", self
-        )
-        take_screenshot_action.setShortcut(settings.hotkeys.screenshot_key)
-        take_screenshot_action.triggered.connect(self.take_screenshot)
-        file_menu.addAction(take_screenshot_action)
-
-        # Add action for settings
-        settings_action = QAction("Settings", self)
-        settings_action.triggered.connect(self.show_settings)
-        file_menu.addAction(settings_action)
-
-        generate_solution_action = QAction(
-            f"Generate Solution ({settings.hotkeys.generate_solution_key})", self
-        )
-        generate_solution_action.setShortcut(settings.hotkeys.generate_solution_key)
-        generate_solution_action.triggered.connect(self.generate_solution)
-        file_menu.addAction(generate_solution_action)
-
-        # Add action for optimizing solution
-        optimize_solution_action = QAction(
-            f"Optimize Solution ({settings.hotkeys.optimize_solution_key})", self
-        )
-        optimize_solution_action.setShortcut(settings.hotkeys.optimize_solution_key)
-        optimize_solution_action.triggered.connect(self.optimize_solution)
-        file_menu.addAction(optimize_solution_action)
-
-        # Add action for resetting chat history
-        reset_history_action = QAction(
-            f"Reset All ({settings.hotkeys.reset_history_key})", self
-        )
-        reset_history_action.setShortcut(settings.hotkeys.reset_history_key)
-        reset_history_action.triggered.connect(self.reset_chat_history)
-        file_menu.addAction(reset_history_action)
-
-        file_menu.addSeparator()
-
-        exit_action = QAction("E&xit", self)
-        exit_action.setShortcut(QKeySequence.StandardKey.Quit)
-        exit_action.triggered.connect(self.close)
-        file_menu.addAction(exit_action)
-
-        # View menu
-        view_menu = menubar.addMenu("&View")
-
-        toggle_visibility_action = QAction(
-            f"Toggle Visibility ({settings.hotkeys.toggle_visibility_key})", self
-        )
-        toggle_visibility_action.setShortcut(settings.hotkeys.toggle_visibility_key)
-        toggle_visibility_action.triggered.connect(self.toggle_visibility)
-        view_menu.addAction(toggle_visibility_action)
-
-        # Add always on top action
-        self.always_on_top_action = QAction("Always on Top", self)
-        self.always_on_top_action.setCheckable(True)
-        self.always_on_top_action.setChecked(settings.ui.always_on_top)
-        self.always_on_top_action.triggered.connect(self.toggle_always_on_top_menu)
-        view_menu.addAction(self.always_on_top_action)
-
-        # Theme submenu
-        theme_menu = QMenu("Theme", self)
-
-        light_theme_action = QAction("Light", self)
-        light_theme_action.triggered.connect(lambda: self.set_theme(Theme.LIGHT.value))
-        theme_menu.addAction(light_theme_action)
-
-        dark_theme_action = QAction("Dark", self)
-        dark_theme_action.triggered.connect(lambda: self.set_theme(Theme.DARK.value))
-        theme_menu.addAction(dark_theme_action)
-
-        view_menu.addMenu(theme_menu)
-
-        # Help menu
-        help_menu = menubar.addMenu("&Help")
-
-        about_action = QAction("&About", self)
-        about_action.triggered.connect(self.show_about)
-        help_menu.addAction(about_action)
-
-        shortcuts_action = QAction("&Keyboard Shortcuts", self)
-        shortcuts_action.triggered.connect(self.show_shortcuts)
-        help_menu.addAction(shortcuts_action)
-
-    def _create_system_tray(self):
-        """Create the system tray icon and menu."""
-        self.tray_icon = QSystemTrayIcon(self)
-        
-        # Create a simple colored icon as fallback
-        pixmap = QPixmap(16, 16)
-        pixmap.fill(QColor(74, 144, 226))  # Blue color matching our theme
-        icon = QIcon(pixmap)
-        
-        self.tray_icon.setIcon(icon)
-        self.tray_icon.setToolTip(settings.app_name)
-        self.tray_icon.activated.connect(self.on_tray_activated)
-
-        # Создаем контекстное меню для системного трея
-        tray_menu = QMenu()
-        show_action = tray_menu.addAction("Show/Hide")
-        show_action.triggered.connect(self.toggle_visibility)
-        optimize_action = tray_menu.addAction("Optimize Solution")
-        optimize_action.triggered.connect(self.optimize_solution)
-
-        # Add always on top action to tray menu
-        self.tray_always_on_top_action = QAction("Always on Top", self)
-        self.tray_always_on_top_action.setCheckable(True)
-        self.tray_always_on_top_action.setChecked(settings.ui.always_on_top)
-        self.tray_always_on_top_action.triggered.connect(self.toggle_always_on_top_menu)
-        tray_menu.addAction(self.tray_always_on_top_action)
-
-        reset_history_action = tray_menu.addAction("Reset All")
-        reset_history_action.triggered.connect(self.reset_chat_history)
-        tray_menu.addSeparator()
-        quit_action = tray_menu.addAction("Quit")
-        quit_action.triggered.connect(self.close)
-
-        self.tray_icon.setContextMenu(tray_menu)
-        self.tray_icon.show()
-
-    def on_tray_activated(self, reason):
-        """
-        Handle tray icon activation.
-
-        Args:
-            reason: Activation reason
-        """
-        if reason == QSystemTrayIcon.ActivationReason.Trigger:
-            logger.info("Tray icon clicked - toggling visibility")
-            self.toggle_visibility()
-
-    def connect_signals(self):
-        """Connect signals to slots."""
-        # Hotkey manager signals
-        self.hotkey_manager.screenshot_triggered.connect(self.take_screenshot)
-        self.hotkey_manager.solution_triggered.connect(self.generate_solution)
-        self.hotkey_manager.visibility_triggered.connect(self.toggle_visibility)
-        self.hotkey_manager.move_window_triggered.connect(self.move_window)
-        self.hotkey_manager.panic_triggered.connect(self.activate_panic_mode)
-        self.hotkey_manager.optimize_solution_triggered.connect(self.optimize_solution)
-        self.hotkey_manager.reset_history_triggered.connect(self.reset_chat_history)
-
-        logger.info("Connected all hotkey signals including optimize and reset history")
-
-        # Invisibility manager signals
-        self.invisibility_manager.visibility_changed.connect(self.on_visibility_changed)
-        self.invisibility_manager.screen_sharing_detected.connect(
-            self.on_screen_sharing_detected
-        )
-
-        # Language combo box
-        self.language_combo.currentTextChanged.connect(self.on_language_changed)
-        QApplication.instance().screenAdded.connect(self.update_screen_list)
-        QApplication.instance().screenRemoved.connect(self.update_screen_list)
-        
-        # Session persistence - connect code editor changes
-        self.code_editor.textChanged.connect(self.on_code_changed)
-
-    def set_always_on_top(self, enabled: bool):
-        """
-        Set whether the window should always be on top.
-
-        Args:
-            enabled: True to enable always on top, False to disable
-        """
-        # Store current flags
-        flags = self.windowFlags()
-
-        # Check if we need to make changes
-        has_flag = bool(flags & Qt.WindowType.WindowStaysOnTopHint)
-        if has_flag == enabled:
-            return
-
-        # Clear or set the flag
-        if enabled:
-            flags |= Qt.WindowType.WindowStaysOnTopHint
-        else:
-            flags &= ~Qt.WindowType.WindowStaysOnTopHint
-
-        # Remember current position and visibility
-        pos = self.pos()
-        visible = self.isVisible()
-
-        # Apply new flags - this will hide the window
-        self.setWindowFlags(flags)
-
-        # Restore position
-        self.move(pos)
-
-        # Restore visibility if it was visible
-        if visible:
-            self.show()
-
-        # Update settings
-        settings.ui.always_on_top = enabled
-        settings.save_user_settings()
-
-        # Update UI - only menu items since we removed the checkbox in minimal design
-        self.always_on_top_action.setChecked(enabled)
-        self.tray_always_on_top_action.setChecked(enabled)
-
-        logger.info(f"Always on top set to: {enabled}")
-        self.status_bar.showMessage(
-            f"Always on top: {'enabled' if enabled else 'disabled'}"
-        )
-
-    def toggle_always_on_top(self, state):
-        """
-        Toggle always on top from checkbox.
-
-        Args:
-            state: Checkbox state
-        """
-        self.set_always_on_top(state == Qt.CheckState.Checked)
-
-    def toggle_always_on_top_menu(self):
-        """Toggle always on top from menu action."""
-        # Use the current state of the action
-        self.set_always_on_top(self.always_on_top_action.isChecked())
-
-    def update_thumbnails(self):
-        """Update screenshot thumbnails display - minimal version."""
-        # Save session data before updating thumbnails (which can cause UI refresh)
-        if hasattr(self, 'current_session'):
-            self.save_session_data()
-            
-        # Clear existing thumbnails
-        while self.thumbnails_layout.count():
-            item = self.thumbnails_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
-
-        # Get all screenshots
-        screenshots = self.screenshot_manager.get_all_screenshots()
-
-        if not screenshots:
-            # Add placeholder
-            placeholder = QLabel("No screenshots")
-            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            placeholder.setStyleSheet("""
-                color: #999; 
-                font-style: italic; 
-                padding: 12px;
-                font-size: 11px;
-                background-color: #f5f5f5;
-                border: 1px dashed #ddd;
-                border-radius: 4px;
-            """)
-            self.thumbnails_layout.addWidget(placeholder)
-            self.selected_screenshot_index = -1
-            return
-
-        # Add thumbnails for each screenshot
-        for i, screenshot in enumerate(screenshots):
-            thumbnail_widget = QWidget()
-            thumbnail_layout = QVBoxLayout(thumbnail_widget)
-            thumbnail_layout.setContentsMargins(2, 2, 2, 2)
-            thumbnail_layout.setSpacing(1)
-
-            # Create thumbnail - smaller size for even more compact view
-            thumbnail = QLabel()
-            pixmap = screenshot["pixmap"].scaled(
-                QSize(45, 30),  # Even smaller size for very compact view
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation,
-            )
-            thumbnail.setPixmap(pixmap)
-            thumbnail.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-            # Better styling with selection state
-            if i == self.selected_screenshot_index:
-                thumbnail.setStyleSheet("""
-                    border: 2px solid #4A90E2; 
-                    border-radius: 4px;
-                    background-color: #f0f7ff;
-                    padding: 2px;
-                """)
-            else:
-                thumbnail.setStyleSheet("""
-                    border: 1px solid #ddd; 
-                    border-radius: 4px;
-                    background-color: white;
-                    padding: 2px;
-                """)
-
-            thumbnail_layout.addWidget(thumbnail)
-
-            # Index number with better styling
-            index_label = QLabel(f"#{i + 1}")
-            index_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            index_label.setStyleSheet("""
-                font-size: 10px; 
-                color: #666; 
-                font-weight: bold;
-                background-color: rgba(74, 144, 226, 0.1);
-                border-radius: 2px;
-                padding: 1px 4px;
-            """)
-            thumbnail_layout.addWidget(index_label)
-
-            # Make widget clickable
-            thumbnail_widget.mouseReleaseEvent = (
-                lambda event, idx=i: self.select_screenshot(idx)
-            )
-            thumbnail_widget.setCursor(Qt.CursorShape.PointingHandCursor)
-            
-            # Hover effect
-            thumbnail_widget.setStyleSheet("""
-                QWidget:hover {
-                    background-color: #f8f9fa;
-                    border-radius: 8px;
-                }
-            """)
-
-            # Add to container
-            self.thumbnails_layout.addWidget(thumbnail_widget)
-
-        # If no screenshot is selected, select the most recent one
-        if self.selected_screenshot_index == -1 and screenshots:
-            self.select_screenshot(len(screenshots) - 1)
-        
-        # Restore session data after thumbnail update
-        if hasattr(self, 'current_session'):
-            self.restore_session_data()
-
-    def select_screenshot(self, index):
-        """
-        Select a screenshot by index.
-
-        Args:
-            index: Index of the screenshot to select
-        """
-        if index < 0 or index >= len(self.screenshot_manager.get_all_screenshots()):
-            return
-
-        self.selected_screenshot_index = index
-        logger.info(f"Selected screenshot {index}")
-        self.status_bar.showMessage(f"Selected screenshot {index + 1}")
-
-        # Update thumbnails to show selection
-        self.update_thumbnails()
-
-    def clear_screenshots(self):
-        """Clear all screenshots."""
-        self.screenshot_manager.clear_screenshots()
-        self.selected_screenshot_index = -1
-        self.update_thumbnails()
-        
-        # Clear solution display as well
-        self.code_editor.clear()
-        self.explanation_text.setMarkdown("")  # Clear markdown content
-        self.time_complexity.setText("N/A")
-        self.space_complexity.setText("N/A")
-        
-        self.status_bar.showMessage("All screenshots cleared")
-
-    @pyqtSlot(str)
-    def on_language_changed(self, language: str):
-        """
-        Handle language selection changes.
-
-        Args:
-            language: The newly selected programming language
-        """
-        # Update default language in settings
-        settings.default_language = language
-        self.status_bar.showMessage(f"Solution language set to {language}")
-
-        # Save settings
-        settings.save_user_settings()
-    
-    def on_code_changed(self):
-        """Handle code editor changes to preserve session data."""
-        # Only save if we have actual content to avoid overwriting with empty text during initialization
-        if hasattr(self, 'current_session') and self.code_editor.toPlainText().strip():
-            # Use timer to avoid too frequent saves while typing
-            self.session_save_timer.start(500)  # Save after 500ms of inactivity
-
+    # Core action methods
     @pyqtSlot()
     def take_screenshot(self):
         """Take a screenshot without generating a solution."""
-        self.status_bar.showMessage("Taking screenshot...")
+        self.status_bar_manager.show_message("Taking screenshot...")
         logger.info("Taking screenshot...")
 
         # Get the index of the selected monitor
-        selected_index = self.screen_combo.currentData()
+        selected_index = self.screenshot_controls.get_selected_screen_index()
 
-        # Save the currently active window handle before taking 
-        # This can be done with platform-specific code
-
-        # Temporarily hide the window if visible
+        # Temporarily hide the window if visible using invisibility manager
         was_visible = self.invisibility_manager.is_visible
         self.invisibility_manager.set_visibility(False)
         QApplication.processEvents()
@@ -1057,74 +415,89 @@ class MainWindow(QMainWindow):
             )
 
         # Update UI elements
-        self.status_bar.showMessage(
+        self.status_bar_manager.show_message(
             f"Screenshot captured: {screenshot['width']}x{screenshot['height']}"
         )
-        self.update_thumbnails()
-        self.select_screenshot(len(self.screenshot_manager.get_all_screenshots()) - 1)
-
-    @pyqtSlot()
-    def reset_chat_history(self):
-        """Reset the chat history and clear screenshots."""
-        if hasattr(self.llm_service, "reset_chat_history"):
-            self.llm_service.reset_chat_history()
-
-            # Clear all screenshots
-            self.screenshot_manager.clear_screenshots()
-            self.selected_screenshot_index = -1
-            self.update_thumbnails()
-
-            # Clear UI components and session data
-            self.clear_session_data()
-
-            self.status_bar.showMessage("Chat history and screenshots reset.")
-            logger.info("Chat history and screenshots have been reset")
-        else:
-            self.status_bar.showMessage("Chat history reset not implemented.")
-            logger.info("Chat history reset not implemented")
+        self.screenshot_controls.update_thumbnails()
+        # Select the newly captured screenshot (last one in the list)
+        screenshot_count = len(self.screenshot_manager.get_all_screenshots())
+        if screenshot_count > 0:
+            self.screenshot_controls.select_screenshot(screenshot_count - 1)
+            
+        # Update action bar button states - enable generate button when screenshots are available
+        has_screenshots = len(self.screenshot_manager.get_all_screenshots()) > 0
+        has_solution = bool(self.solution_text.strip())
+        self.action_bar.update_button_states(has_screenshots=has_screenshots, has_solution=has_solution)
 
     @pyqtSlot()
     def generate_solution(self):
         """Generate a solution based on all available screenshots."""
-        # Check if processing is already in progress
         if self.processing_screenshot:
-            self.status_bar.showMessage("Already processing screenshot, please wait...")
+            self.status_bar_manager.show_message("Already processing screenshot, please wait...")
             return
 
-        # Get all screenshots
         screenshots = self.screenshot_manager.get_all_screenshots()
         if not screenshots:
-            self.status_bar.showMessage(
-                "No screenshots available. Take a screenshot first."
-            )
-            logger.info("No screenshots available")
+            self.status_bar_manager.show_message("No screenshots available. Take a screenshot first.")
             return
 
-        self.status_bar.showMessage(
-            f"Generating solution from {len(screenshots)} screenshots..."
-        )
+        self.status_bar_manager.show_message(f"Generating solution from {len(screenshots)} screenshots...")
         logger.info(f"Generating solution from {len(screenshots)} screenshots...")
 
-        # Set processing flag
+        # Set processing state
         self.processing_screenshot = True
-        self.generate_button.setEnabled(False)
-        self.optimize_button.setEnabled(False)
-        self.progress_label.setText("Generating solution...")
+        self.action_bar.set_processing_state(True)
+        self.status_bar_manager.set_progress_text("Generating solution...")
 
         # Clear previous solution
         self.solution_text = ""
-        self.code_editor.clear()
 
-        # Get the selected language
-        selected_language = self.language_combo.currentText()
-        logger.info(f"Using language: {selected_language}")
-
-        # Get all screenshot paths
+        # Get selected language and screenshot paths
+        selected_language = self.screenshot_controls.language_combo.currentText()
         screenshot_paths = [screenshot["file_path"] for screenshot in screenshots]
 
+        # Create and start processing thread
+        self.processing_thread = self._create_solution_thread(screenshot_paths, selected_language)
+        self.processing_thread.solution_ready.connect(self.on_solution_ready)
+        self.processing_thread.error_occurred.connect(self.on_processing_error)
+        self.processing_thread.start()
+
+    @pyqtSlot()
+    def optimize_solution(self):
+        """Optimize the current solution."""
+        current_code = self.content_display.get_current_code()
+        if not current_code.strip():
+            self.status_bar_manager.show_message("No solution to optimize. Generate a solution first.")
+            return
+
+        if self.processing_screenshot:
+            self.status_bar_manager.show_message("Already processing request, please wait...")
+            return
+
+        self.status_bar_manager.show_message("Optimizing solution...")
+        logger.info("Optimizing solution...")
+
+        # Set processing state
+        self.processing_screenshot = True
+        self.action_bar.set_processing_state(True)
+        self.status_bar_manager.set_progress_text("Optimizing solution...")
+
+        # Get selected language
+        selected_language = self.screenshot_controls.language_combo.currentText()
+
+        # Create and start optimization thread
+        self.optimization_thread = self._create_optimization_thread(current_code, selected_language)
+        self.optimization_thread.solution_ready.connect(self.on_optimization_ready)
+        self.optimization_thread.error_occurred.connect(self.on_processing_error)
+        self.optimization_thread.start()
+
+    def _create_solution_thread(self, screenshot_paths, language):
+        """Create a thread for solution generation."""
         class ScreenshotProcessingThread(QThread):
             solution_ready = pyqtSignal(object)
             error_occurred = pyqtSignal(str)
+
+            llm_service: LLMService = None
 
             def __init__(self, llm_service, screenshot_paths, language):
                 super().__init__()
@@ -1134,65 +507,19 @@ class MainWindow(QMainWindow):
 
             def run(self):
                 try:
-                    logger.info(
-                        f"Processing {len(self.screenshot_paths)} screenshots in thread"
-                    )
+                    logger.info(f"Processing {len(self.screenshot_paths)} screenshots in thread")
                     solution = self.llm_service.get_solution_from_screenshots(
                         self.screenshot_paths, self.language
                     )
                     self.solution_ready.emit(solution)
                 except Exception as e:
-                    logger.info(f"Error in processing thread: {e}")
+                    logger.error(f"Error in processing thread: {e}")
                     self.error_occurred.emit(str(e))
 
-        # Create and start the thread
-        self.processing_thread = ScreenshotProcessingThread(
-            self.llm_service, screenshot_paths, selected_language
-        )
+        return ScreenshotProcessingThread(self.llm_service, screenshot_paths, language)
 
-        self.processing_thread.solution_ready.connect(self.on_solution_ready)
-        self.processing_thread.error_occurred.connect(self.on_processing_error)
-        self.processing_thread.start()
-
-    @pyqtSlot()
-    def optimize_solution(self):
-        """Optimize the current solution."""
-        # Check if there's a solution to optimize
-        current_code = self.code_editor.toPlainText()
-        if not current_code.strip():
-            self.status_bar.showMessage(
-                "No solution to optimize. Generate a solution first."
-            )
-            logger.info("No code to optimize")
-            return
-
-        # Check if processing is already in progress
-        if self.processing_screenshot:
-            self.status_bar.showMessage("Already processing request, please wait...")
-            return
-
-        self.status_bar.showMessage("Optimizing solution...")
-        logger.info("Optimizing solution...")
-
-        # Set processing flag
-        self.processing_screenshot = True
-        self.generate_button.setEnabled(False)
-        self.optimize_button.setEnabled(False)
-        self.progress_label.setText("Optimizing solution...")
-
-        # Save original code and explanation for comparison
-        self.original_code = current_code
-        self.original_explanation = self.explanation_text.toPlainText()
-        self.original_time_complexity = self.time_complexity.text()
-        self.original_space_complexity = self.space_complexity.text()
-
-        # Reset solution text
-        self.solution_text = ""
-
-        # Get the selected language
-        selected_language = self.language_combo.currentText()
-        logger.info(f"Using language: {selected_language} for optimization")
-
+    def _create_optimization_thread(self, code, language):
+        """Create a thread for optimization."""
         class OptimizationThread(QThread):
             solution_ready = pyqtSignal(object)
             error_occurred = pyqtSignal(str)
@@ -1205,618 +532,351 @@ class MainWindow(QMainWindow):
 
             def run(self):
                 try:
-                    logger.info("Processing code optimization in thread")
-                    optimization = self.llm_service.get_code_optimization(
-                        self.code, self.language
-                    )
+                    optimization = self.llm_service.get_code_optimization(self.code, self.language)
                     self.solution_ready.emit(optimization)
                 except Exception as e:
-                    logger.info(f"Error in optimization thread: {e}")
+                    logger.error(f"Error in optimization thread: {e}")
                     self.error_occurred.emit(str(e))
 
-        # Create and start the thread
-        self.optimization_thread = OptimizationThread(
-            self.llm_service, current_code, selected_language
-        )
+        return OptimizationThread(self.llm_service, code, language)
 
-        self.optimization_thread.solution_ready.connect(self.on_optimization_ready)
-        self.optimization_thread.error_occurred.connect(self.on_processing_error)
-        self.optimization_thread.start()
+    @pyqtSlot()
+    def reset_chat_history(self):
+        """Reset the chat history and clear screenshots."""
+        if hasattr(self.llm_service, "reset_chat_history"):
+            self.llm_service.reset_chat_history()
+            self.screenshot_controls.clear_screenshots()
+            self.content_display.clear_content()
+            self.status_bar_manager.show_message("Chat history and screenshots reset.")
+            logger.info("Chat history and screenshots have been reset")
+        else:
+            self.status_bar_manager.show_message("Chat history reset not implemented.")
 
-    def update_screen_list(self):
-        """Update the list of available monitors in the dropdown."""
-        self.screen_combo.clear()
+    def copy_solution(self):
+        """Copy the solution code to clipboard."""
+        clipboard = QApplication.clipboard()
+        clipboard.setText(self.content_display.get_current_code())
+        self.status_bar_manager.show_message("Solution copied to clipboard")
+        logger.info("Solution copied to clipboard")
 
-        screens = self.screenshot_manager.get_available_screens()
-        for screen in screens:
-            display_name = f"{screen['name']} ({screen['width']}x{screen['height']})"
-            if screen["primary"]:
-                display_name += " (Primary)"
-            self.screen_combo.addItem(display_name, screen["index"])
+    def clear_screenshots(self):
+        """Clear all screenshots."""
+        self.screenshot_controls.clear_screenshots()
+        self.content_display.clear_content()
+        self.status_bar_manager.show_message("All screenshots cleared")
 
+    # Signal handlers
     @pyqtSlot(object)
     def on_solution_ready(self, solution):
-        """
-        Handle completed solution from LLM.
-
-        Args:
-            solution: The completed solution object
-        """
-        # Reset processing flag
+        """Handle completed solution from LLM."""
         self.processing_screenshot = False
-        self.generate_button.setEnabled(True)
-        self.optimize_button.setEnabled(True)
-        self.progress_label.setText("Idle")
+        self.action_bar.set_processing_state(False)
+        self.status_bar_manager.set_progress_text("Idle")
 
-        # Update UI with solution
-        self.code_editor.setPlainText(solution.code)
+        self.content_display.display_solution(solution)
         
-        # Render explanation as markdown
-        self.explanation_text.setMarkdown(solution.explanation)
+        # Extract solution text for button state management
+        if hasattr(solution, 'code'):
+            self.solution_text = solution.code
+        elif hasattr(solution, 'solution'):
+            self.solution_text = solution.solution
+        else:
+            self.solution_text = str(solution)
         
-        self.time_complexity.setText(solution.time_complexity)
-        self.space_complexity.setText(solution.space_complexity)
+        # Update button states to enable optimize and copy buttons
+        has_screenshots = len(self.screenshot_manager.get_all_screenshots()) > 0
+        has_solution = bool(self.solution_text.strip())
+        self.action_bar.update_button_states(has_screenshots=has_screenshots, has_solution=has_solution)
         
-        # Mark as not optimized and save session
-        self._is_optimized = False
-        self.save_session_data()
-
-        self.status_bar.showMessage("Solution generated")
+        # Update web API state if connected
+        if self.web_api:
+            self.web_api.update_solution_from_gui(solution)
+        
+        self.status_bar_manager.show_message("Solution generated")
         logger.info("Solution generated successfully")
 
     @pyqtSlot(object)
     def on_optimization_ready(self, optimization):
-        """
-        Handle completed optimization from LLM.
-
-        Args:
-            optimization: The completed optimization object
-        """
-        # Reset processing flag
+        """Handle completed optimization from LLM."""
         self.processing_screenshot = False
-        self.generate_button.setEnabled(True)
-        self.optimize_button.setEnabled(True)
-        self.progress_label.setText("Idle")
+        self.action_bar.set_processing_state(False)
+        self.status_bar_manager.set_progress_text("Idle")
 
-        # Update UI with optimized solution
-        self.code_editor.setPlainText(optimization.optimized_code)
-
-        # Create a detailed explanation that includes the improvements
-        detailed_explanation = "## Optimization Details\n\n"
-        detailed_explanation += optimization.explanation + "\n\n"
-        detailed_explanation += "## Improvements\n\n"
-        for improvement in optimization.improvements:
-            detailed_explanation += f"- {improvement}\n"
-        detailed_explanation += "\n\n## Time Complexity\n\n"
-        detailed_explanation += f"**Original:** {optimization.original_time_complexity}\n\n"
-        detailed_explanation += (
-            f"**Optimized:** {optimization.optimized_time_complexity}\n\n"
-        )
-        detailed_explanation += "## Space Complexity\n\n"
-        detailed_explanation += f"**Original:** {optimization.original_space_complexity}\n\n"
-        detailed_explanation += (
-            f"**Optimized:** {optimization.optimized_space_complexity}\n"
-        )
-
-        # Render explanation as markdown
-        self.explanation_text.setMarkdown(detailed_explanation)
-        self.time_complexity.setText(optimization.optimized_time_complexity)
-        self.space_complexity.setText(optimization.optimized_space_complexity)
+        self.content_display.display_optimization(optimization)
+        self.solution_text = optimization.optimized_code if hasattr(optimization, 'optimized_code') else str(optimization)
         
-        # Mark as optimized and save session
-        self._is_optimized = True
-        self.save_session_data()
-
-        self.status_bar.showMessage("Solution optimized")
+        # Update button states
+        has_screenshots = len(self.screenshot_manager.get_all_screenshots()) > 0
+        has_solution = bool(self.solution_text.strip())
+        self.action_bar.update_button_states(has_screenshots=has_screenshots, has_solution=has_solution)
+        
+        # Update web API state if connected
+        if self.web_api:
+            self.web_api.update_optimization_from_gui(optimization)
+        
+        self.status_bar_manager.show_message("Solution optimized")
         logger.info("Solution optimized successfully")
 
     @pyqtSlot(str)
     def on_processing_error(self, error_message):
-        """
-        Handle errors during screenshot processing.
-
-        Args:
-            error_message: The error message
-        """
-        # Reset processing flag
+        """Handle errors during processing."""
         self.processing_screenshot = False
-        self.generate_button.setEnabled(True)
-        self.optimize_button.setEnabled(True)
-        self.progress_label.setText("Error")
+        self.action_bar.set_processing_state(False)
+        self.status_bar_manager.set_progress_text("Error")
 
-        # Display error message
-        self.status_bar.showMessage(f"Error processing request: {error_message}")
-        logger.info(f"Error processing request: {error_message}")
-        QMessageBox.critical(
-            self, "Error", f"Failed to process request: {error_message}"
-        )
+        self.status_bar_manager.show_message(f"Error processing request: {error_message}")
+        logger.error(f"Error processing request: {error_message}")
+        QMessageBox.critical(self, "Error", f"Failed to process request: {error_message}")
 
-    def copy_solution(self):
-        """Copy the solution code to clipboard."""
-        from PyQt6.QtWidgets import QApplication
+    @pyqtSlot(str)
+    def on_language_changed(self, language: str):
+        """Handle language change from screenshot controls."""
+        logger.info(f"Language changed to: {language}")
+        # Update web API state if connected
+        if self.web_api:
+            self.web_api.update_language_from_gui(language)
 
-        clipboard = QApplication.clipboard()
-        clipboard.setText(self.code_editor.toPlainText())
-        self.status_bar.showMessage("Solution copied to clipboard")
-        logger.info("Solution copied to clipboard")
-    
-    def save_session_data(self):
-        """Save current session data to preserve across UI refreshes."""
-        self.current_session = {
-            "code": self.code_editor.toPlainText(),
-            "explanation": self.explanation_text.toMarkdown(),
-            "time_complexity": self.time_complexity.text(),
-            "space_complexity": self.space_complexity.text(),
-            "is_optimized": getattr(self, '_is_optimized', False)
-        }
-        logger.debug("Session data saved")
-    
-    def restore_session_data(self):
-        """Restore session data to UI components."""
-        if self.current_session["code"]:
-            self.code_editor.setPlainText(self.current_session["code"])
-            self.explanation_text.setMarkdown(self.current_session["explanation"])
-            self.time_complexity.setText(self.current_session["time_complexity"])
-            self.space_complexity.setText(self.current_session["space_complexity"])
-            logger.debug("Session data restored")
-    
-    def clear_session_data(self):
-        """Clear session data and UI components."""
-        self.current_session = {
-            "code": "",
-            "explanation": "",
-            "time_complexity": "N/A",
-            "space_complexity": "N/A",
-            "is_optimized": False
-        }
-        self.code_editor.clear()
-        self.explanation_text.setMarkdown("")
-        self.time_complexity.setText("N/A")
-        self.space_complexity.setText("N/A")
-        self._is_optimized = False
-        logger.debug("Session data cleared")
-
-    def toggle_web_server(self):
-        """Toggle the web server on/off."""
-        if not WEB_SERVER_AVAILABLE:
-            self.status_bar.showMessage("Web server not available - missing dependencies")
-            return
+    @pyqtSlot(str)
+    def on_language_changed_from_web(self, language: str):
+        """Handle language changes from web API."""
+        # Update the GUI language dropdown to match web selection
+        index = self.screenshot_controls.language_combo.findText(language)
+        if index >= 0:
+            # Block signals temporarily to prevent recursive calls
+            self.screenshot_controls.language_combo.blockSignals(True)
+            self.screenshot_controls.language_combo.setCurrentIndex(index)
+            self.screenshot_controls.language_combo.blockSignals(False)
         
-        if self.web_server_thread and self.web_server_thread.isRunning():
-            # Stop the web server
-            try:
-                self.web_server_thread.terminate()
-                self.web_server_thread.wait(3000)  # Wait up to 3 seconds
-                self.web_server_button.setText("Start Web Server")
-                self.status_bar.showMessage("Web server stopped")
-                if hasattr(self, 'web_server_status'):
-                    self.web_server_status.setText("Web API: Stopped")
-                    self.web_server_status.setStyleSheet("color: red;")
-                logger.info("🛑 Web server stopped")
-            except Exception as e:
-                logger.error(f"Error stopping web server: {e}")
-                self.status_bar.showMessage(f"Error stopping web server: {e}")
+        # Update settings and show message
+        settings.default_language = language
+        self.status_bar_manager.show_message(f"Language updated from web to {language}")
+        settings.save_user_settings()
+
+    def on_code_changed(self):
+        """Handle code editor changes."""
+        self.session_save_timer.start(500)
+
+    def _on_screenshot_selected(self, index):
+        """Handle screenshot selection."""
+        self.status_bar_manager.show_message(f"Selected screenshot {index + 1}")
+
+    def _save_session_data(self):
+        """Save session data."""
+        self.content_display.save_session_data()
+
+    # Window management methods
+    def set_always_on_top(self, enabled: bool):
+        """Set whether the window should always be on top."""
+        flags = self.windowFlags()
+        has_flag = bool(flags & Qt.WindowType.WindowStaysOnTopHint)
+        
+        if has_flag == enabled:
+            return
+
+        if enabled:
+            flags |= Qt.WindowType.WindowStaysOnTopHint
         else:
-            # Start the web server
-            try:
-                if self.web_server_thread:
-                    self.web_server_thread.start()
-                    self.web_server_button.setText("Stop Web Server")
-                    self.status_bar.showMessage("Web server started on all interfaces (port 8000)")
-                    if hasattr(self, 'web_server_status'):
-                        self.web_server_status.setText("Web API: Running")
-                        self.web_server_status.setStyleSheet("color: green;")
-                    logger.info("🚀 Web server started on http://0.0.0.0:8000 (accessible from all interfaces)")
-                    
-                    # Show notification with API info
-                    if hasattr(self, 'tray_icon') and self.tray_icon:
-                        self.tray_icon.showMessage(
-                            "Web Server Started",
-                            "API available on port 8000 (all interfaces)\nDocs: http://localhost:8000/docs",
-                            QSystemTrayIcon.MessageIcon.Information,
-                            5000
-                        )
-                else:
-                    self.status_bar.showMessage("Web server not initialized")
-            except Exception as e:
-                logger.error(f"Error starting web server: {e}")
-                self.status_bar.showMessage(f"Error starting web server: {e}")
+            flags &= ~Qt.WindowType.WindowStaysOnTopHint
+
+        pos = self.pos()
+        visible = self.isVisible()
+
+        self.setWindowFlags(flags)
+        self.move(pos)
+
+        if visible:
+            self.show()
+
+        settings.ui.always_on_top = enabled
+        settings.save_user_settings()
+
+        self.menu_manager.update_always_on_top_state(enabled)
+        logger.info(f"Always on top set to: {enabled}")
+        self.status_bar_manager.show_message(f"Always on top: {'enabled' if enabled else 'disabled'}")
+
+    def set_opacity(self, opacity: float):
+        """Set window opacity."""
+        self.setWindowOpacity(opacity)
+
+    def set_theme(self, theme_name: str):
+        """Set the application theme."""
+        self.styles.set_theme(Theme(theme_name))
+        self.status_bar_manager.show_message(f"Theme set to {theme_name}")
 
     @pyqtSlot()
     def toggle_visibility(self):
         """Toggle the visibility of the application window."""
-        logger.info(
-            f"Toggle visibility called, current state: {self.invisibility_manager.is_visible}"
-        )
+        logger.info(f"Toggle visibility called, current state: {self.invisibility_manager.is_visible}")
         new_state = self.invisibility_manager.toggle_visibility()
         logger.info(f"Toggled visibility, new state: {new_state}")
         self.on_visibility_changed(new_state)
 
     @pyqtSlot(bool)
     def on_visibility_changed(self, is_visible: bool):
-        """
-        Handle visibility state changes.
-
-        Args:
-            is_visible: The new visibility state
-        """
+        """Handle visibility state changes."""
         if is_visible:
-            self.visibility_button.setText("👁️")
-            self.visibility_button.setToolTip("Hide Window")
-            # Restore session data when becoming visible again
-            if hasattr(self, 'current_session'):
-                self.restore_session_data()
+            self.action_bar.visibility_button.setText("👁️ Hide")
         else:
-            self.visibility_button.setText("👁️‍🗨️")
-            self.visibility_button.setToolTip("Show Window")
-            # Save session data before hiding
-            if hasattr(self, 'current_session'):
-                self.save_session_data()
-
-        self.status_bar.showMessage(
-            f"Visibility set to {'visible' if is_visible else 'hidden'}"
-        )
+            self.action_bar.visibility_button.setText("👁️ Show")
         logger.info(f"Visibility changed to: {is_visible}")
 
     @pyqtSlot(bool)
     def on_screen_sharing_detected(self, is_sharing: bool):
-        """
-        Handle screen sharing detection.
-
-        Args:
-            is_sharing: True if screen sharing was detected, False otherwise
-        """
+        """Handle screen sharing detection."""
         if is_sharing:
-            self.status_bar.showMessage(
-                "Screen sharing detected! Window hidden automatically."
-            )
-            logger.info("Screen sharing detected, hiding window")
-            # The invisibility manager should automatically hide the window
-        else:
-            self.status_bar.showMessage("Screen sharing ended.")
-            logger.info("Screen sharing ended")
+            logger.info("Screen sharing detected - hiding window")
+            self.invisibility_manager.set_visibility(False)
 
     @pyqtSlot(str)
     def move_window(self, direction: str):
-        """
-        Move the window in the specified direction.
-
-        Args:
-            direction: Direction to move ("up", "down", "left", "right")
-        """
-        # Fixed direct implementation to ensure window movement works
-        distance = 60  # pixels to move
-        current_pos = self.pos()
-        new_x, new_y = current_pos.x(), current_pos.y()
-
+        """Move window in the specified direction."""
+        geometry = self.geometry()
+        x, y = geometry.x(), geometry.y()
+        
+        move_distance = 50
+        
         if direction == "up":
-            new_y -= distance
+            y = max(0, y - move_distance)
         elif direction == "down":
-            new_y += distance
+            y += move_distance
         elif direction == "left":
-            new_x -= distance
+            x = max(0, x - move_distance)
         elif direction == "right":
-            new_x += distance
-
-        # Direct window movement
-        self.move(new_x, new_y)
-        logger.info(f"Window moved {direction} to position ({new_x}, {new_y})")
-        self.status_bar.showMessage(
-            f"Window moved {direction} to position ({new_x}, {new_y})"
-        )
+            x += move_distance
+            
+        self.move(x, y)
+        logger.info(f"Moved window {direction} to ({x}, {y})")
 
     @pyqtSlot()
     def activate_panic_mode(self):
         """Activate panic mode to quickly hide the application."""
-        logger.info("Panic mode activated!")
         self.invisibility_manager.set_visibility(False)
-        self.status_bar.showMessage("Panic mode activated!")
+        logger.info("Panic mode activated - window hidden")
 
-    @pyqtSlot(int)
-    def opacity_changed(self, value: int):
-        """
-        Handle opacity slider changes.
+    def toggle_web_server(self):
+        """Toggle the web server on/off."""
+        if not WEB_SERVER_AVAILABLE:
+            return
 
-        Args:
-            value: Opacity value from 10-100
-        """
-        opacity = value / 100.0
-        self.set_opacity(opacity)
+        if self.web_server_thread and self.web_server_thread.isRunning():
+            self.web_server_thread.terminate()
+            self.web_server_thread.wait(3000)
+            self.status_bar_manager.update_web_server_status(False)
+            self.status_bar_manager.show_message("Web server stopped")
+        else:
+            if self.web_server_thread:
+                self.web_server_thread.start()
+                self.status_bar_manager.update_web_server_status(True, self.web_server_port)
+                self.status_bar_manager.show_message("Web server started")
 
-    def set_opacity(self, opacity: float):
-        """
-        Set the window opacity.
-
-        Args:
-            opacity: Opacity value from 0.0 to 1.0
-        """
-        # Set window opacity
-        self.setWindowOpacity(opacity)
-        logger.info(f"Window opacity set to {opacity}")
-
-    def set_theme(self, theme_name: str):
-        """
-        Set the application theme.
-
-        Args:
-            theme_name: Name of the theme ("light" or "dark")
-        """
-        self.styles.set_theme(theme_name)
-
-        # Update the application stylesheet
-        self.setStyleSheet(self.styles.get_stylesheet())
-
-        self.status_bar.showMessage(f"Theme changed to {theme_name}")
-        logger.info(f"Theme changed to {theme_name}")
-
-    def show_about(self):
-        """Show the about dialog."""
-        QMessageBox.about(
-            self,
-            "About AceBot",
-            f"""
-            <h1>🤖 AceBot</h1>
-            <p>Version: {__import__("interview_corvus").__version__}</p>
-            <p>Your intelligent coding assistant for technical interviews.</p>
-            <p>AceBot helps you solve programming problems during technical interviews 
-            by providing real-time solutions while remaining invisible during screen sharing.</p>
-            <p>Built with ❤️ for developers</p>
-            """,
-        )
-
-    def show_shortcuts(self):
-        """Show the keyboard shortcuts dialog."""
-        shortcuts = f"""
-        <h2>Keyboard Shortcuts</h2>
-        <ul>
-            <li><b>{settings.hotkeys.screenshot_key}</b>: Take Screenshot</li>
-            <li><b>{settings.hotkeys.generate_solution_key}</b>: Generate Solution</li>
-            <li><b>{settings.hotkeys.optimize_solution_key}</b>: Optimize Solution</li>
-            <li><b>{settings.hotkeys.toggle_visibility_key}</b>: Toggle Visibility</li>
-            <li><b>{settings.hotkeys.reset_history_key}</b>: Reset Chat History and Screenshots</li>
-            <li><b>{settings.hotkeys.move_window_keys["up"]}</b>: Move Window Up</li>
-            <li><b>{settings.hotkeys.move_window_keys["down"]}</b>: Move Window Down</li>
-            <li><b>{settings.hotkeys.move_window_keys["left"]}</b>: Move Window Left</li>
-            <li><b>{settings.hotkeys.move_window_keys["right"]}</b>: Move Window Right</li>
-            <li><b>{settings.hotkeys.panic_key}</b>: Panic Mode (Instant Hide)</li>
-        </ul>
-        """
-
-        QMessageBox.information(self, "Keyboard Shortcuts", shortcuts)
-
+    # Dialog methods
     def show_settings(self):
         """Show the settings dialog."""
-        # Save current session before opening settings
-        if hasattr(self, 'current_session'):
-            self.save_session_data()
-            
+        self.content_display.save_session_data()
+        
         dialog = SettingsDialog(self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
-            # Update services that depend on settings
+            # Update services
             self.llm_service = LLMService()
-
-            # Reconnect signals
             self.llm_service.completion_finished.connect(self.on_solution_ready)
             self.llm_service.error_occurred.connect(self.on_processing_error)
 
-            # Update UI to reflect new settings
-            index = self.language_combo.findText(settings.default_language)
+            # Update UI
+            index = self.screenshot_controls.language_combo.findText(settings.default_language)
             if index >= 0:
-                self.language_combo.setCurrentIndex(index)
+                self.screenshot_controls.language_combo.setCurrentIndex(index)
 
-            # Update always on top setting
             self.set_always_on_top(settings.ui.always_on_top)
-
-            # Update button texts with new hotkey settings
-            self.update_button_texts()
-
-            # Re-register hotkeys with the hotkey manager
+            self.action_bar.update_button_texts()
             self.hotkey_manager.register_hotkeys(self)
-            
-            # Restore session data after settings update
-            if hasattr(self, 'current_session'):
-                self.restore_session_data()
+            self.content_display.restore_session_data()
 
-            self.status_bar.showMessage("Settings updated")
+            self.status_bar_manager.show_message("Settings updated")
             logger.info("Settings updated")
 
-    def closeEvent(self, event):
-        """
-        Handle window close event.
+    def _show_about(self):
+        """Show the about dialog."""
+        self.menu_manager.show_about_dialog()
 
-        Args:
-            event: Close event
-        """
-        # Stop web server if running
-        if hasattr(self, 'web_server_thread') and self.web_server_thread and self.web_server_thread.isRunning():
-            logger.info("Stopping web server...")
-            self.web_server_thread.terminate()
-            self.web_server_thread.wait(3000)
-            logger.info("Web server stopped")
+    def _show_shortcuts(self):
+        """Show the keyboard shortcuts dialog."""
+        self.menu_manager.show_shortcuts_dialog()
 
-        if hasattr(self, "hotkey_manager"):
-            self.hotkey_manager.stop_global_listener()
-
-        event.accept()
-
-        logger.info("Application closed")
-
-        QApplication.quit()
-
-    def changeEvent(self, event):
-        """
-        Handle window state changes for proper hotkey operation.
-        """
-        if event.type() == QEvent.Type.WindowStateChange:
-            # Re-register hotkeys when minimizing/restoring
-            self.hotkey_manager.register_hotkeys(self)
-            logger.info("Re-registered hotkeys after window state change")
-
-        super().changeEvent(event)
-
-    def keyPressEvent(self, event):
-        """
-        Additional key press event handling.
-        """
-        # Debug information about pressed keys
-        logger.info(f"Key pressed: {event.key()}, modifiers: {event.modifiers()}")
-
-        # Standard key press handling
-        super().keyPressEvent(event)
-
-    def update_button_texts(self):
-        """Update button texts to reflect current hotkey settings."""
-        # Update tooltips since we're using minimal icon-based buttons
-        self.screenshot_button.setToolTip(f"Take Screenshot ({settings.hotkeys.screenshot_key})")
-        self.generate_button.setToolTip(f"Generate Solution ({settings.hotkeys.generate_solution_key})")
-        self.optimize_button.setToolTip(f"Optimize Solution ({settings.hotkeys.optimize_solution_key})")
-        self.visibility_button.setToolTip(f"Toggle Visibility ({settings.hotkeys.toggle_visibility_key})")
-
-        # Also update menu actions if they exist
-        if hasattr(self, "take_screenshot_action"):
-            self.take_screenshot_action.setText(
-                f"Take Screenshot ({settings.hotkeys.screenshot_key})"
-            )
-            self.take_screenshot_action.setShortcut(
-                QKeySequence(settings.hotkeys.screenshot_key)
-            )
-
-        if hasattr(self, "generate_solution_action"):
-            self.generate_solution_action.setText(
-                f"Generate Solution ({settings.hotkeys.generate_solution_key})"
-            )
-            self.generate_solution_action.setShortcut(
-                QKeySequence(settings.hotkeys.generate_solution_key)
-            )
-
-        if hasattr(self, "toggle_visibility_action"):
-            self.toggle_visibility_action.setText(
-                f"Toggle Visibility ({settings.hotkeys.toggle_visibility_key})"
-            )
-            self.toggle_visibility_action.setShortcut(
-                QKeySequence(settings.hotkeys.toggle_visibility_key)
-            )
-
-        if hasattr(self, "optimize_solution_action"):
-            self.optimize_solution_action.setText(
-                f"Optimize Solution ({settings.hotkeys.optimize_solution_key})"
-            )
-            self.optimize_solution_action.setShortcut(
-                QKeySequence(settings.hotkeys.optimize_solution_key)
-            )
-
-        if hasattr(self, "reset_history_action"):
-            self.reset_history_action.setText(
-                f"Reset All ({settings.hotkeys.reset_history_key})"
-            )
-            self.reset_history_action.setShortcut(
-                QKeySequence(settings.hotkeys.reset_history_key)
-            )
-    
-    def resizeEvent(self, event):
-        """Handle resize events to preserve session data."""
-        super().resizeEvent(event)
-        # Save session data when window is resized (which can trigger UI refresh)
-        if hasattr(self, 'current_session'):
-            self.save_session_data()
-    
-    def showEvent(self, event):
-        """Handle show events to restore session data."""
-        super().showEvent(event)
-        # Restore session data when window is shown (in case of UI refresh)
-        if hasattr(self, 'current_session'):
-            self.restore_session_data()
-
+    # Permissions and system integration
     def check_and_request_permissions(self):
-        """Check for and request required permissions for global hotkey monitoring."""
+        """Check for and request required permissions."""
         if platform.system() == "Darwin":
+            self._check_macos_permissions()
+        elif platform.system() == "Windows":
+            self._check_windows_permissions()
+
+    def _check_macos_permissions(self):
+        """Check macOS accessibility permissions."""
+        try:
             import Cocoa
             import HIServices
-            try:
-                # Check if we have accessibility permissions
-                trusted = HIServices.AXIsProcessTrusted()
-                logger.info(f"Application accessibility permissions status: {trusted}")
+            
+            trusted = HIServices.AXIsProcessTrusted()
+            logger.info(f"Application accessibility permissions status: {trusted}")
 
-                if not trusted:
-                    # Show dialog explaining why we need permissions
-                    msg = QMessageBox()
-                    msg.setIcon(QMessageBox.Icon.Information)
-                    msg.setWindowTitle("Permissions Required")
-                    msg.setText(
-                        "AceBot needs Accessibility permissions to use global hotkeys."
-                    )
-                    msg.setInformativeText(
-                        "You'll need to enable AceBot in System Preferences → Security & Privacy → Privacy → Accessibility."
-                    )
-                    msg.setDetailedText(
-                        "Without these permissions, global hotkeys (like taking screenshots or toggling visibility) won't work outside the application window."
-                    )
+            if not trusted:
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Icon.Information)
+                msg.setWindowTitle("Permissions Required")
+                msg.setText("AceBot needs Accessibility permissions to use global hotkeys.")
+                msg.setInformativeText(
+                    "You'll need to enable AceBot in System Preferences → Security & Privacy → Privacy → Accessibility."
+                )
+                msg.exec()
 
-                    # Add button to open System Preferences
-                    open_prefs_btn = msg.addButton(
-                        "Open System Preferences", QMessageBox.ButtonRole.ActionRole
-                    )
-                    msg.addButton("Later", QMessageBox.ButtonRole.RejectRole)
+        except Exception as e:
+            logger.error(f"Error checking accessibility permissions: {e}")
 
-                    msg.exec()
-
-                    # If user clicked the button to open System Preferences
-                    if msg.clickedButton() == open_prefs_btn:
-                        # Open System Preferences at the Accessibility pane
-                        Cocoa.NSWorkspace.sharedWorkspace().openURL_(
-                            Cocoa.NSURL.URLWithString_(
-                                "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
-                            )
-                        )
-            except Exception as e:
-                logger.error(f"Error checking accessibility permissions: {e}")
-        
-        # For Windows, request foreground window permission
-        if platform.system() == "Windows":
+    def _check_windows_permissions(self):
+        """Check Windows administrator permissions."""
+        try:
             import ctypes
-            from ctypes import wintypes
-
-            # Define the user32 functions we need
-            user32 = ctypes.WinDLL("user32", use_last_error=True)
-
-            # Check if the process is running as administrator
+            
             is_admin = ctypes.windll.shell32.IsUserAnAdmin()
-
             if not is_admin:
                 msg = QMessageBox()
                 msg.setIcon(QMessageBox.Icon.Warning)
                 msg.setWindowTitle("Administrator Permission Required")
                 msg.setText("AceBot needs to be run as administrator for the first time.")
                 msg.setInformativeText("Right-click on the AceBot icon and select 'Run as administrator'.")
-                msg.setDetailedText("This is required to enable global hotkeys and other features.")
-                msg.addButton("OK", QMessageBox.ButtonRole.AcceptRole)
-
                 msg.exec()
 
-                # Attempt to relaunch the application as administrator
-                import sys
-                import os
+        except Exception as e:
+            logger.error(f"Error checking Windows permissions: {e}")
 
-                if not hasattr(sys, "_MEIPASS"):
-                    # Not frozen with PyInstaller, normal launch
-                    exe_path = sys.executable
-                else:
-                    # Frozen with PyInstaller, locate the exe
-                    exe_path = os.path.join(sys._MEIPASS, "interview_corvus.exe")
+    # Event handlers
+    def closeEvent(self, event):
+        """Handle window close event."""
+        if hasattr(self, 'web_server_thread') and self.web_server_thread and self.web_server_thread.isRunning():
+            logger.info("Stopping web server...")
+            self.web_server_thread.terminate()
+            self.web_server_thread.wait(3000)
 
-                # Relaunch the application as administrator
-                ctypes.windll.shell32.ShellExecuteW(
-                    None,
-                    "runas",  # This is the key part that requests admin
-                    exe_path,
-                    " ".join(sys.argv),  # Pass along any arguments
-                    None,
-                    1,  # Show normal window
-                )
+        if hasattr(self, "hotkey_manager"):
+            self.hotkey_manager.stop_global_listener()
 
-                # Exit the current instance
-                QApplication.quit()
-                sys.exit()
+        event.accept()
+        logger.info("Application closed")
+        QApplication.quit()
 
-            # If we are admin, just continue
-            logger.info("Running with administrator privileges")
+    def changeEvent(self, event):
+        """Handle window state changes."""
+        if event.type() == QEvent.Type.WindowStateChange:
+            self.hotkey_manager.register_hotkeys(self)
+            logger.info("Re-registered hotkeys after window state change")
+        super().changeEvent(event)
+
+    def resizeEvent(self, event):
+        """Handle resize events."""
+        super().resizeEvent(event)
+        self.content_display.save_session_data()
+
+    def showEvent(self, event):
+        """Handle show events."""
+        super().showEvent(event)
+        # self.content_display.restore_session_data()

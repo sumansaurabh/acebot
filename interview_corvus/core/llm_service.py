@@ -1,5 +1,5 @@
 import json
-from typing import List, Type, TypeVar
+from typing import List, Type, TypeVar, Union
 
 from llama_index.core.base.llms.types import ChatMessage, ImageBlock, MessageRole
 from llama_index.core.chat_engine import SimpleChatEngine
@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from PyQt6.QtCore import QObject, pyqtSignal
 
 from interview_corvus.config import settings
-from interview_corvus.core.models import CodeOptimization, CodeSolution
+from interview_corvus.core.models import CodeOptimization, CodeSolution, McqSolution
 from interview_corvus.core.prompt_manager import PromptManager
 from interview_corvus.security.api_key_manager import APIKeyManager
 
@@ -23,7 +23,7 @@ class LLMService(QObject):
     # Signals for responses
     completion_finished = pyqtSignal(object)
     error_occurred = pyqtSignal(str)
-
+    llm: OpenAI
     def __init__(self):
         """Initialize the LLM service with configured settings."""
         super().__init__()
@@ -65,6 +65,10 @@ class LLMService(QObject):
         self.chat_engine = SimpleChatEngine.from_defaults(
             llm=self.llm,
         )
+        
+        # Session storage for persistence
+        self._last_solution = None
+        self._last_optimization = None
 
     def reset_chat_history(self):
         """Reset the chat history."""
@@ -73,6 +77,9 @@ class LLMService(QObject):
         self.chat_engine = SimpleChatEngine.from_defaults(
             llm=self.llm,
         )
+        # Clear stored solutions
+        self._last_solution = None
+        self._last_optimization = None
 
     def get_code_optimization(
         self, code: str, language: str = None
@@ -218,7 +225,7 @@ class LLMService(QObject):
 
     def get_solution_from_screenshots(
         self, screenshot_paths: List[str], language: str = None
-    ) -> CodeSolution:
+    ) -> Union[CodeSolution, McqSolution]:
         """
         Get a solution based on multiple screenshots of a programming problem.
 
@@ -227,7 +234,7 @@ class LLMService(QObject):
             language: The programming language to use for the solution (defaults to settings)
 
         Returns:
-            A structured code solution response
+            A structured code solution response (CodeSolution for code problems, McqSolution for MCQ problems)
         """
         # Use default language from settings if none provided
         if language is None:
@@ -237,9 +244,14 @@ class LLMService(QObject):
         prompt_manager = PromptManager()
 
         # Get the screenshot prompt with language
-        prompt_text = prompt_manager.get_prompt(
-            "screenshot_solution", language=language
-        )
+        if language == "mcq":
+            prompt_text = prompt_manager.get_prompt(
+                "mcq_solution", language="mcq"
+            )
+        else:
+            prompt_text = prompt_manager.get_prompt(
+                "screenshot_solution", language=language
+            )
 
         logger.info(f"Processing {len(screenshot_paths)} screenshots")
 
@@ -267,16 +279,25 @@ class LLMService(QObject):
 
         # For processing screenshots with history context
         try:
-            structured = self.llm.as_structured_llm(output_cls=CodeSolution)
-            response = structured.chat(chat_messages)
+            if language == "mcq":
+                structured = self.llm.as_structured_llm(output_cls=McqSolution)
+                response = structured.chat(chat_messages)
+                expected_type = McqSolution
+            else:
+                structured = self.llm.as_structured_llm(output_cls=CodeSolution)
+                response = structured.chat(chat_messages)
+                expected_type = CodeSolution
+
+            logger.info(f"🔍 LLM Service: Received response type: {type(response)}")
+            logger.info(f"🔍 LLM Service: Expected type: {expected_type}")
             
             # Handle different response formats from LlamaIndex structured LLM
             # First, try to get the structured object directly
             if hasattr(response, 'message') and hasattr(response.message, 'content'):
                 content = response.message.content
                 
-                # If content is already a CodeSolution object, return it
-                if isinstance(content, CodeSolution):
+                # If content is already the expected object type, return it
+                if isinstance(content, expected_type):
                     return content
         except Exception as structured_error:
             logger.warning(f"⚠️ LLM Service: Structured LLM failed for screenshots: {structured_error}")
@@ -292,33 +313,43 @@ class LLMService(QObject):
                 if isinstance(content, str):
                     try:
                         content_dict = json.loads(content)
-                        return CodeSolution(**content_dict)
+                        return expected_type(**content_dict)
                     except (json.JSONDecodeError, TypeError, ValueError):
                         # If JSON parsing fails, create a basic response
                         logger.warning("⚠️ LLM Service: Failed to parse screenshot response as JSON, creating basic response")
-                        return CodeSolution(
-                            code=content,
-                            language=language,
-                            explanation="Solution generated from screenshot analysis",
-                            time_complexity="N/A",
-                            space_complexity="N/A",
-                            edge_cases=[],
-                            alternative_approaches=None
-                        )
+                        if language == "mcq":
+                            return McqSolution(
+                                solution=content
+                            )
+                        else:
+                            return CodeSolution(
+                                code=content,
+                                language=language,
+                                explanation=content,
+                                time_complexity="N/A",
+                                space_complexity="N/A",
+                                edge_cases=[],
+                                alternative_approaches=None
+                            )
                 
                 return content
             except Exception as fallback_error:
                 logger.error(f"❌ LLM Service: Screenshot fallback also failed: {fallback_error}")
-                # Return a basic error response
-                return CodeSolution(
-                    code=f"# Error occurred during screenshot analysis: {fallback_error}",
-                    language=language,
-                    explanation=f"Error occurred during screenshot analysis: {fallback_error}",
-                    time_complexity="N/A",
-                    space_complexity="N/A",
-                    edge_cases=[],
-                    alternative_approaches=None
-                )
+                # Return a basic error response based on language type
+                if language == "mcq":
+                    return McqSolution(
+                        solution=f"Error occurred during screenshot analysis: {fallback_error}",
+                    )
+                else:
+                    return CodeSolution(
+                        code=f"# Error occurred during screenshot analysis: {fallback_error}",
+                        language=language,
+                        explanation=f"Error occurred during screenshot analysis: {fallback_error}",
+                        time_complexity="N/A",
+                        space_complexity="N/A",
+                        edge_cases=[],
+                        alternative_approaches=None
+                    )
         
         # Continue with the existing structured response handling if structured LLM succeeded
         try:
@@ -326,34 +357,34 @@ class LLMService(QObject):
             if hasattr(response, 'message') and hasattr(response.message, 'content'):
                 content = response.message.content
                 
-                # If content is already a CodeSolution object, return it
-                if isinstance(content, CodeSolution):
+                # If content is already the expected object type, return it
+                if isinstance(content, expected_type):
                     return content
                 
                 # If content is a string (JSON), parse it
                 if isinstance(content, str):
                     try:
                         content_dict = json.loads(content)
-                        return CodeSolution(**content_dict)
+                        return expected_type(**content_dict)
                     except (json.JSONDecodeError, TypeError, ValueError):
                         logger.warning("Failed to parse JSON response, falling back to raw")
                 
-                # If content is a dict, create CodeSolution object
+                # If content is a dict, create the expected object
                 if isinstance(content, dict):
-                    return CodeSolution(**content)
+                    return expected_type(**content)
             
             # If none of the above work, try the raw response
             if hasattr(response, 'raw') and response.raw:
-                if isinstance(response.raw, CodeSolution):
+                if isinstance(response.raw, expected_type):
                     return response.raw
                 if isinstance(response.raw, str):
                     try:
                         raw_dict = json.loads(response.raw)
-                        return CodeSolution(**raw_dict)
+                        return expected_type(**raw_dict)
                     except (json.JSONDecodeError, TypeError, ValueError):
                         pass
                 if isinstance(response.raw, dict):
-                    return CodeSolution(**response.raw)
+                    return expected_type(**response.raw)
             
             # Last resort: return response.raw as is (might be a string)
             logger.warning("Unable to parse structured response, returning raw response")

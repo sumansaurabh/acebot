@@ -1,5 +1,23 @@
-"""API module for Interview Corvus web server integration."""
+"""
+AceBot Web API components.
+"""
 
-from .web_server import WebServerAPI, WebServerThread, create_integrated_web_server
+from .web_server import create_integrated_web_server
+from .api_handler import WebServerAPI
+from .server import WebServerThread
+from .models import (
+    GenerateSolutionRequest, OptimizeSolutionRequest, SolutionResponse,
+    OptimizationResponse, HealthResponse, ScreenshotListResponse
+)
 
-__all__ = ["WebServerAPI", "WebServerThread", "create_integrated_web_server"]
+__all__ = [
+    'create_integrated_web_server',
+    'WebServerAPI',
+    'WebServerThread',
+    'GenerateSolutionRequest',
+    'OptimizeSolutionRequest', 
+    'SolutionResponse',
+    'OptimizationResponse',
+    'HealthResponse',
+    'ScreenshotListResponse'
+]

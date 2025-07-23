@@ -9,7 +9,7 @@ class CodeSolution(BaseModel):
     """Structured model for code solution responses."""
 
     code: str = Field(..., description="Complete code solution")
-    language: str = Field(..., description="Programming language of the solution")
+    language: str = Field(..., description="Programming language of the solution or the question type")
     explanation: str = Field(
         ..., description="Concise explanation of the core solution approach and key logic"
     )
@@ -25,6 +25,12 @@ class CodeSolution(BaseModel):
         None,
         description="Alternative approaches with brief descriptions and their time/space complexity",
     )
+
+
+class McqSolution(BaseModel):
+    """Structured model for MCQ solution responses."""
+
+    solution: str = Field(..., description="The list of all questions and the answer and the explanation in markdown format")
 
 
 class CodeOptimization(BaseModel):

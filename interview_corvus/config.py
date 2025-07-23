@@ -33,7 +33,7 @@ class UISettings(BaseSettings):
     default_window_size: Dict[str, int] = Field(
         default_factory=lambda: {"width": 600, "height": 400}
     )
-    always_on_top: bool = True  # Default to always on top
+    always_on_top: bool = False  # Default to always on top
     model_config = SettingsConfigDict(env_prefix="INTERVIEW_CORVUS_UI_")
 
 
@@ -130,6 +130,7 @@ class PromptTemplates(BaseSettings):
 
     templates: Dict[str, str] = Field(
         default_factory=lambda: {
+            # not being used
             "code_solution": """
             Please analyze the following programming problem and provide a solution:
 
@@ -189,18 +190,75 @@ class PromptTemplates(BaseSettings):
             "screenshot_solution": """
             Please analyze the programming problem shown in the screenshot and provide a solution.
 
-            Provide a solution in {language} programming language.
+            Very important: **Provide a solution in {language} programming language. Do not choose any other language for the response**
+
 
             Your response should include:
             1. Complete code solution
             2. Concise approach explanation focusing only on the core solution strategy
-            3. Analysis of time complexity (Big O notation)
-            4. Analysis of space complexity (Big O notation)
-            5. Identification of edge cases and how they are handled
-            6. (Optional) Alternative approaches with brief descriptions
+            3. **Add very heavy documentation of the code**
+            4. Analysis of time complexity (Big O notation)
+            5. Analysis of space complexity (Big O notation)
+            6. Identification of edge cases and how they are handled
+            7. (Optional) Alternative approaches with brief descriptions
+
 
             For the explanation, focus only on the key algorithmic approach and logic, not problem statement details.
             """,
+            "mcq_solution": """
+            
+You are an expert MCQ solver. You will be shown an image containing **one or more multiple-choice questions**. For each question in the image:
+
+1. **Determine whether it is single-choice or multiple-choice**
+2. **Identify the correct answer(s)**
+3. **Return only the correct option letter(s) with the option text**
+4. **Add a short explanation for why each option is correct**
+
+---
+
+### ✏️ Output Format (strictly follow this for each question):
+
+```
+Q<n>. <Question text (optional)>
+
+<letter>: <Correct option text>  
+<letter>: <Correct option text>  
+
+Explanation: <Clear, concise explanation for why this is the correct answer. If multiple answers, explain each briefly.>
+```
+
+**Notes:**
+
+* Use `Q1`, `Q2`, etc. to label each question
+* If only one correct answer, return just one line under it
+* If multiple correct answers, return all correct options
+* Always follow with `Explanation:` line (mandatory)
+* Do not include any unrelated text, instructions, or wrong options
+
+---
+
+### ✅ Example Output:
+
+```
+Q1. What are prime numbers less than 10?
+
+b: 2  
+c: 3  
+d: 7  
+
+Explanation: 2, 3, and 7 are all prime numbers less than 10. Prime numbers are only divisible by 1 and themselves.
+```
+
+```
+Q2. What is the powerhouse of the cell?
+
+a: Mitochondria  
+
+Explanation: The mitochondria generate most of the cell’s energy through respiration, hence called the powerhouse.
+```
+
+            """,
+            # not being used
             "ocr_text_solution": """
             Please analyze the following programming problem extracted from a screenshot and provide a solution:
 
@@ -251,6 +309,7 @@ class Settings(BaseSettings):
             "rust",
             "ruby",
             "mysql",
+            "mcq"
         ]
     )
 
