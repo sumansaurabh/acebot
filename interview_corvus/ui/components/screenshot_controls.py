@@ -55,6 +55,10 @@ class ScreenshotControls(QWidget):
                 border-bottom: 1px solid #e1e4e8;
                 padding: 4px;
             }
+            /* Ensure child widgets don't inherit restrictive styles */
+            ScreenshotControls > QWidget {
+                background: transparent;
+            }
         """)
         
     def create_screenshots_section(self):
@@ -108,8 +112,37 @@ class ScreenshotControls(QWidget):
         if index >= 0:
             self.language_combo.setCurrentIndex(index)
         self.language_combo.setMinimumWidth(120)
-        self.language_combo.setMaximumWidth(150)
-        self.language_combo.setFixedHeight(28)
+        self.language_combo.setMaximumWidth(200)  # Increased max width
+        self.language_combo.setMinimumHeight(28)
+        self.language_combo.setMaximumHeight(32)  # Use max height instead of fixed
+        # Ensure dropdown can expand properly
+        self.language_combo.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        self.language_combo.setStyleSheet("""
+            QComboBox {
+                padding: 4px 8px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                background-color: white;
+            }
+            QComboBox:hover {
+                border-color: #4A90E2;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                width: 12px;
+                height: 12px;
+            }
+            QComboBox QAbstractItemView {
+                border: 1px solid #ddd;
+                background-color: white;
+                selection-background-color: #4A90E2;
+                selection-color: white;
+                outline: none;
+            }
+        """)
         language_layout.addWidget(self.language_combo)
         controls_layout.addLayout(language_layout)
         
@@ -123,8 +156,37 @@ class ScreenshotControls(QWidget):
         self.screen_combo = QComboBox()
         self.update_screen_list()
         self.screen_combo.setMinimumWidth(120)
-        self.screen_combo.setMaximumWidth(150)
-        self.screen_combo.setFixedHeight(28)
+        self.screen_combo.setMaximumWidth(200)  # Increased max width
+        self.screen_combo.setMinimumHeight(28)
+        self.screen_combo.setMaximumHeight(32)  # Use max height instead of fixed
+        # Ensure dropdown can expand properly
+        self.screen_combo.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        self.screen_combo.setStyleSheet("""
+            QComboBox {
+                padding: 4px 8px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                background-color: white;
+            }
+            QComboBox:hover {
+                border-color: #4A90E2;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                width: 12px;
+                height: 12px;
+            }
+            QComboBox QAbstractItemView {
+                border: 1px solid #ddd;
+                background-color: white;
+                selection-background-color: #4A90E2;
+                selection-color: white;
+                outline: none;
+            }
+        """)
         monitor_layout.addWidget(self.screen_combo)
         controls_layout.addLayout(monitor_layout)
         
