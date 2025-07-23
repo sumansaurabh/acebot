@@ -187,10 +187,6 @@ class PromptTemplates(BaseSettings):
 
             Be precise in your Big O notation and explain your reasoning.
             """,
-            "mcq_solution": """
-I have a multiple-choice question. Please act as an expert tutor and solve it step by step. First, understand and interpret the question. Then, evaluate each option carefully. Identify the correct answer and explain why it is correct. Also, briefly explain why the other options are incorrect.
-
-If any background knowledge or assumptions are needed, state them explicitly. Use clear and logical reasoning.""",
             "screenshot_solution": """
             Please analyze the programming problem shown in the screenshot and provide a solution.
 

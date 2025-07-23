@@ -206,6 +206,7 @@ class ContentDisplay(QWidget):
         
     def display_solution(self, solution):
         """Display a new solution."""
+        return
         self.code_editor.setPlainText(solution.code)
         self.explanation_text.setMarkdown(solution.explanation)
         self.time_complexity.setText(solution.time_complexity)
@@ -251,6 +252,7 @@ class ContentDisplay(QWidget):
         
     def save_session_data(self):
         """Save current session data."""
+        return
         self.current_session = {
             "code": self.code_editor.toPlainText(),
             "explanation": self.explanation_text.toMarkdown(),
@@ -262,6 +264,7 @@ class ContentDisplay(QWidget):
         
     def restore_session_data(self):
         """Restore session data to UI components."""
+        return
         if self.current_session["code"]:
             self.code_editor.setPlainText(self.current_session["code"])
             self.explanation_text.setMarkdown(self.current_session["explanation"])

@@ -26,6 +26,8 @@ class PromptManager:
             ValueError: If the prompt type is unknown
         """
         if prompt_type not in self.templates:
+            print(f"Available prompt types: {list(self.templates.keys())}")
+            print(self.templates)
             raise ValueError(f"Unknown prompt type: {prompt_type}")
 
         return self.templates[prompt_type].format(**kwargs)
