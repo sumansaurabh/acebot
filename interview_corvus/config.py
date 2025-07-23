@@ -130,6 +130,7 @@ class PromptTemplates(BaseSettings):
 
     templates: Dict[str, str] = Field(
         default_factory=lambda: {
+            # not being used
             "code_solution": """
             Please analyze the following programming problem and provide a solution:
 
@@ -189,18 +190,22 @@ class PromptTemplates(BaseSettings):
             "screenshot_solution": """
             Please analyze the programming problem shown in the screenshot and provide a solution.
 
-            Provide a solution in {language} programming language.
+            Very important: **Provide a solution in {language} programming language. Do not choose any other language for the response**
+
 
             Your response should include:
             1. Complete code solution
             2. Concise approach explanation focusing only on the core solution strategy
-            3. Analysis of time complexity (Big O notation)
-            4. Analysis of space complexity (Big O notation)
-            5. Identification of edge cases and how they are handled
-            6. (Optional) Alternative approaches with brief descriptions
+            3. **Add very heavy documentation of the code**
+            4. Analysis of time complexity (Big O notation)
+            5. Analysis of space complexity (Big O notation)
+            6. Identification of edge cases and how they are handled
+            7. (Optional) Alternative approaches with brief descriptions
+
 
             For the explanation, focus only on the key algorithmic approach and logic, not problem statement details.
             """,
+            # not being used
             "ocr_text_solution": """
             Please analyze the following programming problem extracted from a screenshot and provide a solution:
 

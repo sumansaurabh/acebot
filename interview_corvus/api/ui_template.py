@@ -23,7 +23,7 @@ def get_main_ui_template() -> str:
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 6px;
-            margin-bottom: 12px;
+            margin-bottom: 28px;
             max-width: 280px;
             margin-left: auto;
             margin-right: auto;
@@ -90,7 +90,7 @@ def get_main_ui_template() -> str:
             justify-content: center;
             align-items: center;
             gap: 20px;
-            margin: 16px 0;
+            margin: 24px 0 20px 0;
             flex-wrap: wrap;
         }
         .language-selector {
@@ -265,10 +265,10 @@ def get_main_ui_template() -> str:
         .complexity-item { background: #fff; border: 1px solid #eee; border-radius: 4px; padding: 3px 8px; }
         @media (max-width: 600px) {
             .main-content { padding: 8px 16px 0 16px; }
-            .action-buttons { gap: 4px; max-width: 240px; }
+            .action-buttons { gap: 4px; max-width: 240px; margin-bottom: 24px; }
             .action-btn { font-size: 18px; min-height: 36px; padding: 6px; }
             .action-btn::after { font-size: 8px; bottom: -14px; }
-            .info-bar { gap: 12px; margin: 12px 0; }
+            .info-bar { gap: 12px; margin: 20px 0 16px 0; }
             .language-selector label { font-size: 11px; }
             .language-selector select { font-size: 11px; padding: 3px 6px; min-width: 80px; }
             .screenshot-count { font-size: 11px; padding: 5px 10px; }
@@ -539,7 +539,7 @@ def get_main_ui_template() -> str:
                 .then(() => {
                     isWindowOpen = !isWindowOpen;
                     const toggleBtn = document.getElementById('toggleBtn');
-                    toggleBtn.textContent = isWindowOpen ? '👁️' : '�';
+                    toggleBtn.textContent = isWindowOpen ? '👁️' : '🙈 ྀི';
                     updateStatus('Toggled');
                 })
                 .catch(() => updateStatus('Toggle failed'));
