@@ -68,17 +68,11 @@ class ActionBar(QWidget):
         self.upload_button.setToolTip("Upload Files and Save to Settings")
         layout.addWidget(self.upload_button)
         
-        # Recording buttons
+        # Recording button (toggles between Record and Stop)
         self.record_button = QPushButton("🎙️ Record")
         self.record_button.setFixedSize(90, 35)
         self.record_button.setToolTip("Start Recording")
         layout.addWidget(self.record_button)
-        
-        self.stop_record_button = QPushButton("⏹️ Stop")
-        self.stop_record_button.setFixedSize(90, 35)
-        self.stop_record_button.setToolTip("Stop Recording & Analyze")
-        self.stop_record_button.setEnabled(False)
-        layout.addWidget(self.stop_record_button)
         
         # Reset button
         self.reset_button = QPushButton("🔄 Reset")
@@ -131,8 +125,7 @@ class ActionBar(QWidget):
         self.optimize_button.clicked.connect(self.optimize_requested.emit)
         # self.copy_button.clicked.connect(self.copy_requested.emit)
         self.upload_button.clicked.connect(self.file_upload_requested.emit)
-        self.record_button.clicked.connect(self.start_recording)
-        self.stop_record_button.clicked.connect(self.stop_recording)
+        self.record_button.clicked.connect(self.toggle_recording)
         self.reset_button.clicked.connect(self.reset_requested.emit)
         self.settings_button.clicked.connect(self.settings_requested.emit)
         self.visibility_button.clicked.connect(self.visibility_toggle_requested.emit)
@@ -140,31 +133,30 @@ class ActionBar(QWidget):
         # if self.web_server_button:
         #     self.web_server_button.clicked.connect(self.web_server_toggle_requested.emit)
     
-    def start_recording(self):
-        """Handle start recording button click."""
-        self.is_recording = True
-        self.record_button.setEnabled(False)
-        self.stop_record_button.setEnabled(True)
-        self.record_button.setText("🔴 Recording")
-        self.recording_start_requested.emit()
-    
-    def stop_recording(self):
-        """Handle stop recording button click."""
-        self.is_recording = False
-        self.record_button.setEnabled(True)
-        self.stop_record_button.setEnabled(False)
-        self.record_button.setText("🎙️ Record")
-        self.recording_stop_requested.emit()
+    def toggle_recording(self):
+        """Handle recording button toggle between start and stop."""
+        if not self.is_recording:
+            # Start recording
+            self.is_recording = True
+            self.record_button.setText("⏹️ Stop")
+            self.record_button.setToolTip("Stop Recording & Analyze")
+            self.recording_start_requested.emit()
+        else:
+            # Stop recording
+            self.is_recording = False
+            self.record_button.setText("🎙️ Record")
+            self.record_button.setToolTip("Start Recording")
+            self.recording_stop_requested.emit()
     
     def set_recording_state(self, is_recording: bool):
         """Set the recording state from external source."""
         self.is_recording = is_recording
-        self.record_button.setEnabled(not is_recording)
-        self.stop_record_button.setEnabled(is_recording)
         if is_recording:
-            self.record_button.setText("🔴 Recording")
+            self.record_button.setText("⏹️ Stop")
+            self.record_button.setToolTip("Stop Recording & Analyze")
         else:
             self.record_button.setText("🎙️ Record")
+            self.record_button.setToolTip("Start Recording")
     
     def set_processing_state(self, processing: bool):
         """Enable/disable buttons based on processing state."""
