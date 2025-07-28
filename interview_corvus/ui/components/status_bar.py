@@ -62,7 +62,7 @@ class StatusBarManager(QObject):
         
         # Add IP addresses with port as clickable labels
         for i, ip in enumerate(network_ips):
-            ip_with_port = f"{ip}:{server_port}"
+            ip_with_port = f"https://{ip}:{server_port}"
             ip_button = QPushButton(ip_with_port)
             ip_button.setFlat(True)
             ip_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
