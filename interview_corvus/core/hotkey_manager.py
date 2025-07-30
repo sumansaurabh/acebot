@@ -66,7 +66,7 @@ class HotkeyManager(QObject):
         if disable_global:
             logger.info("Global hotkeys disabled via environment variable DISABLE_GLOBAL_HOTKEYS")
             
-        self._convert_hotkeys_to_pynput_format()
+        # self._convert_hotkeys_to_pynput_format()
 
     def __del__(self):
         """Destructor to ensure proper cleanup."""
@@ -188,7 +188,7 @@ class HotkeyManager(QObject):
         self.pynput_hotkeys = {}
 
         # Convert hotkeys to pynput format for global detection
-        self._convert_hotkeys_to_pynput_format()
+        # self._convert_hotkeys_to_pynput_format()
 
         # Start global listener
         if self.global_hotkeys_enabled:

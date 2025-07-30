@@ -20,8 +20,10 @@ class APIKeyManager:
             model_prefix in settings.llm.model
             for model_prefix in ["claude", "anthropic"]
         ):
+            print("Using ANTHROPIC_API_KEY environment variable")
             return "ANTHROPIC_API_KEY"
         else:
+            print("Using OPENAI_API_KEY environment variable")
             return "OPENAI_API_KEY"
 
     def get_api_key(self) -> str:

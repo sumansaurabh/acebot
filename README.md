@@ -1,5 +1,9 @@
 # Interview Corvus
 
+OPENAI_API_KEY="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" DISABLE_GLOBAL_HOTKEYS=1 poetry run python interview_corvus/main.py
+
+ANTHROPIC_API_KEY="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" DISABLE_GLOBAL_HOTKEYS=1 poetry run python interview_corvus/main.py
+
 > **Created by [Nikolay Pavlin](https://t.me/pavlin_share)** - Follow my Telegram channel for updates, tips, and more useful tools!
 > 
 > Support this project: [Boosty](https://boosty.to/nikolay-pavlin/donate) | TRC20: `TE685e5rWAebT2JSCpcLW9UEVCfGLGaqRN`
