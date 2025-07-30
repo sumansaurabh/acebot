@@ -12,6 +12,7 @@ class LLMSettings(BaseSettings):
     """Settings for the LLM service."""
 
     model: str = "claude-sonnet-4-20250514"
+    # model: str = "gpt-4.1"
     temperature: float = 1
     max_retries: int = 3
     timeout: int = 60

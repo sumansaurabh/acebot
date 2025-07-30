@@ -57,5 +57,5 @@ class CodeOptimization(BaseModel):
         ..., description="Space complexity of the optimized code"
     )
     explanation: str = Field(
-        ..., description="Concise explanation of the core solution approach and key logic in points. In the first point show all the keywords related to this question and subsequent points should elaborate on the approach again in points."
+        ..., description="Concise explanation of the core solution approach and key logic in points in markdown format. In the first point show all the keywords related to this question and subsequent points should elaborate on the approach again in points."
     )

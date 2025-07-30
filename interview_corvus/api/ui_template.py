@@ -208,7 +208,7 @@ def get_main_ui_template() -> str:
             background: #1e1e1e !important; 
             color: #d4d4d4 !important; 
             border-radius: 8px !important; 
-            font-size: 13px; 
+            font-size: 9px; 
             padding: 16px !important; 
             overflow-x: auto; 
             margin: 12px 0 !important;
