@@ -522,11 +522,14 @@ def get_main_ui_template() -> str:
             <div class="result-section" id="bruteSection" style="display: none;">
                 <div class="section-header brute-header"><i class="fas fa-lightbulb"></i> Initial Solution</div>
                 <div class="explanation" id="bruteExplanation"></div>
-                <pre class="code-block language-python"><code id="bruteCode"></code></pre>
                 <div class="complexity-info">
                     <div class="complexity-item"><i class="fas fa-clock"></i> Time: <span id="bruteTimeComplexity">-</span></div>
                     <div class="complexity-item"><i class="fas fa-memory"></i> Space: <span id="bruteSpaceComplexity">-</span></div>
                 </div>
+                <pre class="code-block language-python"><code id="bruteCode"></code></pre>
+                <div class="explanation" id="edgeCases"></div>
+                
+                
             </div>
             <div class="result-section" id="optimizedSection" style="display: none;">
                 <div class="section-header optimized-header"><i class="fas fa-rocket"></i> Optimized Solution</div>
@@ -962,6 +965,18 @@ def get_main_ui_template() -> str:
             // Render markdown explanation
             const explanationHtml = marked.parse(solution.explanation || 'No explanation provided.');
             document.getElementById('bruteExplanation').innerHTML = explanationHtml;
+
+            let edgeCasesHtml = '';
+            if (solution.edge_cases && solution.edge_cases.length > 0) {
+                edgeCasesHtml = '<h3>Edge Cases Handled:</h3><ul>';
+                solution.edge_cases.forEach(edgeCase => {
+                    edgeCasesHtml += `<li>${edgeCase}</li>`;
+                });
+                edgeCasesHtml += '</ul>';
+            } else {
+                edgeCasesHtml = '<p>No specific edge cases handled.</p>';
+            }
+            document.getElementById('edgeCases').innerHTML = edgeCasesHtml;
             
             // Only show code and complexity for actual code solutions, not recording analysis
             if (solution.code && solution.source !== 'recording') {

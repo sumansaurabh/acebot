@@ -11,7 +11,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class LLMSettings(BaseSettings):
     """Settings for the LLM service."""
 
-    model: str = "gpt-4o"
+    model: str = "claude-sonnet-4-20250514"
     temperature: float = 1
     max_retries: int = 3
     timeout: int = 60
@@ -188,23 +188,74 @@ class PromptTemplates(BaseSettings):
             Be precise in your Big O notation and explain your reasoning.
             """,
             "screenshot_solution": """
-            Please analyze the programming problem shown in the screenshot and provide a solution.
+You are an expert competitive programmer analyzing a coding problem from a screenshot. 
 
-            Very important: **Provide a solution in {language} programming language. Do not choose any other language for the response**
+**CRITICAL INSTRUCTIONS:**
+1. Read the ENTIRE problem statement carefully, word by word
+2. Identify ALL constraints, input/output formats, and edge cases
+3. Provide solution ONLY in {language} programming language
+4. Your response must be a valid JSON matching the CodeSolution schema
 
+**Before solving, carefully analyze:**
+- What is the exact input/output format?
+- What are the constraints (time limits, value ranges)?
+- Are there any special cases mentioned?
+- Is it 0-indexed or 1-indexed?
+- Does output need specific formatting (YES/NO vs yes/no, spaces, newlines)?
 
-            Your response should include:
-            1. Complete code solution in the provided {language} language.
-            2. Concise explanation of the core solution approach and key logic in points. In the first point show all the keywords related to this question and subsequent points should elaborate on the approach again in points
-            3. **Add very heavy documentation of the code**
-            4. Analysis of time complexity (Big O notation)
-            5. Analysis of space complexity (Big O notation)
-            6. Identification of edge cases and how they are handled
-            7. (Optional) Alternative approaches with brief descriptions
+**Response Format Requirements:**
 
+1. **code**: Complete, working solution with:
+   - Heavy inline documentation explaining each critical step
+   - Clear variable names
+   - Proper handling of ALL edge cases
+   - Optimal algorithm implementation
+   - Exact output format as required
 
-            For the explanation, focus only on the key algorithmic approach and logic, not problem statement details.
-            """,
+2. **language**: Must be "{language}"
+
+3. **explanation**: Provide in markdown format with bullet points:
+   - First bullet: "**Keywords**: [List ALL relevant algorithms, data structures, techniques like: Two Pointers, Binary Search, DP, Greedy, Graph, DFS/BFS, Sliding Window, etc.]"
+   - Subsequent bullets: Step-by-step approach explanation
+   - Use markdown formatting: **bold** for emphasis, `code` for inline code
+   - Each step should explain WHAT is done and WHY
+   - Example format:
+     ```
+     - **Keywords**: Dynamic Programming, Memoization, Recursion
+     - **Initialize**: Create a DP table of size `n+1` to store subproblem results
+     - **Base Case**: Set `dp[0] = 0` and `dp[1] = 1` for fibonacci sequence
+     - **Transition**: For each `i`, calculate `dp[i] = dp[i-1] + dp[i-2]`
+     - **Result**: Return `dp[n]` as the final answer
+     ```
+
+4. **time_complexity**: "O(?)" with brief justification in parentheses
+   Example: "O(n log n) (sorting dominates the time complexity)"
+
+5. **space_complexity**: "O(?)" with brief justification in parentheses
+   Example: "O(n) (for storing the input array)"
+
+6. **edge_cases**: List of strings, each describing:
+   - The edge case scenario
+   - How it's handled in the code
+   Examples: 
+   - "Empty input: Return 0 immediately"
+   - "Single element: Base case returns the element itself"
+   - "All elements identical: Special check prevents division by zero"
+
+7. **alternative_approaches**: List of dictionaries with keys:
+   - "approach": Name of the alternative method
+   - "description": Brief explanation
+   - "time_complexity": O notation
+   - "space_complexity": O notation
+   
+Remember: Many solutions fail due to misreading requirements. Double-check:
+- Exact output format required
+- Whether to print or return values
+- Integer overflow considerations
+- Modulo operations if required
+- Graph: directed vs undirected
+- String: case sensitivity
+""",
             "mcq_solution": """
             
 You are an expert MCQ solver. You will be shown an image containing **one or more multiple-choice questions**. For each question in the image:
