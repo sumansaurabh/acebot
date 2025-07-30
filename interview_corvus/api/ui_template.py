@@ -534,11 +534,14 @@ def get_main_ui_template() -> str:
             <div class="result-section" id="optimizedSection" style="display: none;">
                 <div class="section-header optimized-header"><i class="fas fa-rocket"></i> Optimized Solution</div>
                 <div class="explanation" id="optimizedExplanation"></div>
-                <pre class="code-block language-python"><code id="optimizedCode"></code></pre>
                 <div class="complexity-info">
                     <div class="complexity-item"><i class="fas fa-clock"></i> Time: <span id="optimizedTimeComplexity">-</span></div>
                     <div class="complexity-item"><i class="fas fa-memory"></i> Space: <span id="optimizedSpaceComplexity">-</span></div>
                 </div>
+                <pre class="code-block language-python"><code id="optimizedCode"></code></pre>
+                <div class="explanation" id="optimizedEdgeCases"></div>
+
+                
             </div>
         </div>
     </div>
@@ -1018,6 +1021,17 @@ def get_main_ui_template() -> str:
             
             document.getElementById('optimizedTimeComplexity').textContent = optimization.optimized_time_complexity || '-';
             document.getElementById('optimizedSpaceComplexity').textContent = optimization.optimized_space_complexity || '-';
+            let optimizedEdgeCasesHtml = '';
+            if (optimization.optimized_edge_cases && optimization.optimized_edge_cases.length > 0) {
+                optimizedEdgeCasesHtml = '<h3>Optimized Edge Cases Handled:</h3><ul>';
+                optimization.optimized_edge_cases.forEach(edgeCase => {
+                    optimizedEdgeCasesHtml += `<li>${edgeCase}</li>`;
+                });
+                optimizedEdgeCasesHtml += '</ul>';
+            } else {
+                optimizedEdgeCasesHtml = '<p>No specific edge cases handled in optimization.</p>';
+            }
+            document.getElementById('optimizedEdgeCases').innerHTML = optimizedEdgeCasesHtml;
         }
         function toggleWindow() {
             fetch(`${API_BASE}/window/toggle`, { method: 'POST' })

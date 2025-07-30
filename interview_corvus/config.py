@@ -162,12 +162,30 @@ class PromptTemplates(BaseSettings):
             4. Fixing any bugs or edge cases
 
             Your response should include:
-            1. The original code
-            2. The optimized code
-            3. A list of specific improvements made
-            4. Time complexity analysis (before and after)
-            5. Space complexity analysis (before and after)
-            6. Detailed explanation of your optimization process
+            1. **optimized_code**: Complete optimized solution with:
+   - All performance improvements applied
+   - Bug fixes implemented
+   - Heavy inline documentation for complex optimizations
+   - Clean, maintainable code structure
+   - Preserved original functionality
+
+2. **improvements**: list of improvements:
+   - Use bullet points for each improvement
+   - Categories: Performance, Bug Fix, Readability, Memory, Algorithm
+
+
+3. **time_complexity**: "O(?)" with explanation
+   Example: "O(n log n) (single pass with binary search for each element)"
+
+4. **space_complexity**: "O(?)" with explanation
+   Example: "O(n) (using only a HashMap for lookups)"
+
+5. **optimization_explanation**: Detailed markdown explanation:
+   - **Overview**: Brief summary of major optimizations
+   - **Algorithm Changes**: Explain any algorithmic improvements
+   - **Data Structure Changes**: Justify new data structure choices
+   - **Code Quality**: Describe readability/maintainability improvements
+   - **Trade-offs**: Mention any trade-offs made (if applicable)
 
             Focus on meaningful optimizations that significantly improve performance or code quality.
             """,

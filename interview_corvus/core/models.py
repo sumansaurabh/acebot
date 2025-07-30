@@ -44,24 +44,18 @@ class RecordingSolution(BaseModel):
 class CodeOptimization(BaseModel):
     """Structured model for code optimization responses."""
 
-    original_code: str = Field(..., description="Original code")
+    # original_code: str = Field(..., description="Original code")
     optimized_code: str = Field(..., description="Optimized code")
     language: str = Field(..., description="Programming language of the code")
     improvements: List[str] = Field(
         ..., description="List of improvements made to the code"
     )
-    original_time_complexity: str = Field(
-        ..., description="Time complexity of the original code"
-    )
     optimized_time_complexity: str = Field(
         ..., description="Time complexity of the optimized code"
-    )
-    original_space_complexity: str = Field(
-        ..., description="Space complexity of the original code"
     )
     optimized_space_complexity: str = Field(
         ..., description="Space complexity of the optimized code"
     )
     explanation: str = Field(
-        ..., description="Detailed explanation of the optimization process"
+        ..., description="Concise explanation of the core solution approach and key logic in points. In the first point show all the keywords related to this question and subsequent points should elaborate on the approach again in points."
     )

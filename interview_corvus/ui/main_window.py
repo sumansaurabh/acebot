@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import (
 
 from interview_corvus.config import settings
 from interview_corvus.core.hotkey_manager import HotkeyManager
+from interview_corvus.core.models import CodeOptimization
 from ..core.llm_service import LLMService
 from ..core.recording_service import RecordingService
 from interview_corvus.invisibility.invisibility_manager import InvisibilityManager
@@ -744,7 +745,7 @@ class MainWindow(QMainWindow):
         logger.info("Solution generated successfully")
 
     @pyqtSlot(object)
-    def on_optimization_ready(self, optimization):
+    def on_optimization_ready(self, optimization: CodeOptimization):
         """Handle completed optimization from LLM."""
         self.processing_screenshot = False
         self.action_bar.set_processing_state(False)

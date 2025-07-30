@@ -15,6 +15,8 @@ from PyQt6.QtGui import (
 )
 from loguru import logger
 
+from interview_corvus.core.models import CodeOptimization
+
 
 class PythonSyntaxHighlighter(QSyntaxHighlighter):
     """Syntax highlighter for Python code."""
@@ -251,27 +253,27 @@ class ContentDisplay(QWidget):
         self._is_optimized = False
         self.save_session_data()
         
-    def display_optimization(self, optimization):
+    def display_optimization(self, optimization: CodeOptimization):
         """Display an optimization result."""
         self.code_editor.setPlainText(optimization.optimized_code)
         
         # Create detailed explanation including improvements
-        detailed_explanation = "## Optimization Details\\n\\n"
-        detailed_explanation += optimization.explanation + "\\n\\n"
-        detailed_explanation += "## Improvements\\n\\n"
-        for improvement in optimization.improvements:
-            detailed_explanation += f"- {improvement}\\n"
-        detailed_explanation += "\\n\\n## Time Complexity\\n\\n"
-        detailed_explanation += f"**Original:** {optimization.original_time_complexity}\\n\\n"
-        detailed_explanation += f"**Optimized:** {optimization.optimized_time_complexity}\\n\\n"
-        detailed_explanation += "## Space Complexity\\n\\n"
-        detailed_explanation += f"**Original:** {optimization.original_space_complexity}\\n\\n"
-        detailed_explanation += f"**Optimized:** {optimization.optimized_space_complexity}\\n"
+        # detailed_explanation = "## Optimization Details\\n\\n"
+        # detailed_explanation += optimization.explanation + "\\n\\n"
+        # detailed_explanation += "## Improvements\\n\\n"
+        # for improvement in optimization.improvements:
+        #     detailed_explanation += f"- {improvement}\\n"
+        # detailed_explanation += "\\n\\n## Time Complexity\\n\\n"
+        # detailed_explanation += f"**Original:** {optimization.original_time_complexity}\\n\\n"
+        # detailed_explanation += f"**Optimized:** {optimization.optimized_time_complexity}\\n\\n"
+        # detailed_explanation += "## Space Complexity\\n\\n"
+        # detailed_explanation += f"**Original:** {optimization.original_space_complexity}\\n\\n"
+        # detailed_explanation += f"**Optimized:** {optimization.optimized_space_complexity}\\n"
         
-        self.explanation_text.setMarkdown(detailed_explanation)
-        self.time_complexity.setText(optimization.optimized_time_complexity)
-        self.space_complexity.setText(optimization.optimized_space_complexity)
-        self._is_optimized = True
+        # self.explanation_text.setMarkdown(detailed_explanation)
+        # self.time_complexity.setText(optimization.optimized_time_complexity)
+        # self.space_complexity.setText(optimization.optimized_space_complexity)
+        # self._is_optimized = True
         self.save_session_data()
         
     def get_current_code(self):

@@ -301,11 +301,9 @@ class WebServerAPI(QObject):
                     "optimized_code": getattr(optimization, 'optimized_code', ''),
                     "language": getattr(optimization, 'language', request.language),
                     "improvements": getattr(optimization, 'improvements', []),
-                    "original_time_complexity": getattr(optimization, 'original_time_complexity', 'N/A'),
                     "optimized_time_complexity": getattr(optimization, 'optimized_time_complexity', 'N/A'),
-                    "original_space_complexity": getattr(optimization, 'original_space_complexity', 'N/A'),
                     "optimized_space_complexity": getattr(optimization, 'optimized_space_complexity', 'N/A'),
-                    "explanation": getattr(optimization, 'explanation', 'No explanation provided.')
+                    "explanation": getattr(optimization, 'explanation', [])
                 }
             
             print("✅ Web API: Code optimized successfully")
