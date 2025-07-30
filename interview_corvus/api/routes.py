@@ -4,11 +4,13 @@ Defines all HTTP endpoints and their handlers.
 """
 
 import base64
+import os
 from typing import List
 
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 from .models import (
     GenerateSolutionRequest, OptimizeSolutionRequest, SolutionResponse,
@@ -22,6 +24,11 @@ from .api_handler import WebServerAPI
 
 def create_routes(app: FastAPI, api_instance: WebServerAPI) -> None:
     """Create and configure all routes for the FastAPI application."""
+    
+    # Configure static file serving
+    static_dir = os.path.join(os.path.dirname(__file__), "static")
+    if os.path.exists(static_dir):
+        app.mount("/static", StaticFiles(directory=static_dir), name="static")
     
     # Add CORS middleware
     app.add_middleware(
