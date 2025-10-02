@@ -1,177 +1,199 @@
-# Interview Corvus
+# Interview Copilot
 
-> **Created by [Nikolay Pavlin](https://t.me/pavlin_share)** - Follow my Telegram channel for updates, tips, and more useful tools!
-> 
-> Support this project: [Boosty](https://boosty.to/nikolay-pavlin/donate) | TRC20: `TE685e5rWAebT2JSCpcLW9UEVCfGLGaqRN`
+An AI-powered interview assistant that helps generate concise, natural answer suggestions during live interviews. The copilot listens to interviewer questions and provides structured, personalized responses based on your background and experience.
 
-![example](img/example.png)
+## Features
 
-Interview Corvus is an AI-powered invisible assistant designed specifically for technical coding interviews. Named after the corvid family of birds (crows, ravens) known for their exceptional intelligence, this application offers real-time coding solutions while remaining invisible during screen sharing sessions.
+- **Question Detection**: Automatically determines if spoken input is a question
+- **Question Classification**: Identifies behavioral, technical, and general question types
+- **STAR Method**: Formats behavioral answers using Situation, Task, Action, Result structure
+- **Personal Data Integration**: Uses your resume, projects, and STAR stories for relevant responses
+- **Natural Language**: Generates answers that sound conversational and authentic
+- **Concise Responses**: Limits answers to 3-5 sentences for optimal interview flow
 
-This open-source project was inspired by [interview-coder](https://github.com/ibttf/interview-coder) and extends the functionality with advanced features like screenshot analysis, multi-language support, and customizable AI prompts.
+## Quick Start
 
-## Key Features
+### Basic Usage
 
-- **Invisible during screen sharing** - Hide the app instantly with hotkeys
-- **AI-powered coding solutions** - Get complete solutions with detailed explanations
-- **Time & space complexity analysis** - Understand the efficiency of your algorithms
-- **Screenshot problem solving** - Capture coding problems directly from your screen
-- **Multi-language support** - Python, Java, JavaScript, C++, C#, Go, Rust, Ruby
-- **Edge case handling** - Identify and address potential edge cases in your solutions
-- **Optimization suggestions** - Improve your initial solutions with one click
-- **Global hotkey controls** - Use the app even when it's not in focus
+```python
+from interview_copilot import InterviewCopilot, PersonalData
 
-## Installation
+# Initialize with your personal data
+copilot = InterviewCopilot(personal_data)
 
-### Prerequisites
-
-- OpenAI API key (GPT-4 or GPT-4o recommended) or Anthropic API key
-- Python 3.11+ (if running from source)
-
-### Download
-
-You can get the latest version by:
-
-1. Downloading the release for your platform from the [Releases](https://github.com/afaneor/interview-corvus/releases) page
-2. Or building/using from source using the instructions below
-
-### Installation by Platform
-
-#### macOS
-
-1. Download the latest `.dmg` file from the [Releases](https://github.com/afaneor/interview-corvus/releases) page
-2. Open the `.dmg` file and drag the `Interview Corvus.app` to your Applications folder
-3. When running for the first time, you may need to right-click on the app and select "Open" to bypass Gatekeeper
-4. Grant the following permissions when prompted:
-   - Screen Recording (for taking screenshots)
-   - Accessibility (for global hotkeys)
-   - Keychain Access (for securely storing your API key)
-
-#### Windows
-
-1. Download the latest `.zip` file for Windows from the [Releases](https://github.com/afaneor/interview-corvus/releases) page
-2. Extract the contents of the `.zip` file to a location of your choice
-3. Run `Interview Corvus.exe`
-4. Note that you may need to run as administrator to enable some features
-
-### Building from Source
-
-```bash
-# Clone the repository
-git clone https://github.com/your-username/interview-corvus.git
-cd interview-corvus
-
-# Install dependencies
-poetry install
-
-# Run the application
-poetry run python interview_corvus/main.py
-
-# Build for your platform
-poetry run python build.py
+# Process interviewer input
+response = copilot.process_input("Can you tell me about a time you resolved a conflict?")
+print(response)
 ```
 
-## Customization Options
-**(default settings are store in interview_corvus/config.py)**
+### Example Output
 
-### LLM Settings
+**Input**: `"Can you tell me about a time you resolved a conflict on your team?"`
 
-- **API Provider** - Choose between OpenAI and Anthropic
-- **Model Selection** - Select from o3-mini, GPT-4o or Claude models
-- **Temperature** - Adjust creativity vs. determinism of responses (0.0-2.0)
-- **API Key Management** - Securely store your API keys
+**Output**: 
+*"At Santo Remedio, we faced a conflict between engineering and operations during our Shopify-NetSuite rollout. I needed to resolve the tension and get the project back on track. I set up cross-functional sprint reviews where each team explained blockers openly, then mediated by breaking problems into smaller integration tasks. This reduced tension, gave everyone ownership, and led to a smoother launch with order sync errors dropping by 90% within two weeks."*
 
-### UI Customization
+## Personal Data Structure
 
-- **Theme** - Choose between Light and Dark themes
-- **Window Opacity** - Adjust transparency for better integration with your workspace
-- **Always On Top** - Keep the window visible on top of other applications
-- **Default Language** - Set your preferred programming language
+Create a `PersonalData` object with your background information:
 
-### Prompt Templates
+```python
+personal_data = PersonalData(
+    resume_highlights=[
+        "Led Shopify-NetSuite integration at Santo Remedio",
+        "Reduced order sync errors by 90%",
+        "Managed cross-functional teams"
+    ],
+    star_stories=[
+        {
+            "situation": "Context of the challenge...",
+            "task": "What needed to be accomplished...",
+            "action": "Steps I took to address it...",
+            "result": "Measurable outcomes achieved...",
+            "keywords": ["conflict", "team", "leadership"]
+        }
+    ],
+    technical_projects=[
+        {
+            "name": "E-commerce Integration",
+            "technologies": ["Python", "APIs", "Shopify"],
+            "description": "Built automated order sync system"
+        }
+    ],
+    skills=["Python", "System Integration", "Team Leadership"],
+    experience=[
+        {
+            "company": "Santo Remedio",
+            "role": "Technical Lead",
+            "achievements": ["90% error reduction", "Cross-team collaboration"]
+        }
+    ]
+)
+```
 
-All prompt templates can be customized to your preference:
-- **Code Solution** - Customize how solutions are generated
-- **Code Optimization** - Modify optimization strategies
-- **Complexity Analysis** - Adjust how time and space complexity are analyzed
-- **Screenshot Solution** - Configure OCR and visual analysis parameters
+## Question Types Handled
 
-## Usage Guide
+### Behavioral Questions
+- "Tell me about a time..."
+- "Describe a situation when..."
+- "Give me an example of..."
+- "How did you handle...?"
 
-1. Launch Interview Corvus
-2. Enter your API key in the settings
-3. Take a screenshot of a coding problem using the appropriate hotkey for your platform
-4. Generate a solution with another hotkey
-5. Use the "Hide" button or hotkey to make the app invisible when needed
+Uses STAR method formatting with your personal stories.
 
-## Customizable Hotkeys
+### Technical Questions
+- "What is...?"
+- "How does X work?"
+- "What's the difference between...?"
 
-Interview Corvus allows you to customize all keyboard shortcuts according to your preference:
+Provides structured explanations with implementation details.
 
-1. Open the application settings (click the "Settings" button or use the menu: File → Settings)
-2. Navigate to the "Hotkeys" tab
-3. Click on any hotkey field and press your desired key combination
-4. Press "OK" to save your custom hotkeys
+### General Questions
+- "Tell me about yourself"
+- "Why do you want this role?"
 
-Default hotkeys by platform:
+Uses your background highlights and experience.
 
-| Function | macOS | Windows |
-|----------|-------|---------|
-| Take Screenshot | Cmd+Ctrl+1 | Ctrl+Alt+1 |
-| Generate Solution | Cmd+Ctrl+2 | Ctrl+Alt+2 |
-| Toggle Visibility | Cmd+Ctrl+B | Ctrl+Alt+B |
-| Move Window Up | Cmd+Up | Win+Up |
-| Move Window Down | Cmd+Down | Win+Down |
-| Move Window Left | Cmd+Left | Win+Left |
-| Move Window Right | Cmd+Right | Win+Right |
-| Optimize Solution | Cmd+Ctrl+O | Ctrl+Alt+O |
-| Reset History | Cmd+Ctrl+R | Ctrl+Alt+R |
-| Panic (Instantly Hide) | Cmd+Q | Alt+Q |
+## API Reference
 
-> **Note for Windows users:** The "Win" key refers to the Windows key (with the Windows logo) on your keyboard. On Linux systems, this is often called the "Super" key.
+### InterviewCopilot
 
-You can reset all hotkeys to their platform-specific defaults at any time using the "Reset All Hotkeys to Defaults" button in the settings.
+Main class for processing interview questions and generating responses.
 
-## Required Permissions
+#### Methods
 
-### macOS
-When using Interview Corvus on macOS, you'll need to grant the following permissions:
+- `__init__(personal_data: PersonalData = None)`: Initialize with optional personal data
+- `process_input(transcribed_text: str) -> str`: Main method to process input and generate response
 
-- **Screen Recording** - Required for taking screenshots of coding problems
-- **Accessibility** - Required for global hotkeys when the app is not in focus
-- **Keychain Access** - Used by the keyring library to securely store your API key
+### PersonalData
 
-To grant these permissions, follow the prompts or go to System Preferences → Security & Privacy → Privacy tab.
+Data structure for storing personal interview information.
 
-### Windows
-On Windows, you may need to run as administrator to enable some features.
+#### Fields
 
-## Data Storage
+- `resume_highlights: List[str]`: Key achievements and experiences
+- `star_stories: List[Dict[str, str]]`: Behavioral interview stories
+- `technical_projects: List[Dict[str, str]]`: Technical project details
+- `skills: List[str]`: Technical and soft skills
+- `experience: List[Dict[str, str]]`: Work experience details
 
-By default, Interview Corvus stores its data in the following locations:
+## Running Tests
 
-- macOS: `~/.interview_corvus/`
-- Windows: `%USERPROFILE%\.interview_corvus\`
-- Linux: `~/.interview_corvus/`
+```bash
+python3 interview_copilot.py
+```
 
-This includes screenshots, user settings, and other application data.
+This will run the built-in test suite with sample questions and display the generated responses.
 
-## Best Practices for Technical Interviews
+## Integration Examples
 
-Interview Corvus works best when you:
+### Live Transcription Integration
 
-1. Take a clear screenshot of the entire problem including constraints
-2. Select the appropriate programming language for your interview
-3. Use the "Optimize Solution" feature after generating the initial solution
-4. Study the provided time and space complexity analysis
-5. Hide the app before sharing your screen for the actual interview
+```python
+# Example with speech-to-text service
+import speech_recognition as sr
+from interview_copilot import InterviewCopilot
+
+copilot = InterviewCopilot(your_personal_data)
+recognizer = sr.Recognizer()
+
+with sr.Microphone() as source:
+    audio = recognizer.listen(source)
+    transcribed = recognizer.recognize_google(audio)
+    suggestion = copilot.process_input(transcribed)
+    print(f"Suggestion: {suggestion}")
+```
+
+### CLI Tool
+
+```python
+# Simple command-line interface
+copilot = InterviewCopilot(personal_data)
+
+while True:
+    user_input = input("Interviewer: ")
+    if user_input.lower() in ['exit', 'quit']:
+        break
+    
+    suggestion = copilot.process_input(user_input)
+    print(f"💡 {suggestion}")
+```
+
+## Customization
+
+### Adding Custom Question Patterns
+
+```python
+copilot = InterviewCopilot(personal_data)
+
+# Add custom behavioral patterns
+copilot.question_patterns[QuestionType.BEHAVIORAL].extend([
+    r"walk me through",
+    r"describe your approach to"
+])
+```
+
+### Response Length Control
+
+Responses are automatically limited to 3-5 sentences, but you can customize this by modifying the `_format_star_answer` method.
+
+## Best Practices
+
+1. **Prepare Quality STAR Stories**: Include specific, measurable results
+2. **Use Relevant Keywords**: Tag stories with keywords for better matching
+3. **Practice Natural Delivery**: Use suggestions as starting points, not scripts
+4. **Keep It Conversational**: Responses are designed to sound natural when spoken
+5. **Test with Real Questions**: Use actual interview questions to validate responses
 
 ## Contributing
 
-Contributions are welcome! Feel free to:
+Feel free to enhance the copilot with:
+- Better question classification
+- More sophisticated story matching
+- Industry-specific question patterns
+- Response confidence scoring
+- Integration with popular transcription services
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit your changes: `git commit -m 'Add some amazing feature'`
-4. Push to the branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
+## License
+
+MIT License - feel free to use and modify for your interview preparation needs.
