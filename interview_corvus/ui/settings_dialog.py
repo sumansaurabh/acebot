@@ -83,7 +83,7 @@ class SettingsDialog(QDialog):
 
         # API Provider
         self.provider_combo = QComboBox()
-        self.provider_combo.addItems(["OpenAI", "Anthropic"])
+        self.provider_combo.addItems(["OpenAI", "Anthropic", "Gemini"])
         self.provider_combo.currentTextChanged.connect(self.on_provider_changed)
         llm_form_layout.addRow("API Provider:", self.provider_combo)
 
@@ -274,8 +274,17 @@ class SettingsDialog(QDialog):
         if index >= 0:
             self.language_combo.setCurrentIndex(index)
 
-        # Default to OpenAI
-        self.provider_combo.setCurrentText("OpenAI")
+        # Detect current provider based on model name
+        current_model = settings.llm.model
+        if any(prefix in current_model for prefix in ["claude", "anthropic"]):
+            self.provider_combo.setCurrentText("Anthropic")
+        elif any(prefix in current_model for prefix in ["gemini", "models/gemini"]):
+            self.provider_combo.setCurrentText("Gemini")
+        else:
+            self.provider_combo.setCurrentText("OpenAI")
+
+        # Trigger provider change to update models list
+        self.on_provider_changed(self.provider_combo.currentText())
 
         # LLM settings
         self.model_combo.setCurrentText(settings.llm.model)
@@ -368,15 +377,28 @@ class SettingsDialog(QDialog):
             self.api_key_input.setPlaceholderText("Enter OpenAI API key")
         elif provider == "Anthropic":
             self.model_combo.addItems(
-                ["claude-3-7-sonnet-latest", "claude-3-5-haiku-latest"]
+                ["claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022"]
             )
             self.api_key_input.setPlaceholderText("Enter Anthropic API key")
+        elif provider == "Gemini":
+            self.model_combo.addItems(
+                [
+                    "models/gemini-1.5-pro",
+                    "models/gemini-1.5-flash",
+                    "gemini-1.5-pro",
+                    "gemini-1.5-flash",
+                    "gemini-pro"
+                ]
+            )
+            self.api_key_input.setPlaceholderText("Enter Google API key")
 
-            # Set default model based on provider
+        # Set default model based on provider
         if provider == "OpenAI":
-            self.model_combo.setCurrentText("gpt-4o")  # Set default to o3-mini
-        else:
-            self.model_combo.setCurrentText("claude-3-7-sonnet-latest")
+            self.model_combo.setCurrentText("gpt-4o")
+        elif provider == "Anthropic":
+            self.model_combo.setCurrentText("claude-3-5-sonnet-20241022")
+        elif provider == "Gemini":
+            self.model_combo.setCurrentText("models/gemini-1.5-pro")
 
     def toggle_api_key_visibility(self, state):
         """
@@ -415,7 +437,7 @@ class SettingsDialog(QDialog):
                     model=self.model_combo.currentText(),
                     messages=[{"role": "user", "content": "Hello, are you working?"}],
                 )
-            else:  # Anthropic
+            elif self.provider_combo.currentText() == "Anthropic":
                 from anthropic import Anthropic
 
                 client = Anthropic(api_key=api_key)
@@ -423,6 +445,12 @@ class SettingsDialog(QDialog):
                     model=self.model_combo.currentText(),
                     messages=[{"role": "user", "content": "Hello, are you working?"}],
                 )
+            elif self.provider_combo.currentText() == "Gemini":
+                import google.generativeai as genai
+
+                genai.configure(api_key=api_key)
+                model = genai.GenerativeModel(self.model_combo.currentText())
+                model.generate_content("Hello, are you working?")
 
             if old_api_key:
                 self.api_key_manager.set_api_key(old_api_key)
