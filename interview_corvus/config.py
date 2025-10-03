@@ -21,6 +21,28 @@ class LLMSettings(BaseSettings):
     # API key should be stored securely, not in config
     api_key_env_var: str = "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"
 
+    # Available models for different providers
+    available_models: List[str] = Field(
+        default_factory=lambda: [
+            # OpenAI models
+            "gpt-4o",
+            "gpt-4o-mini",
+            "gpt-4-turbo",
+            "gpt-3.5-turbo",
+            # Anthropic models
+            "claude-3-5-sonnet-20241022",
+            "claude-3-5-haiku-20241022",
+            "claude-3-opus-20240229",
+            # Gemini models
+            "models/gemini-1.5-pro",
+            "models/gemini-1.5-flash",
+            "models/gemini-pro",
+            "gemini-1.5-pro",
+            "gemini-1.5-flash",
+            "gemini-pro"
+        ]
+    )
+
     model_config = SettingsConfigDict(env_prefix="INTERVIEW_CORVUS_LLM_")
 
 

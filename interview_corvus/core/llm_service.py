@@ -5,6 +5,7 @@ from llama_index.core.base.llms.types import ChatMessage, ImageBlock, MessageRol
 from llama_index.core.chat_engine import SimpleChatEngine
 from llama_index.llms.anthropic import Anthropic
 from llama_index.llms.openai import OpenAI
+from llama_index.llms.gemini import Gemini
 from loguru import logger
 from pydantic import BaseModel
 from PyQt6.QtCore import QObject, pyqtSignal
@@ -36,10 +37,14 @@ class LLMService(QObject):
         else:
             logger.info(f"✅ API key found (length: {len(api_key)})")
 
-        # Determine if we're using OpenAI or Anthropic based on model name
+        # Determine which LLM provider to use based on model name
         is_anthropic = any(
             model_prefix in settings.llm.model
             for model_prefix in ["claude", "anthropic"]
+        )
+        is_gemini = any(
+            model_prefix in settings.llm.model
+            for model_prefix in ["gemini", "models/gemini"]
         )
 
         if is_anthropic:
@@ -50,6 +55,13 @@ class LLMService(QObject):
                 max_tokens=12000,  # Set an appropriate max tokens value
             )
             logger.info(f"Initialized Anthropic LLM with model: {settings.llm.model}")
+        elif is_gemini:
+            self.llm = Gemini(
+                model=settings.llm.model,
+                temperature=settings.llm.temperature,
+                api_key=api_key,
+            )
+            logger.info(f"Initialized Gemini LLM with model: {settings.llm.model}")
         else:
             # Initialize OpenAI client
             self.llm = OpenAI(
