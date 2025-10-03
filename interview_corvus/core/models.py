@@ -57,3 +57,6 @@ class CodeOptimization(BaseModel):
     explanation: str = Field(
         ..., description="Detailed explanation of the optimization process"
     )
+    # Optional fields for streaming support
+    is_complete: bool = Field(default=True, description="Whether this response is complete or partial")
+    progress: float = Field(default=1.0, description="Progress indicator (0.0 to 1.0)", ge=0.0, le=1.0)
