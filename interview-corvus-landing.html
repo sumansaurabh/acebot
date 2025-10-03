@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Interview Corvus - The AI-powered invisible assistant for technical coding interviews. Get real-time solutions, complexity analysis, and stay completely hidden during screen sharing.">
+    <meta name="keywords" content="coding interview, AI assistant, programming interview, technical interview, invisible assistant, coding solutions">
+    <meta name="author" content="Nikolay Pavlin">
+    
+    <!-- Open Graph Tags -->
+    <meta property="og:title" content="Interview Corvus - AI-Powered Invisible Interview Assistant">
+    <meta property="og:description" content="Ace your coding interviews with our invisible AI assistant. Real-time solutions, complexity analysis, and complete invisibility during screen sharing.">
+    <meta property="og:image" content="https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1200&h=630&fit=crop">
+    <meta property="og:url" content="https://interviewcorvus.com">
+    <meta property="og:type" content="website">
+    
+    <!-- Twitter Card Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Interview Corvus - AI-Powered Interview Assistant">
+    <meta name="twitter:description" content="The invisible AI assistant that helps developers ace coding interviews.">
+    <meta name="twitter:image" content="https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1200&h=630&fit=crop">
+    
+    <title>Interview Corvus - AI-Powered Invisible Interview Assistant</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- React & Babel -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Custom Styles -->
+    <style>
+        html { scroll-behavior: smooth; }
+        
+        .fade-in-up {
+            animation: fadeInUp 1s ease-out;
+        }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .bg-grid-pattern {
+            background-image: 
+                linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-track { background: #374151; }
+        .dark ::-webkit-scrollbar-thumb { background: #6b7280; }
+    </style>
+
+    <!-- Analytics -->
+    <script>
+        // Analytics placeholder - replace with actual tracking code
+        window.gtag = window.gtag || function(){(window.dataLayer = window.dataLayer || []).push(arguments);};
+    </script>
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Interview Corvus",
+        "description": "AI-powered invisible assistant for technical coding interviews",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": ["macOS", "Windows", "Linux"],
+        "offers": {
+            "@type": "Offer",
+            "price": "29",
+            "priceCurrency": "USD"
+        },
+        "author": {
+            "@type": "Person",
+            "name": "Nikolay Pavlin"
+        }
+    }
+    </script>
+</head>
+<body class="antialiased">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Simple icon component
+        const Icon = ({ name, className = "w-6 h-6" }) => {
+            const icons = {
+                chevronDown: "M19.5 8.25l-7.5 7.5-7.5-7.5",
+                chevronUp: "m4.5 15.75 7.5-7.5 7.5 7.5",
+                eye: "M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z",
+                code: "M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5",
+                clock: "M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
+                camera: "M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316ZM16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z",
+                check: "m4.5 12.75 6 6 9-13.5",
+                star: "M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z",
+                play: "M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z",
+                xMark: "M6 18 18 6M6 6l12 12",
+                sun: "M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z",
+                moon: "M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z",
+                bars3: "M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5",
+                arrowUp: "M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18"
+            };
+            
+            return (
+                <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d={icons[name]} />
+                </svg>
+            );
+        };
+
+        const InterviewCorvusLandingPage = () => {
+            const [isDarkMode, setIsDarkMode] = useState(false);
+            const [isMenuOpen, setIsMenuOpen] = useState(false);
+            const [isYearlyPricing, setIsYearlyPricing] = useState(false);
+            const [activeTestimonial, setActiveTestimonial] = useState(0);
+            const [expandedFAQ, setExpandedFAQ] = useState(null);
+            const [showVideoModal, setShowVideoModal] = useState(false);
+            const [email, setEmail] = useState('');
+            const [showBackToTop, setShowBackToTop] = useState(false);
+            const [headerShrunk, setHeaderShrunk] = useState(false);
+
+            // Theme toggle
+            const toggleTheme = () => {
+                setIsDarkMode(!isDarkMode);
+                document.documentElement.classList.toggle('dark');
+            };
+
+            // Scroll effects
+            useEffect(() => {
+                const handleScroll = () => {
+                    setShowBackToTop(window.scrollY > 300);
+                    setHeaderShrunk(window.scrollY > 100);
+                };
+
+                window.addEventListener('scroll', handleScroll);
+                return () => window.removeEventListener('scroll', handleScroll);
+            }, []);
+
+            // Analytics tracking
+            const trackEvent = (eventName, properties = {}) => {
+                console.log('Analytics Event:', eventName, properties);
+                if (typeof gtag !== 'undefined') {
+                    gtag('event', eventName, properties);
+                }
+            };
+
+            const handleCTAClick = (location) => {
+                trackEvent('CTA_Clicked', { location });
+                window.open('https://github.com/afaneor/interview-corvus/releases', '_blank');
+            };
+
+            // Data
+            const testimonials = [
+                {
+                    name: "Alex Chen",
+                    role: "Senior Software Engineer at Google",
+                    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=64&h=64&fit=crop&crop=face",
+                    content: "Interview Corvus saved my career! The AI solutions were spot-on and the invisible mode worked flawlessly.",
+                    rating: 5
+                },
+                {
+                    name: "Sarah Johnson", 
+                    role: "Full Stack Developer at Meta",
+                    avatar: "https://images.unsplash.com/photo-1494790108755-2616b2db08b2?w=64&h=64&fit=crop&crop=face",
+                    content: "The complexity analysis feature helped me understand algorithms better. Got offers from 3 FAANG companies!",
+                    rating: 5
+                }
+            ];
+
+            const faqs = [
+                {
+                    question: "Is Interview Corvus detectable during screen sharing?",
+                    answer: "No! Interview Corvus is specifically designed to remain invisible during screen sharing sessions. With our instant hide feature and global hotkeys, you can make the application disappear completely when needed."
+                },
+                {
+                    question: "Which programming languages are supported?",
+                    answer: "We support 8+ programming languages including Python, Java, JavaScript, C++, C#, Go, Rust, and Ruby. More languages are being added regularly based on user feedback."
+                },
+                {
+                    question: "Do I need an OpenAI API key?",
+                    answer: "Yes, you'll need either an OpenAI API key (GPT-4 or GPT-4o recommended) or an Anthropic API key. This ensures you get the most accurate and up-to-date coding solutions."
+                }
+            ];
+
+            const pricingTiers = [
+                {
+                    name: "Starter",
+                    price: { monthly: 29, yearly: 290 },
+                    description: "Perfect for occasional interviews",
+                    features: ["Basic AI coding solutions", "5 programming languages", "Screenshot analysis", "Email support"],
+                    popular: false
+                },
+                {
+                    name: "Professional", 
+                    price: { monthly: 59, yearly: 590 },
+                    description: "For serious interview preparation",
+                    features: ["Advanced AI solutions", "All 8+ programming languages", "Priority support", "Custom hotkeys"],
+                    popular: true
+                },
+                {
+                    name: "Enterprise",
+                    price: { monthly: 99, yearly: 990 },
+                    description: "For teams and organizations", 
+                    features: ["Everything in Professional", "Team management", "24/7 support", "Custom integrations"],
+                    popular: false
+                }
+            ];
+
+            // Auto-rotate testimonials
+            useEffect(() => {
+                const interval = setInterval(() => {
+                    setActiveTestimonial((prev) => (prev + 1) % testimonials.length);
+                }, 5000);
+                return () => clearInterval(interval);
+            }, []);
+
+            const ScrollToTop = () => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
+            return (
+                <div className={`min-h-screen ${isDarkMode ? 'dark' : ''}`}>
+                    <div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-300">
+                        
+                        {/* Navigation */}
+                        <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${
+                            headerShrunk 
+                                ? 'bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-lg py-2' 
+                                : 'bg-transparent py-4'
+                        }`}>
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                <div className="flex justify-between items-center">
+                                    <div className="flex items-center space-x-2">
+                                        <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                                            <span className="text-white font-bold text-sm">IC</span>
+                                        </div>
+                                        <span className="font-bold text-xl">Interview Corvus</span>
+                                    </div>
+
+                                    {/* Desktop Navigation */}
+                                    <div className="hidden md:flex items-center space-x-8">
+                                        <a href="#features" className="hover:text-blue-500 transition-colors">Features</a>
+                                        <a href="#pricing" className="hover:text-blue-500 transition-colors">Pricing</a>
+                                        <a href="#testimonials" className="hover:text-blue-500 transition-colors">Reviews</a>
+                                        <a href="#faq" className="hover:text-blue-500 transition-colors">FAQ</a>
+                                        
+                                        <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
+                                            <Icon name={isDarkMode ? 'sun' : 'moon'} className="w-5 h-5" />
+                                        </button>
+
+                                        <button 
+                                            onClick={() => handleCTAClick('header')}
+                                            className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-2 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-300 font-medium"
+                                        >
+                                            Download Now
+                                        </button>
+                                    </div>
+
+                                    {/* Mobile Menu Button */}
+                                    <div className="md:hidden flex items-center space-x-4">
+                                        <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
+                                            <Icon name={isDarkMode ? 'sun' : 'moon'} className="w-5 h-5" />
+                                        </button>
+                                        <button onClick={() => setIsMenuOpen(!isMenuOpen)}>
+                                            <Icon name="bars3" className="w-6 h-6" />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Mobile Menu */}
+                                {isMenuOpen && (
+                                    <div className="md:hidden mt-4 pb-4 border-t border-gray-200 dark:border-gray-700">
+                                        <div className="flex flex-col space-y-4 pt-4">
+                                            <a href="#features" className="hover:text-blue-500 transition-colors">Features</a>
+                                            <a href="#pricing" className="hover:text-blue-500 transition-colors">Pricing</a>
+                                            <a href="#testimonials" className="hover:text-blue-500 transition-colors">Reviews</a>
+                                            <a href="#faq" className="hover:text-blue-500 transition-colors">FAQ</a>
+                                            <button 
+                                                onClick={() => handleCTAClick('mobile-menu')}
+                                                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-300 font-medium text-left"
+                                            >
+                                                Download Now
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </nav>
+
+                        {/* Hero Section */}
+                        <section className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 overflow-hidden">
+                            <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
+                            <div className="absolute top-20 left-20 w-72 h-72 bg-blue-500 rounded-full filter blur-3xl opacity-10 animate-pulse"></div>
+                            <div className="absolute bottom-20 right-20 w-72 h-72 bg-purple-500 rounded-full filter blur-3xl opacity-10 animate-pulse"></div>
+
+                            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                                <div className="fade-in-up">
+                                    <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent leading-tight">
+                                        Ace Your Coding Interviews with AI
+                                    </h1>
+                                    <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
+                                        Interview Corvus is your invisible AI assistant that provides real-time coding solutions, 
+                                        complexity analysis, and optimization suggestions while staying completely hidden during screen sharing.
+                                    </p>
+
+                                    <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
+                                        <button 
+                                            onClick={() => handleCTAClick('hero-primary')}
+                                            className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-4 rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                                        >
+                                            Download Free Trial
+                                        </button>
+                                        <button 
+                                            onClick={() => setShowVideoModal(true)}
+                                            className="flex items-center space-x-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-8 py-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 font-semibold text-lg border-2 border-gray-200 dark:border-gray-600 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                                        >
+                                            <Icon name="play" className="w-5 h-5" />
+                                            <span>Watch Demo</span>
+                                        </button>
+                                    </div>
+
+                                    <div className="flex flex-wrap justify-center items-center gap-8 text-sm text-gray-500 dark:text-gray-400">
+                                        <div className="flex items-center space-x-2">
+                                            <Icon name="check" className="w-4 h-4 text-green-500" />
+                                            <span>100% Invisible During Screen Share</span>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <Icon name="check" className="w-4 h-4 text-green-500" />
+                                            <span>8+ Programming Languages</span>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <Icon name="check" className="w-4 h-4 text-green-500" />
+                                            <span>Real-time AI Solutions</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+                                <Icon name="chevronDown" className="w-6 h-6 text-gray-400" />
+                            </div>
+                        </section>
+
+                        {/* Product Highlights */}
+                        <section className="py-20 bg-white dark:bg-gray-900">
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                <div className="text-center mb-16">
+                                    <h2 className="text-3xl md:text-4xl font-bold mb-4">Why Interview Corvus?</h2>
+                                    <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+                                        The only coding interview assistant that stays completely invisible while providing expert-level solutions.
+                                    </p>
+                                </div>
+
+                                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                                    <div className="text-center group hover:scale-105 transition-transform duration-300">
+                                        <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:shadow-lg">
+                                            <Icon name="eye" className="w-8 h-8 text-white" />
+                                        </div>
+                                        <h3 className="text-xl font-semibold mb-2">100% Invisible</h3>
+                                        <p className="text-gray-600 dark:text-gray-300">
+                                            Completely hidden during screen sharing. No traces, no detection.
+                                        </p>
+                                    </div>
+
+                                    <div className="text-center group hover:scale-105 transition-transform duration-300">
+                                        <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:shadow-lg">
+                                            <Icon name="code" className="w-8 h-8 text-white" />
+                                        </div>
+                                        <h3 className="text-xl font-semibold mb-2">AI-Powered Solutions</h3>
+                                        <p className="text-gray-600 dark:text-gray-300">
+                                            Get complete solutions with detailed explanations using GPT-4.
+                                        </p>
+                                    </div>
+
+                                    <div className="text-center group hover:scale-105 transition-transform duration-300">
+                                        <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:shadow-lg">
+                                            <Icon name="clock" className="w-8 h-8 text-white" />
+                                        </div>
+                                        <h3 className="text-xl font-semibold mb-2">Complexity Analysis</h3>
+                                        <p className="text-gray-600 dark:text-gray-300">
+                                            Understand time and space complexity with detailed explanations.
+                                        </p>
+                                    </div>
+
+                                    <div className="text-center group hover:scale-105 transition-transform duration-300">
+                                        <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:shadow-lg">
+                                            <Icon name="camera" className="w-8 h-8 text-white" />
+                                        </div>
+                                        <h3 className="text-xl font-semibold mb-2">Screenshot Analysis</h3>
+                                        <p className="text-gray-600 dark:text-gray-300">
+                                            Capture problems directly from your screen for instant solutions.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Features Section */}
+                        <section id="features" className="py-20 bg-gray-50 dark:bg-gray-800">
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                <div className="text-center mb-16">
+                                    <h2 className="text-3xl md:text-4xl font-bold mb-4">Powerful Features</h2>
+                                    <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+                                        Everything you need to succeed in technical interviews.
+                                    </p>
+                                </div>
+
+                                <div className="grid lg:grid-cols-2 gap-16 items-center">
+                                    <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 shadow-xl">
+                                        <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center mb-4">
+                                            <span className="text-white text-2xl">🌐</span>
+                                        </div>
+                                        <h3 className="text-2xl font-bold mb-4">Multi-Language Support</h3>
+                                        <p className="text-gray-600 dark:text-gray-300 mb-6">
+                                            Support for Python, Java, JavaScript, C++, C#, Go, Rust, and Ruby. 
+                                            Switch between languages seamlessly during different interview rounds.
+                                        </p>
+                                        <ul className="space-y-2">
+                                            <li className="flex items-center space-x-2">
+                                                <Icon name="check" className="w-4 h-4 text-green-500" />
+                                                <span>8+ Programming Languages</span>
+                                            </li>
+                                            <li className="flex items-center space-x-2">
+                                                <Icon name="check" className="w-4 h-4 text-green-500" />
+                                                <span>Language-specific optimizations</span>
+                                            </li>
+                                            <li className="flex items-center space-x-2">
+                                                <Icon name="check" className="w-4 h-4 text-green-500" />
+                                                <span>Best practices for each language</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+
+                                    <div>
+                                        <img 
+                                            src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&h=400&fit=crop" 
+                                            alt="Multi-language code examples"
+                                            className="rounded-2xl shadow-xl"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Testimonials */}
+                        <section id="testimonials" className="py-20 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-900">
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                <div className="text-center mb-16">
+                                    <h2 className="text-3xl md:text-4xl font-bold mb-4">What Our Users Say</h2>
+                                    <p className="text-xl text-gray-600 dark:text-gray-300">
+                                        Join thousands of developers who landed their dream jobs with Interview Corvus.
+                                    </p>
+                                </div>
+
+                                <div className="relative">
+                                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 md:p-12 text-center max-w-4xl mx-auto">
+                                        <div className="flex justify-center mb-4">
+                                            {[...Array(testimonials[activeTestimonial].rating)].map((_, i) => (
+                                                <Icon key={i} name="star" className="w-6 h-6 text-yellow-400" />
+                                            ))}
+                                        </div>
+                                        <blockquote className="text-xl md:text-2xl text-gray-700 dark:text-gray-300 mb-8 italic leading-relaxed">
+                                            "{testimonials[activeTestimonial].content}"
+                                        </blockquote>
+                                        <div className="flex items-center justify-center space-x-4">
+                                            <img 
+                                                src={testimonials[activeTestimonial].avatar} 
+                                                alt={testimonials[activeTestimonial].name}
+                                                className="w-16 h-16 rounded-full"
+                                            />
+                                            <div className="text-left">
+                                                <div className="font-semibold text-lg">{testimonials[activeTestimonial].name}</div>
+                                                <div className="text-gray-600 dark:text-gray-400">{testimonials[activeTestimonial].role}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-center mt-8 space-x-2">
+                                        {testimonials.map((_, index) => (
+                                            <button
+                                                key={index}
+                                                onClick={() => setActiveTestimonial(index)}
+                                                className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                                                    index === activeTestimonial 
+                                                        ? 'bg-blue-500 w-8' 
+                                                        : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500'
+                                                }`}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Pricing Section */}
+                        <section id="pricing" className="py-20 bg-white dark:bg-gray-900">
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                <div className="text-center mb-16">
+                                    <h2 className="text-3xl md:text-4xl font-bold mb-4">Simple, Transparent Pricing</h2>
+                                    <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
+                                        Choose the plan that fits your interview preparation needs.
+                                    </p>
+
+                                    <div className="flex items-center justify-center space-x-4 mb-8">
+                                        <span className={`text-lg ${!isYearlyPricing ? 'text-blue-500 font-semibold' : 'text-gray-500'}`}>
+                                            Monthly
+                                        </span>
+                                        <button
+                                            onClick={() => setIsYearlyPricing(!isYearlyPricing)}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${
+                                                isYearlyPricing ? 'bg-blue-500' : 'bg-gray-300'
+                                            }`}
+                                        >
+                                            <span
+                                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300 ${
+                                                    isYearlyPricing ? 'translate-x-6' : 'translate-x-1'
+                                                }`}
+                                            />
+                                        </button>
+                                        <span className={`text-lg ${isYearlyPricing ? 'text-blue-500 font-semibold' : 'text-gray-500'}`}>
+                                            Yearly
+                                            <span className="ml-1 text-sm bg-green-100 text-green-800 px-2 py-1 rounded-full">Save 17%</span>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                                    {pricingTiers.map((tier, index) => (
+                                        <div 
+                                            key={tier.name}
+                                            className={`relative rounded-2xl p-8 transition-all duration-300 hover:scale-105 ${
+                                                tier.popular 
+                                                    ? 'bg-gradient-to-b from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-2 border-blue-500 shadow-2xl' 
+                                                    : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl'
+                                            }`}
+                                        >
+                                            {tier.popular && (
+                                                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                                                    <span className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-2 rounded-full text-sm font-semibold">
+                                                        Most Popular
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                            <div className="text-center mb-8">
+                                                <h3 className="text-2xl font-bold mb-2">{tier.name}</h3>
+                                                <p className="text-gray-600 dark:text-gray-300 mb-4">{tier.description}</p>
+                                                <div className="mb-4">
+                                                    <span className="text-4xl font-bold">
+                                                        ${isYearlyPricing ? tier.price.yearly : tier.price.monthly}
+                                                    </span>
+                                                    <span className="text-gray-600 dark:text-gray-300 ml-2">
+                                                        /{isYearlyPricing ? 'year' : 'month'}
+                                                    </span>
+                                                </div>
+                                                {isYearlyPricing && (
+                                                    <p className="text-sm text-green-600 dark:text-green-400">
+                                                        Save ${(tier.price.monthly * 12) - tier.price.yearly} yearly
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            <ul className="space-y-4 mb-8">
+                                                {tier.features.map((feature, featureIndex) => (
+                                                    <li key={featureIndex} className="flex items-center space-x-3">
+                                                        <Icon name="check" className="w-5 h-5 text-green-500 flex-shrink-0" />
+                                                        <span className="text-gray-700 dark:text-gray-300">{feature}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+
+                                            <button 
+                                                onClick={() => {
+                                                    handleCTAClick('pricing');
+                                                    trackEvent('Pricing_Plan_Selected', { plan: tier.name, billing: isYearlyPricing ? 'yearly' : 'monthly' });
+                                                }}
+                                                className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-300 ${
+                                                    tier.popular
+                                                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl'
+                                                        : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600'
+                                                }`}
+                                            >
+                                                Get Started
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="text-center mt-12">
+                                    <p className="text-gray-600 dark:text-gray-300 mb-4">
+                                        All plans include a 14-day free trial. No credit card required.
+                                    </p>
+                                    <div className="flex flex-wrap justify-center gap-8 text-sm text-gray-500">
+                                        <span>✓ 14-day free trial</span>
+                                        <span>✓ No setup fees</span>
+                                        <span>✓ Cancel anytime</span>
+                                        <span>✓ 30-day money back guarantee</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* FAQ Section */}
+                        <section id="faq" className="py-20 bg-gray-50 dark:bg-gray-800">
+                            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                                <div className="text-center mb-16">
+                                    <h2 className="text-3xl md:text-4xl font-bold mb-4">Frequently Asked Questions</h2>
+                                    <p className="text-xl text-gray-600 dark:text-gray-300">
+                                        Got questions? We've got answers.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-4">
+                                    {faqs.map((faq, index) => (
+                                        <div 
+                                            key={index}
+                                            className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg overflow-hidden"
+                                        >
+                                            <button
+                                                onClick={() => setExpandedFAQ(expandedFAQ === index ? null : index)}
+                                                className="w-full px-8 py-6 text-left flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-300"
+                                            >
+                                                <span className="text-lg font-semibold pr-4">{faq.question}</span>
+                                                <Icon 
+                                                    name={expandedFAQ === index ? 'chevronUp' : 'chevronDown'} 
+                                                    className={`w-5 h-5 ${expandedFAQ === index ? 'text-blue-500' : 'text-gray-400'} flex-shrink-0`} 
+                                                />
+                                            </button>
+                                            {expandedFAQ === index && (
+                                                <div className="px-8 pb-6">
+                                                    <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+                                                        {faq.answer}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Newsletter Section */}
+                        <section className="py-20 bg-gradient-to-r from-blue-500 to-purple-600">
+                            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                                <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                                    Stay Ahead of the Competition
+                                </h2>
+                                <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+                                    Get weekly interview tips, coding patterns, and exclusive strategies delivered straight to your inbox.
+                                </p>
+
+                                <form 
+                                    onSubmit={(e) => {
+                                        e.preventDefault();
+                                        trackEvent('Newsletter_Signup', { email });
+                                        alert('Thanks for subscribing! This is a demo.');
+                                        setEmail('');
+                                    }}
+                                    className="max-w-md mx-auto"
+                                >
+                                    <div className="flex gap-4">
+                                        <input
+                                            type="email"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            placeholder="Enter your email address"
+                                            required
+                                            className="flex-1 px-6 py-4 rounded-xl border-0 focus:ring-4 focus:ring-blue-300 focus:outline-none text-gray-900"
+                                        />
+                                        <button 
+                                            type="submit"
+                                            className="bg-white text-blue-600 px-8 py-4 rounded-xl hover:bg-gray-100 transition-colors duration-300 font-semibold whitespace-nowrap"
+                                        >
+                                            Subscribe
+                                        </button>
+                                    </div>
+                                </form>
+
+                                <p className="text-sm text-blue-100 mt-4">
+                                    Join 10,000+ developers. Unsubscribe anytime.
+                                </p>
+                            </div>
+                        </section>
+
+                        {/* Footer */}
+                        <footer className="bg-gray-900 text-white py-16">
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                                    <div>
+                                        <div className="flex items-center space-x-2 mb-6">
+                                            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                                                <span className="text-white font-bold text-sm">IC</span>
+                                            </div>
+                                            <span className="font-bold text-xl">Interview Corvus</span>
+                                        </div>
+                                        <p className="text-gray-400 mb-6 leading-relaxed">
+                                            The AI-powered invisible assistant that helps developers ace their coding interviews with confidence.
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <h3 className="font-semibold text-lg mb-6">Product</h3>
+                                        <ul className="space-y-4">
+                                            <li><a href="#features" className="text-gray-400 hover:text-white transition-colors">Features</a></li>
+                                            <li><a href="#pricing" className="text-gray-400 hover:text-white transition-colors">Pricing</a></li>
+                                            <li><a href="https://github.com/afaneor/interview-corvus/releases" className="text-gray-400 hover:text-white transition-colors">Download</a></li>
+                                        </ul>
+                                    </div>
+
+                                    <div>
+                                        <h3 className="font-semibold text-lg mb-6">Resources</h3>
+                                        <ul className="space-y-4">
+                                            <li><a href="https://github.com/afaneor/interview-corvus" className="text-gray-400 hover:text-white transition-colors">Documentation</a></li>
+                                            <li><a href="#faq" className="text-gray-400 hover:text-white transition-colors">FAQ</a></li>
+                                            <li><a href="https://t.me/pavlin_share" className="text-gray-400 hover:text-white transition-colors">Support</a></li>
+                                        </ul>
+                                    </div>
+
+                                    <div>
+                                        <h3 className="font-semibold text-lg mb-6">Legal</h3>
+                                        <ul className="space-y-4">
+                                            <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Privacy Policy</a></li>
+                                            <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Terms of Service</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <hr className="border-gray-800 my-12" />
+
+                                <div className="flex flex-col md:flex-row justify-between items-center">
+                                    <p className="text-gray-400 mb-4 md:mb-0">
+                                        © 2024 Interview Corvus. All rights reserved. Created by{' '}
+                                        <a href="https://t.me/pavlin_share" className="text-blue-400 hover:text-blue-300 transition-colors">
+                                            Nikolay Pavlin
+                                        </a>
+                                    </p>
+                                    <div className="flex items-center space-x-6 text-gray-400">
+                                        <span>Made with ❤️ for developers</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </footer>
+
+                        {/* Video Modal */}
+                        {showVideoModal && (
+                            <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+                                <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-4xl w-full relative">
+                                    <button
+                                        onClick={() => setShowVideoModal(false)}
+                                        className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                                    >
+                                        <Icon name="xMark" className="w-6 h-6" />
+                                    </button>
+                                    <h3 className="text-2xl font-bold mb-4">Interview Corvus Demo</h3>
+                                    <div className="aspect-video bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center">
+                                        <div className="text-center">
+                                            <Icon name="play" className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                                            <p className="text-gray-500">Video Player Placeholder</p>
+                                            <p className="text-sm text-gray-400 mt-2">Replace with actual video embed</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Chat Widget */}
+                        <div className="fixed bottom-6 right-6 z-40">
+                            <button 
+                                onClick={() => trackEvent('Chat_Widget_Clicked')}
+                                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-300"
+                                title="Chat with us"
+                            >
+                                💬
+                            </button>
+                        </div>
+
+                        {/* Sticky Mobile CTA */}
+                        <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 p-4 z-30 md:hidden">
+                            <button 
+                                onClick={() => handleCTAClick('sticky-mobile')}
+                                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-xl font-semibold"
+                            >
+                                Download Free Trial
+                            </button>
+                        </div>
+
+                        {/* Back to Top Button */}
+                        {showBackToTop && (
+                            <button
+                                onClick={ScrollToTop}
+                                className="fixed bottom-24 right-6 bg-gray-800 dark:bg-gray-700 text-white p-3 rounded-full shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-300 z-40"
+                                title="Back to top"
+                            >
+                                <Icon name="arrowUp" className="w-5 h-5" />
+                            </button>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<InterviewCorvusLandingPage />, document.getElementById('root'));
+    </script>
+</body>
+</html>
