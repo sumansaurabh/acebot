@@ -238,7 +238,7 @@ class WebServerAPI(QObject):
             )
     
     def optimize_solution(self, request: OptimizeSolutionRequest) -> OptimizationResponse:
-        """Optimize the provided code."""
+        """Optimize the provided code (non-streaming version)."""
         try:
             if not self.gui_connected:
                 return OptimizationResponse(
@@ -318,6 +318,69 @@ class WebServerAPI(QObject):
                 success=False,
                 message=f"Failed to optimize code: {str(e)}"
             )
+    
+    def optimize_solution_stream(self, request: OptimizeSolutionRequest):
+        """Optimize the provided code with streaming support (for SSE)."""
+        from fastapi.responses import StreamingResponse
+        import json
+        
+        def generate_optimization_stream():
+            """Generate streaming optimization response."""
+            try:
+                if not self.gui_connected:
+                    yield f"data: {json.dumps({'error': 'GUI services not connected'})}\n\n"
+                    return
+
+                print(f"🌊 Web API: Starting streaming optimization for {request.language} code")
+                
+                # Use the streaming optimization method
+                for optimization_update in self.llm_service.get_code_optimization_stream(
+                    request.code, request.language
+                ):
+                    # Convert to dictionary for JSON serialization
+                    if hasattr(optimization_update, 'model_dump'):
+                        optimization_dict = optimization_update.model_dump()
+                    elif hasattr(optimization_update, '__dict__'):
+                        optimization_dict = optimization_update.__dict__
+                    else:
+                        optimization_dict = {"raw": str(optimization_update)}
+                    
+                    # Add metadata for streaming
+                    stream_data = {
+                        "type": "progress" if not optimization_update.is_complete else "complete",
+                        "optimization": optimization_dict,
+                        "progress": optimization_update.progress,
+                        "is_complete": optimization_update.is_complete
+                    }
+                    
+                    # Send SSE formatted data
+                    yield f"data: {json.dumps(stream_data)}\n\n"
+                    
+                    # Store final optimization in LLM service if complete
+                    if optimization_update.is_complete:
+                        self.llm_service._last_optimization = optimization_dict
+                        self.optimization_generated_from_web.emit(optimization_update)
+                        print("✅ Web API: Streaming optimization completed")
+                        break
+
+            except Exception as e:
+                error_data = {
+                    "type": "error",
+                    "error": str(e),
+                    "message": f"Streaming optimization failed: {str(e)}"
+                }
+                yield f"data: {json.dumps(error_data)}\n\n"
+                print(f"❌ Web API: Streaming optimization failed: {e}")
+
+        return StreamingResponse(
+            generate_optimization_stream(),
+            media_type="text/plain",
+            headers={
+                "Content-Type": "text/plain; charset=utf-8",
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive"
+            }
+        )
     
     def get_screenshots(self) -> ScreenshotListResponse:
         """Get list of available screenshots."""

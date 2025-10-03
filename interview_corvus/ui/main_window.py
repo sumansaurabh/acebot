@@ -489,6 +489,9 @@ class MainWindow(QMainWindow):
         self.optimization_thread = self._create_optimization_thread(current_code, selected_language)
         self.optimization_thread.solution_ready.connect(self.on_optimization_ready)
         self.optimization_thread.error_occurred.connect(self.on_processing_error)
+        # Connect new streaming progress signal if streaming is enabled
+        if settings.llm.streaming:
+            self.optimization_thread.progress_update.connect(self.on_optimization_progress)
         self.optimization_thread.start()
 
     def _create_solution_thread(self, screenshot_paths, language):
@@ -519,10 +522,12 @@ class MainWindow(QMainWindow):
         return ScreenshotProcessingThread(self.llm_service, screenshot_paths, language)
 
     def _create_optimization_thread(self, code, language):
-        """Create a thread for optimization."""
+        """Create a thread for optimization (supports both streaming and non-streaming)."""
         class OptimizationThread(QThread):
             solution_ready = pyqtSignal(object)
             error_occurred = pyqtSignal(str)
+            # New signals for streaming support
+            progress_update = pyqtSignal(object)  # For partial updates
 
             def __init__(self, llm_service, code, language):
                 super().__init__()
@@ -532,8 +537,24 @@ class MainWindow(QMainWindow):
 
             def run(self):
                 try:
-                    optimization = self.llm_service.get_code_optimization(self.code, self.language)
-                    self.solution_ready.emit(optimization)
+                    # Check if streaming is enabled in settings
+                    if settings.llm.streaming:
+                        logger.info("Using streaming optimization")
+                        # Use streaming optimization
+                        for optimization_update in self.llm_service.get_code_optimization_stream(
+                            self.code, self.language
+                        ):
+                            if optimization_update.is_complete:
+                                # Final result
+                                self.solution_ready.emit(optimization_update)
+                            else:
+                                # Partial update
+                                self.progress_update.emit(optimization_update)
+                    else:
+                        # Use regular optimization
+                        logger.info("Using regular optimization")
+                        optimization = self.llm_service.get_code_optimization(self.code, self.language)
+                        self.solution_ready.emit(optimization)
                 except Exception as e:
                     logger.error(f"Error in optimization thread: {e}")
                     self.error_occurred.emit(str(e))
@@ -616,6 +637,26 @@ class MainWindow(QMainWindow):
         
         self.status_bar_manager.show_message("Solution optimized")
         logger.info("Solution optimized successfully")
+
+    @pyqtSlot(object)
+    def on_optimization_progress(self, partial_optimization):
+        """Handle streaming optimization progress updates."""
+        logger.info(f"🌊 Optimization progress: {partial_optimization.progress * 100:.1f}%")
+        
+        # Update UI with partial optimization
+        self.content_display.display_optimization(partial_optimization)
+        
+        # Update status bar with progress
+        progress_percent = int(partial_optimization.progress * 100)
+        self.status_bar_manager.set_progress_text(f"Optimizing... {progress_percent}%")
+        
+        # Update solution text for button states
+        if hasattr(partial_optimization, 'optimized_code'):
+            self.solution_text = partial_optimization.optimized_code
+        
+        # Update web API state with partial result if connected
+        if self.web_api:
+            self.web_api.update_optimization_from_gui(partial_optimization)
 
     @pyqtSlot(str)
     def on_processing_error(self, error_message):
