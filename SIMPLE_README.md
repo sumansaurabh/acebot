@@ -31,9 +31,3 @@ Interview Corvus helps you solve coding problems in real-time using AI while rem
 ## Download
 
 Get the latest version from the [Releases](https://github.com/afaneor/interview-corvus/releases) page.
-
-## Support
-
-Created by [Nikolay Pavlin](https://t.me/pavlin_share)
-
-Inspired by [interview-coder](https://github.com/ibttf/interview-coder)
